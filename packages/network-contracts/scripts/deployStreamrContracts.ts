@@ -138,22 +138,16 @@ export default async function deployBaseContracts(
         log("Deployed DATAv2 token to %s", contracts.token.address)
     }
 
-    console.log("asdf")
     if (STREAM_REGISTRY_ADDRESS && await provider.getCode(STREAM_REGISTRY_ADDRESS) !== "0x") {
-        console.log("asdf2")
         const registry = new Contract(STREAM_REGISTRY_ADDRESS, streamRegistryABI, signer) as StreamRegistry
-        console.log("asdf3")
         await registry.TRUSTED_ROLE().catch(() => { throw new Error(`Doesn't seem to be StreamRegistry: StreamRegistry=${STREAM_REGISTRY_ADDRESS}`) })
         log("Found StreamRegistry at %s", STREAM_REGISTRY_ADDRESS)
         contracts.streamRegistry = registry
     } else {
-        console.log("asdf2")
         const registryCF = await getContractFactory("StreamRegistryV5", { signer })
-        console.log("asdf3")
         contracts.streamRegistry = await upgrades.deployProxy(registryCF, [ AddressZero, AddressZero ], {
             kind: "uups", unsafeAllow: ["delegatecall"], timeout: 600000,
         }) as StreamRegistry
-        console.log("asdf4")
         await contracts.streamRegistry.deployed()
         log("Deployed StreamRegistry to %s", contracts.streamRegistry.address)
     }

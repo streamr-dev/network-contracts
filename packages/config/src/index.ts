@@ -459,6 +459,24 @@ export const config = {
             }
         ]
     },
+    "iotex": {
+        "id": 4689,
+        "name": "IoTeX",
+        "nativeCurrency": {
+            "symbol": "IOTX",
+            "name": "IOTX",
+            "decimals": 18
+        },
+        "rpcEndpoints": [
+            {
+                "url": "https://babel-api.mainnet.iotex.one"
+            }
+        ],
+        "contracts": {
+
+        },
+        "blockExplorerUrl": "https://iotexscan.io"
+    },
     "iotexTestnet": {
         "id": 4690,
         "name": "IoTeX Testnet",
@@ -474,21 +492,10 @@ export const config = {
         ],
         "contracts": {
             "DATA": "0x5ABD469031d2B5f939808565EAB8562d7Cbaa939",
-            "StreamRegistry": "0xDC695780959aa5aEe9B28dfED7332032e3045210",
-            "ENSCacheV2": "0xDDf8FB60f8c3ffb1C20375A30f6D8CFB0C48Bd38",
-            "StorageNodeRegistry": "0xc0F9666fbF16B2ac5726697237BcdF79096e3FA7",
-            "StreamStorageRegistry": "0xd0C3A69762Bd920C1cAfBE91612a4600429f02f1",
-            "StreamrConfig": "0x6d201374D7c28EF1c3cc1b6FA300f06110B597A3",
-            "SponsorshipOperatorContractOnlyJoinPolicy": "0xAd24077505d3584F1AC8d78719F9d31F7Da0E264",
-            "SponsorshipMaxOperatorsJoinPolicy": "0x78d13aaBA657F448933Bb469E4E549Dee88cB78B",
-            "SponsorshipStakeWeightedAllocationPolicy": "0xB14205AE3D7672B937B972EBdf2b986fB0B8CfaA",
-            "SponsorshipDefaultLeavePolicy": "0xfC9C1886EAd9a757039Edbee16Bea0183344D2BA",
-            "SponsorshipVoteKickPolicy": "0xd1cBD6b1Be710C41c01A9613802209843407b8b9",
-            "SponsorshipFactory": "0x84c8d8f9760639e159350e5d2Bfaada99b670114",
-            "OperatorDefaultDelegationPolicy": "0x67352e3F7dBA907aF877020aE7E9450C0029C70c",
-            "OperatorDefaultExchangeRatePolicy": "0xE41439BF434F9CfBF0153f5231C205d4ae0C22e3",
-            "OperatorDefaultUndelegationPolicy": "0xF655955dc561356851e95a6D0febeB0BAc955Ab5",
-            "OperatorFactory": "0xdaF0905e19C45b9Fea7E60D232061edF78E9F570"
+            "StreamRegistry": "0xc9F35DEaD87e193A1929CA1C8F1Ee93474937406",
+            "ENSCacheV2": "0x28728D58FADb8564a4D32c14dAd6F373a1d5Af37",
+            "StorageNodeRegistry": "0x973906163a967697C52771cD2d7166d0548Ee698",
+            "StreamStorageRegistry": "0xB0237203987cf33C8035E03Aef1dBa117b7DdCE3",
         },
         "blockExplorerUrl": "https://testnet.iotexscan.io",
         "entryPoints": [

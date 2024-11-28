@@ -324,6 +324,19 @@
   },
   {
     "inputs": [],
+    "name": "PUBLIC_PERMISSION_USER_ID",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "TRUSTED_ROLE",
     "outputs": [
       {
@@ -1620,25 +1633,6 @@
         "internalType": "bool",
         "name": "canGrant",
         "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "",
-        "type": "string"
-      }
-    ],
-    "name": "streamIdToPublicPermissionUserKey",
-    "outputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
       }
     ],
     "stateMutability": "view",

@@ -1,4 +1,4 @@
-import { copyFileSync } from "fs"
+import { copyFileSync, existsSync } from "fs"
 
 import { task } from "hardhat/config"
 import { TASK_COMPILE } from "hardhat/builtin-tasks/task-names"
@@ -13,8 +13,6 @@ declare module "hardhat/types/config" {
             from: string,
             /** Destination directory + filename */
             to: string,
-            /** Only show warning if file is missing */
-            optional?: boolean,
         }[];
     }
 
@@ -22,22 +20,24 @@ declare module "hardhat/types/config" {
         copyFilesAfterCompilation: [{
             from: string,
             to: string,
-            optional?: boolean,
         }]
     }
 }
 
+const prefixes = [
+    "./",
+    "./node_modules/",
+    "../../node_modules/",
+    "",
+]
+
 task(TASK_COMPILE, async (_, hre, runSuper) => {
     await runSuper()
-    hre?.config?.copyFilesAfterCompilation?.forEach(({ from, to, optional }) => {
-        try {
-            copyFileSync(from, to)
-        } catch (e) {
-            if (!optional) {
-                throw e
-            } else {
-                console.warn(e)
-            }
+    hre?.config?.copyFilesAfterCompilation?.forEach(({ from, to }) => {
+        const fromPath = prefixes.map((prefix) => prefix + from).find(existsSync)
+        if (!fromPath) {
+            throw new Error(`copyFilesAfterCompilation: File not found: ${from}`)
         }
+        copyFileSync(fromPath, to)
     })
 })

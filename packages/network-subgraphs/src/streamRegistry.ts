@@ -56,7 +56,7 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
 }
 
 export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserId): void {
-    log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
+    log.info('handlePermissionUpdateForUserId: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
     let stream = Stream.load(event.params.streamId)
     if (stream == null) { return }
