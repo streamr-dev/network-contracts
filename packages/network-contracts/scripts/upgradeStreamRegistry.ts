@@ -63,7 +63,7 @@ async function main() {
     // log("Estimated gas cost: %s ETH (gas price %s gwei)", formatEther(estimatedGasCost), formatUnits(gasPrice, "gwei"))
 
     const balanceBefore = await provider.getBalance(signer.address)
-    log("Balance of %s: %s ETH", signer.address, formatEther(balanceBefore))
+    log("Balance of %s: %s native tokens", signer.address, formatEther(balanceBefore))
     // if (balanceBefore.lt(estimatedGasCost)) {
     //     if (!IGNORE_BALANCE) {
     //         throw new Error(
@@ -72,13 +72,23 @@ async function main() {
     //     }
     // }
 
+    const contractFactory = await getContractFactory(CONTRACT_NAME, { signer, txOverrides })
+
+    // If you get "Error: Deployment at address XXYY is not registered", this may help
+    // await upgrades.forceImport("XXYY", contractFactory)
+    // log("forceImport DONE")
+
     // see https://docs.openzeppelin.com/upgrades-plugins/1.x/api-hardhat-upgrades
     const upgradedStreamRegistry = await upgrades.upgradeProxy(
         streamRegistry.address,
-        await getContractFactory(CONTRACT_NAME, { signer, txOverrides })
+        contractFactory
     ) as StreamRegistryV5
     log("Checking new StreamRegistry at %s", upgradedStreamRegistry.address)
-    log("    %s [OK]", await upgradedStreamRegistry.getUserKeyForUserId("test.eth/1", "0x1234"))
+    try {
+        log("    %s [OK]", await upgradedStreamRegistry.getUserKeyForUserId("test.eth/1", "0x1234"))
+    } catch (error: any) {
+        log("Error calling getUserKeyForUserId: %o", error.message)
+    }
 
     const implementationAddress = await upgrades.erc1967.getImplementationAddress(streamRegistry.address)
     log("Implementation address: %s", implementationAddress)
