@@ -372,10 +372,10 @@ type OperatorDailyBucket @entity {
   "Delegators that joined today. Updated when Delegation entity is created"
   delegatorCountChange: Int!
 
-  "Sum of DATA tokens delegated to this operator today, by all delegators. Updated when Delegated event is fired"
+  "DATA value of received operator tokens, by all delegators. Updated when BalanceUpdate event is fired"
   totalDelegatedWei: BigInt!
 
-  "Sum of DATA tokens undelegated from this operator today, by all delegators. Updated when Undelegated event is fired"
+  "DATA value of sent/burned operator tokens, by all delegators. Updated when BalanceUpdate event is fired"
   totalUndelegatedWei: BigInt!
 
   "Sum of earnings today, less operator's share"
