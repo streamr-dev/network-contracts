@@ -18,6 +18,7 @@ declare module "hardhat/types/config" {
         contractSizer?: any;
         warnings?: any;
         etherscan?: any;
+        typechain?: any;
     }
 }
 
@@ -96,6 +97,20 @@ const config: HardhatUserConfig = {
             url: "https://peaq.api.onfinality.io/public",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
+        iotex: {
+            url: "https://babel-api.mainnet.IoTeX.io",
+            chainId: 4689,
+            gas: 8500000,
+            gasPrice: 1000000000000,
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"], // dummy key
+        },
+        iotexTestnet: {
+            url: "https://babel-api.testnet.IoTeX.io",
+            chainId: 4690,
+            gas: 8500000,
+            gasPrice: 1000000000000,
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"], // dummy key
+        },
     },
     dependencyCompiler: {
         paths: [
@@ -106,6 +121,7 @@ const config: HardhatUserConfig = {
             "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol",
             "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol",
             "@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol",
+            "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol", // needed for verifications
             "@ensdomains/ens-contracts/contracts/registry/ENS.sol",
             "@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol",
             "@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol",
@@ -190,6 +206,8 @@ const config: HardhatUserConfig = {
             polygon: process.env.ETHERSCAN_KEY || "",
             polygonAmoy: process.env.ETHERSCAN_KEY || "",
             peaq: process.env.ETHERSCAN_KEY || "",
+            iotexTestnet: "no key needed!",
+            iotex: "no key needed!",
         },
         customChains: [{
             network: "polygonAmoy",
@@ -204,6 +222,20 @@ const config: HardhatUserConfig = {
             urls: {
                 apiURL: "https://peaq-testnet.api.subscan.io",
                 browserURL: "https://peaq.subscan.io/"
+            },
+        }, {
+            network: "iotex",
+            chainId: 4689,
+            urls: {
+                apiURL: "https://iotexscout.io/api",
+                browserURL: "https://iotexscan.io"
+            },
+        }, {
+            network: "iotexTestnet",
+            chainId: 4690,
+            urls: {
+                apiURL: "https://testnet.iotexscout.io/api",
+                browserURL: "https://testnet.iotexscan.io"
             },
         }]
     },
