@@ -233,7 +233,7 @@ export function handleQueuedDataPayout(event: QueuedDataPayout): void {
     queueEntry.operator = operatorId
     queueEntry.amount = queuedAmount
     queueEntry.date = event.block.timestamp
-    queueEntry.delegator = delegator.id
+    queueEntry.delegator = delegatorId
     queueEntry.save()
 }
 
