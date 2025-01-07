@@ -563,7 +563,7 @@ type QueueEntry @entity {
   operator: Operator!
   amount: BigInt!
   date: BigInt!
-  delegator: Delegator!
+  delegator: Delegator # can be null in case a non-delegator called `undelegate`, so there is no corresponding Delegator entity
 }
 
 # Plain events, saved "as-is". TODO: do we need and want them? Will they be expensive in the new decentralized subgraph?
