@@ -225,7 +225,7 @@ export function handleQueuedDataPayout(event: QueuedDataPayout): void {
         operatorId, delegatorId, event.block.number.toString(), queuedAmount.toString()
     ])
 
-    // ETH-806 fix: in case a non-delegator called `undelegate`, a new Delegator entity is created
+    // ETH-802 fix: in case a non-delegator called `undelegate`, a new Delegator entity is created
     const delegator = loadOrCreateDelegator(delegatorId)
     delegator.save() // no-op in the normal case of existing delegator
 
