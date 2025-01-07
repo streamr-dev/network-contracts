@@ -38,7 +38,7 @@ The package exports all of the artifacts needed to interact with the contracts, 
 An example of how to use it can be seen in network-contracts/packages/network-contracts/scripts/tatum/streamrEnvDeployer.ts, that can be run with the streamrEnvDeployer npm task
 
 
-<h3>Proxy contracts</h3>
+### Proxy contracts
 
 The proxy enables upgradability of contract code without the need to change all addresses in software that talks to the contract and without the need to migrate data that is inside the old contract, that is being upgraded. Also the upgrade can only be controlled by a ProxyAdmin contract. To find out more visit
 https://docs.openzeppelin.com/contracts/3.x/api/proxy  and
@@ -51,7 +51,7 @@ npm run localDeployProxy
 then copy the Proxy and Proxyadmin addresses to the upgradeProxy.ts script and run it with
 ```
 npm run localUpgradeImpl
-````
+```
 
 # Changelog
 
