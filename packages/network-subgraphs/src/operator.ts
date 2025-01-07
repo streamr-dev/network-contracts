@@ -19,7 +19,7 @@ import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDai
     loadOrCreateNetwork,
     loadOrCreateFlag,
     loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
-import { Flag, QueueEntry, Delegator } from '../generated/schema'
+import { Flag, QueueEntry } from '../generated/schema'
 
 /** Undelegated is used for tracking the total amount undelegated across all Operators */
 export function handleUndelegated(event: Undelegated): void {
@@ -221,23 +221,27 @@ export function handleQueuedDataPayout(event: QueuedDataPayout): void {
     const operatorId = event.address.toHexString()
     const delegatorId = event.params.delegator.toHexString()
     const queuedAmount = event.params.amountWei
-    log.info('handleQueuedDataPayout: operatorContractAddress={} blockNumber={} amountDataWei={}', [
-        operatorId, event.block.number.toString(), queuedAmount.toString()
+    log.info('handleQueuedDataPayout: operatorContractAddress={} delegator={} blockNumber={} amountDataWei={}', [
+        operatorId, delegatorId, event.block.number.toString(), queuedAmount.toString()
     ])
+
+    // ETH-806 fix: in case a non-delegator called `undelegate`, a new Delegator entity is created
+    //   it will be cleaned up in handleQueueUpdated during payout, so no trash is caused by non-delegators
+    const delegator = loadOrCreateDelegator(delegatorId)
+    delegator.save() // no-op in the normal case of existing delegator
 
     const queueEntry = new QueueEntry(operatorId + "-" + event.params.queueIndex.toString())
     queueEntry.operator = operatorId
     queueEntry.amount = queuedAmount
     queueEntry.date = event.block.timestamp
-    queueEntry.delegator = Delegator.load(delegatorId) ? delegatorId : null
+    queueEntry.delegator = delegator.id
     queueEntry.save()
 }
 
 export function handleQueueUpdated(event: QueueUpdated): void {
     const operatorId = event.address.toHexString()
-    const delegatorId = event.params.delegator.toHexString()
-    log.info('handleQueueUpdated: operatorContractAddress={} delegator={} blockNumber={}', [
-        operatorId, delegatorId, event.block.number.toString()
+    log.info('handleQueueUpdated: operatorContractAddress={} blockNumber={}', [
+        operatorId, event.block.number.toString()
     ])
 
     const queueEntry = QueueEntry.load(operatorId + "-" + event.params.queueIndex.toString())
@@ -250,10 +254,6 @@ export function handleQueueUpdated(event: QueueUpdated): void {
         store.remove('QueueEntry', queueEntry.id)
     } else {
         queueEntry.amount = event.params.amountWei
-        if (queueEntry.delegator == null) {
-            // update delegator if it wasn't set in handleQueuedDataPayout
-            queueEntry.delegator = Delegator.load(delegatorId) ? delegatorId : null
-        }
         queueEntry.save()
     }
 }
