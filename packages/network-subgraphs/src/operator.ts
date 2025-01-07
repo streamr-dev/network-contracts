@@ -226,7 +226,6 @@ export function handleQueuedDataPayout(event: QueuedDataPayout): void {
     ])
 
     // ETH-806 fix: in case a non-delegator called `undelegate`, a new Delegator entity is created
-    //   it will be cleaned up in handleQueueUpdated during payout, so no trash is caused by non-delegators
     const delegator = loadOrCreateDelegator(delegatorId)
     delegator.save() // no-op in the normal case of existing delegator
 
