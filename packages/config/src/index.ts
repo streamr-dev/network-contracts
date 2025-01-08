@@ -272,16 +272,7 @@ export const config = {
                 "url": "https://polygon-rpc.com"
             },
             {
-                "url": "https://polygon.gateway.tenderly.co"
-            },
-            {
                 "url": "https://polygon.meowrpc.com"
-            },
-            {
-                "url": "https://polygon-pokt.nodies.app"
-            },
-            {
-                "url": "https://polygon.blockpi.network/v1/rpc/public"
             },
             {
                 "url": "https://rpc.ankr.com/polygon"
