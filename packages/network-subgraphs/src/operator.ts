@@ -219,16 +219,21 @@ export function handleLoss(event: Loss): void {
 
 export function handleQueuedDataPayout(event: QueuedDataPayout): void {
     const operatorId = event.address.toHexString()
+    const delegatorId = event.params.delegator.toHexString()
     const queuedAmount = event.params.amountWei
-    log.info('handleQueuedDataPayout: operatorContractAddress={} blockNumber={} amountDataWei={}', [
-        operatorId, event.block.number.toString(), queuedAmount.toString()
+    log.info('handleQueuedDataPayout: operatorContractAddress={} delegator={} blockNumber={} amountDataWei={}', [
+        operatorId, delegatorId, event.block.number.toString(), queuedAmount.toString()
     ])
+
+    // ETH-802 fix: in case a non-delegator called `undelegate`, a new Delegator entity is created
+    const delegator = loadOrCreateDelegator(delegatorId)
+    delegator.save() // no-op in the normal case of existing delegator
 
     const queueEntry = new QueueEntry(operatorId + "-" + event.params.queueIndex.toString())
     queueEntry.operator = operatorId
     queueEntry.amount = queuedAmount
     queueEntry.date = event.block.timestamp
-    queueEntry.delegator = event.params.delegator.toHexString()
+    queueEntry.delegator = delegatorId
     queueEntry.save()
 }
 
@@ -246,7 +251,7 @@ export function handleQueueUpdated(event: QueueUpdated): void {
     }
     if (event.params.amountWei.equals(BigInt.fromI32(0))) {
         store.remove('QueueEntry', queueEntry.id)
-    }  else {
+    } else {
         queueEntry.amount = event.params.amountWei
         queueEntry.save()
     }
