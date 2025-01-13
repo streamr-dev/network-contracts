@@ -312,6 +312,7 @@ export class StreamrEnvDeployer {
         this.contracts.streamrConfig = streamrConfig
         log(`streamrConfig address ${streamrConfig.address}`)
         await (await streamrConfig.setStreamRegistryAddress(this.addresses.StreamRegistry)).wait()
+        await (await streamrConfig.setMinimumDelegationSeconds(1)).wait()
 
         const operatorsOnlyJoinPolicy = await (new ContractFactory(operatorContractOnlyJoinPolicyABI, operatorContractOnlyJoinPolicyBytecode,
             this.adminWallet)).deploy() as OperatorContractOnlyJoinPolicy
