@@ -449,7 +449,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
      * @dev hopefully this whole kludge can be replaced with pure solidity once they get their delegate-static-call working
      */
     fallback(bytes calldata args) external returns (bytes memory) {
-        if (msg.sender != address(this)) { // trusted forwarder should NOT be able to set this
+        if (msg.sender != address(this)) { // not using _msgSender() because the trusted forwarder should NOT be able to set it
             revert AccessDenied();
         }
 
