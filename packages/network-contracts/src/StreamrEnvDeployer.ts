@@ -129,6 +129,10 @@ export class StreamrEnvDeployer {
         await this.deployOperatorFactory()
         await this.preloadDATAToken()
         this.controller = this.preloadedDATAWallets[4]
+        // TODO move this e.g. to deploySponsorshipFactory() when deterministic contract address are in use (ETH-807)
+        // (Currently all transactions affect the contract address calculation, i.e. this script produces
+        // different contract address for some contracts if this transaction is exectuted inside deploySponsorshipFactory())
+        await (await this.contracts.streamrConfig.setMinimumDelegationSeconds(1)).wait()
     }
 
     async createFundStakeSponsorshipAndOperator(): Promise<void> {
@@ -312,7 +316,6 @@ export class StreamrEnvDeployer {
         this.contracts.streamrConfig = streamrConfig
         log(`streamrConfig address ${streamrConfig.address}`)
         await (await streamrConfig.setStreamRegistryAddress(this.addresses.StreamRegistry)).wait()
-        await (await streamrConfig.setMinimumDelegationSeconds(1)).wait()
 
         const operatorsOnlyJoinPolicy = await (new ContractFactory(operatorContractOnlyJoinPolicyABI, operatorContractOnlyJoinPolicyBytecode,
             this.adminWallet)).deploy() as OperatorContractOnlyJoinPolicy
