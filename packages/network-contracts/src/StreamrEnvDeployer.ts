@@ -130,8 +130,8 @@ export class StreamrEnvDeployer {
         await this.preloadDATAToken()
         this.controller = this.preloadedDATAWallets[4]
         // TODO move this e.g. to deploySponsorshipFactory() when deterministic contract address are in use (ETH-807)
-        // (Currently all transactions affect the contract address calculation, i.e. this script produces
-        // different contract address for some contracts if this transaction is exectuted inside deploySponsorshipFactory())
+        // Currently all transactions affect the contract address calculation, i.e. some contract addresses change
+        //   (relative to what's in @streamr/config) if this transaction is executed inside deploySponsorshipFactory()
         await (await this.contracts.streamrConfig.setMinimumDelegationSeconds(1)).wait()
     }
 
