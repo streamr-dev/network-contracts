@@ -30,9 +30,7 @@ const {
         ProjectStakingV1: PROJECT_STAKING_ADDRESS = '0xBFCF120a8fD17670536f1B27D9737B775b2FD4CF',
     }
 } = (config as any)[CHAIN]
-// const LINK_TOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
-// const PROJECT_REGISTRY_ADDRESS = "" // mumbai
-// const MARKETPLACE_ADDRESS = "" // mumbai
+// const LINK_TOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // TODO: deploy to amoy?
 
 let projectRegistry: ProjectRegistryV1
 let projectStaking: ProjectStakingV1
@@ -48,7 +46,7 @@ const paymentDetailsDefault: any[] = [] // PaymentDetailsByChain[]
 
 const connectWallets = () => {
     const provider = new providers.JsonRpcProvider(ETHEREUM_RPC_URL)
-    // const provider = new providers.JsonRpcProvider('https://rpc-mumbai.maticvigil.com/v1/' + process.env.MATIC_KEY) // mumbai
+    // const provider = new providers.JsonRpcProvider('https://polygon-amoy-bor-rpc.publicnode.com')
     deployerWallet = new Wallet(DEPLOYER_PRIVATE_KEY, provider)
     adminWallet = new Wallet(PROJECT_ADMIN_KEY, provider)
     buyerWallet = new Wallet(BUYER_KEY, provider)

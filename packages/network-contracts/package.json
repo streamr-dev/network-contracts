@@ -44,13 +44,13 @@
   },
   "dependencies": {
     "@chainlink/contracts": "0.3.1",
-    "@ensdomains/ens-contracts": "0.0.22",
     "@opengsn/contracts": "2.2.6",
     "@openzeppelin/contracts": "4.4.2",
     "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2"
   },
   "devDependencies": {
     "@chainsafe/as-sha256": "^0.3.1",
+    "@ensdomains/ens-contracts": "0.0.22",
     "@ethersproject/providers": "5.7.0",
     "@ethersproject/wallet": "5.7.0",
     "@ethersproject/contracts": "5.7.0",
@@ -62,6 +62,7 @@
     "@metamask/eth-sig-util": "7.0.1",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.5",
     "@nomicfoundation/hardhat-toolbox": "2.0.0",
+    "@nomicfoundation/hardhat-verify": "2.0.11",
     "@opengsn/provider": "2.2.6",
     "@openzeppelin/hardhat-upgrades": "1.22.1",
     "@streamr/config": "^5.0.0",

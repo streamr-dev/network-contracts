@@ -15,7 +15,7 @@ type _Schema_
 type StreamPermission @entity {
   id: ID!
   "[DEPRECATED] Ethereum address, owner of this permission; only if permission granting didn't use *forUserId functions"
-  userAddress: Bytes
+  userAddress: Bytes! @deprecated(reason: "Use userId instead")
   "Ethereum address or other ID, owner of this permission"
   userId: Bytes!
   "Target stream this permission applies to"

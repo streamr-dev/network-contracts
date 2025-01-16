@@ -21,7 +21,7 @@ const {
         LINK: LINK_TOKEN_ADDRESS,
     }
 } = (config as any)[REMOTE_CHAIN]
-// const LINK_TOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // mumbai
+// const LINK_TOKEN_ADDRESS = '0x326C977E6efc84E512bB9C30f76E30c160eD06FB' // TODO: deploy to amoy?
 // const REMOTE_MARKETPLACE_ADDRESS = "" // goerli => must send some ETH to this address; contract pays for interchain gas fees
 
 const blockExplorer: string = chainToBlockExplorer(REMOTE_CHAIN)
@@ -115,7 +115,7 @@ async function main() {
     await linkToken.connect(admin).approve(remoteMarketplace.address, subscriptionSeconds * pricePerToken)
     await buy(existingProjectId, subscriptionSeconds, admin)
     log('Remote marketplace balance after buy: %s', (await hardhatEthers.provider.getBalance(REMOTE_MARKETPLACE_ADDRESS)).toString())
-    
+
 }
 
 main().catch((error) => {

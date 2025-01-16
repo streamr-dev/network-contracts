@@ -18,6 +18,21 @@ Test the images manually before pushing to Docker Hub:
 
 You should now see the two images freshly built: `docker images |head -n 3`
 
+#### Troubleshooting
+
+##### Error: "Lock is already released" (on a Mac with an ARM processor)
+
+This error is most likely due to the need to install Rosetta so that Hardhat can run the Solidity compiler. To determine if the CPU architecture of the compiler is the root cause, try running one of the compilers downloaded to Hardhat's cache:
+```
+cd ~/Library/Caches/hardhat-nodejs/compilers-v2
+./solc-macosx-amd64-VERSION-NUMBER-AND-COMMIT --version
+```
+
+If the run fails with error `bad CPU type in executable`, install Rosetta by executing:
+```
+softwareupdate --install-rosetta
+```
+
 ### Testing the Docker images manually
 
 1. `streamr-docker-dev start deploy-network-subgraphs-fastchain`

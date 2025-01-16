@@ -8,12 +8,16 @@ import "@nomiclabs/hardhat-etherscan"
 import "hardhat-contract-sizer"
 // import "hardhat-gas-reporter"
 
+import "./tasks/copyFilesAfterCompilation"
+
 import { HardhatUserConfig } from "hardhat/types"
 
 declare module "hardhat/types/config" {
     interface HardhatUserConfig {
-      dependencyCompiler?: any;
-      contractSizer?: any;
+        dependencyCompiler?: any;
+        contractSizer?: any;
+        warnings?: any;
+        etherscan?: any;
     }
 }
 
@@ -76,18 +80,9 @@ const config: HardhatUserConfig = {
             // gasPrice: 80000000000,
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
-        mumbai: {
-            chainId: 80001,
-            url: process.env.ETHEREUM_RPC || "https://rpc-mumbai.maticvigil.com",
-            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
-        },
-        polygonMumbai: {
-            chainId: 80001,
-            url: process.env.ETHEREUM_RPC || "https://rpc-mumbai.maticvigil.com",
-            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
-        },
         polygonAmoy: {
             chainId: 80002,
+            gasPrice: 30000000000, // prevent "gas tip cap 0" error
             url: process.env.ETHEREUM_RPC || "https://rpc-amoy.polygon.technology",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
         },
@@ -100,7 +95,7 @@ const config: HardhatUserConfig = {
             chainId: 3338,
             url: "https://peaq.api.onfinality.io/public",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
-        }
+        },
     },
     dependencyCompiler: {
         paths: [
@@ -114,8 +109,13 @@ const config: HardhatUserConfig = {
             "@ensdomains/ens-contracts/contracts/registry/ENS.sol",
             "@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol",
             "@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol",
+            "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol", // exported in exports.ts
         ],
     },
+    copyFilesAfterCompilation: [{
+        from: "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json",
+        to: "./artifacts/PublicResolver_mainnet_9412610.json"
+    }],
     solidity: {
         compilers: [
             {
@@ -188,7 +188,6 @@ const config: HardhatUserConfig = {
     etherscan: {
         apiKey: {
             polygon: process.env.ETHERSCAN_KEY || "",
-            polygonMumbai: process.env.ETHERSCAN_KEY || "",
             polygonAmoy: process.env.ETHERSCAN_KEY || "",
             peaq: process.env.ETHERSCAN_KEY || "",
         },

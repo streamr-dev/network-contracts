@@ -272,22 +272,10 @@ export const config = {
                 "url": "https://polygon-rpc.com"
             },
             {
-                "url": "https://polygon.gateway.tenderly.co"
-            },
-            {
                 "url": "https://polygon.meowrpc.com"
             },
             {
-                "url": "https://polygon-pokt.nodies.app"
-            },
-            {
-                "url": "https://polygon.blockpi.network/v1/rpc/public"
-            },
-            {
                 "url": "https://rpc.ankr.com/polygon"
-            },
-            {
-                "url": "https://polygon.rpc.blxrbdn.com"
             },
             {
                 "url": "https://rpc-mainnet.matic.quiknode.pro"
@@ -342,69 +330,6 @@ export const config = {
                 "nodeId": "6f5b53812fd9cc07f225a0b3a6aa5b96672e852e",
                 "websocket": {
                     "host": "polygon-entrypoint-4.streamr.network",
-                    "port": 40402,
-                    "tls": true
-                }
-            }
-        ]
-    },
-    "mumbai": {
-        "id": 80001,
-        "name": "Polygon Mumbai",
-        "nativeCurrency": {
-            "symbol": "MATIC",
-            "name": "Mumbai MATIC",
-            "decimals": 18
-        },
-        "rpcEndpoints": [
-            {
-                "url": "https://gateway.tenderly.co/public/polygon-mumbai"
-            },
-            {
-                "url": "https://rpc.ankr.com/polygon_mumbai"
-            }
-        ],
-        "contracts": {
-            "DATA": "0x53d8268307c6EE131AafDe5E6FD3575bADbB3D20",
-            "ENS": "0x0fEC601fD12fBB544f5fDCc489fb0641B2178954",
-            "FIFSRegistrar": "0x9f7251cc9A04Cb0dA4107Ea979ECBe5112A0fE69",
-            "PublicResolver": "0x3d381a2B2c588C891BD4986b52255336a267df3e",
-            "TrackerRegistry": "0x72BEAbAaBf4a46d5b525B3b46D3D2F9FacC93f2B",
-            "StorageNodeRegistry": "0xE6D449A7Ef200C0e50418c56F84079B9fe625199",
-            "StreamRegistry": "0x4F0779292bd0aB33B9EBC1DBE8e0868f3940E3F2",
-            "ENSCacheV2": "0x5eeb458843D4dE852f295ED8cb01BAd3b464bB67",
-            "StreamStorageRegistry": "0xA5a2298c9b48C08DaBF5D76727620d898FD2BEc1",
-            "StreamrConfig": "0x4D3F744BC5614986c10aF8Bf36B15372c72252D7",
-            "SponsorshipMaxOperatorsJoinPolicy": "0xFCa3ec6c20EeA8E60A631700a42A8B14dA8408D8",
-            "SponsorshipStakeWeightedAllocationPolicy": "0x500046908D2C478f71D8788A20d7f9A5c71b892c",
-            "SponsorshipDefaultLeavePolicy": "0x002f203d68BB30b00C72D65f7Ad468f138315b11",
-            "SponsorshipVoteKickPolicy": "0x7A948aa53f763810bF4aF8610c5A16CDf433206f",
-            "SponsorshipFactory": "0x9a842c37575f84A076036F2531134ba0a94a69C6",
-            "OperatorDefaultDelegationPolicy": "0xF96E1D4773651850b295cD93DFCc9E769F873749",
-            "OperatorDefaultExchangeRatePolicy": "0x1F3dA55fBAd65A417Bc7150C6A3ad3d6308E2Cef",
-            "OperatorDefaultUndelegationPolicy": "0x93fDAAEE4D29E04DE4A8C7d8aA8E003AdBe39b91",
-            "OperatorFactory": "0xb843fC3cB92c31AAa8d9e0379F7c5c204Faa82cA",
-            "ProjectRegistryV1": "0x35062aAda71A3dd6Dc3470866d418033113c3e40",
-            "MarketplaceV4": "0x4629ceBEA69F67D04e97f77C3F47E6E8E14114d5",
-            "ProjectStakingV1": "0x8E94F3c9453a6d2aEE0ac154eb4Bf8D6517393D0",
-            "DataUnionFactory": "0xc7e4042f801A86538c48761bEfCb05b846ab756C",
-            "DataUnionTemplate": "0x8d3dc2a15283C0af16895aD27253B9e1A777E789"
-        },
-        "theGraphUrl": "https://api.thegraph.com/subgraphs/name/streamr-dev/network",
-        "blockExplorerUrl": "https://mumbai.polygonscan.com",
-        "entryPoints": [
-            {
-                "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",
-                "websocket": {
-                    "host": "mumbai-entrypoint-1.streamr.network",
-                    "port": 40402,
-                    "tls": true
-                }
-            },
-            {
-                "nodeId": "24395826687b099fd735a730219ba750169c4f40",
-                "websocket": {
-                    "host": "mumbai-entrypoint-2.streamr.network",
                     "port": 40402,
                     "tls": true
                 }

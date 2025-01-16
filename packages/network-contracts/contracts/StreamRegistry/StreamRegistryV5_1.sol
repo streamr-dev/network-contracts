@@ -1,17 +1,5 @@
 /**
- * Polygon deployment tx hash: TODO
- *
- * Changes in V5:
- * - Added *forUserId functions: replace user as address with user as bytes calldata
- *   - this is to support permission targets longer than 20 bytes (different cryptography)
- *   - due to size concerns:
- *      - userIdHasPermission and userIdHasDirectPermission not included, can be done with getPermissionsForUserId
- *      - setPermissionsForUserId not included, can be done via setPermissionsForUserIds
- *      - createStreamWithPermissionsForUserIds not included because
- *          it's the only thing that requires getUserKeyForUserId to take memory instead of calldata,
- *          and anyway you'd probably want to give permissions to addresses upon creation probably, which is still supported
- *      - DRY refactorings: combined some internal functions to take userKey instead of address or bytes id
- * - Removed little used functions: transferAllPermissionsToUser, transferPermissionToUser
+ * Same as V5, only re-deployed to Amoy: https://amoy.polygonscan.com/tx/0xf3292c484ac562a92bc936a4f2626dbac2e6b03628b1f377480932aedeb91125
  */
 
 // SPDX-License-Identifier: MIT
@@ -33,11 +21,10 @@ import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol"
  * Permissions can be set for Ethereum addresses, or for arbitrary user IDs (bytes).
  */
 // solhint-disable-next-line contract-name-camelcase
-contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
+contract StreamRegistryV5_1 is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
     bytes32 public constant TRUSTED_ROLE = keccak256("TRUSTED_ROLE");
-    uint256 public constant MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-    address public constant PUBLIC_PERMISSION_USER_ID = address(0);
+    uint256 constant public MAX_INT = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
 
     event StreamCreated(string id, string metadata);
     event StreamDeleted(string id);
@@ -64,6 +51,9 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     // incremented when stream is (re-)created, so that users from old streams with same don't re-appear in the new stream (if they have permissions)
     mapping (string => uint32) public streamIdToVersion;
+
+    // the key in `streamIdToPermissions` mapping that corresponds to address(0), used for public permissions
+    mapping (string => bytes32) public streamIdToPublicPermissionUserKey;
 
     modifier streamExists(string calldata streamId) {
         require(exists(streamId), "error_streamDoesNotExist");
@@ -107,6 +97,10 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
     }
 
+    function version() public pure returns (uint256) {
+        return 5;
+    }
+
     //////////////////////////////////////////////////////////////////////////////////
     // STREAM MANAGEMENT
     //////////////////////////////////////////////////////////////////////////////////
@@ -138,6 +132,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
             subscribeExpiration: MAX_INT,
             canGrant: true
         });
+        streamIdToPublicPermissionUserKey[streamId] = getUserKey(streamId, address(0));
         emit StreamCreated(streamId, metadataJsonString);
         emit PermissionUpdated(streamId, ownerAddress, true, true, MAX_INT, MAX_INT, true);
         return streamId;
@@ -238,7 +233,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
             delete streamIdToPermissions[streamId][userKey];
             return;
         }
-        require(!(userKey == getUserKey(streamId, PUBLIC_PERMISSION_USER_ID) && canEditDeleteOrGrant), "error_publicCanOnlySubsPubl");
+        require(!(userKey == streamIdToPublicPermissionUserKey[streamId] && canEditDeleteOrGrant), "error_publicCanOnlySubsPubl");
 
         Permission storage perm = streamIdToPermissions[streamId][userKey];
         perm.canEdit = canEdit;
@@ -255,11 +250,11 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
 
     function hasPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
         return hasDirectPermission(streamId, user, permissionType) ||
-            hasDirectPermission(streamId, PUBLIC_PERMISSION_USER_ID, permissionType);
+            hasDirectPermission(streamId, address(0), permissionType);
     }
 
     function hasPublicPermission(string calldata streamId, PermissionType permissionType) public view returns (bool userHasPermission) {
-        return hasDirectPermission(streamId, PUBLIC_PERMISSION_USER_ID, permissionType);
+        return hasDirectPermission(streamId, address(0), permissionType);
     }
 
     function hasDirectPermission(string calldata streamId, address user, PermissionType permissionType) public view returns (bool userHasPermission) {
@@ -327,7 +322,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
         } else if (permissionType == PermissionType.Grant) {
             streamIdToPermissions[streamId][userKey].canGrant = grant;
         }
-        require(userKey != getUserKey(streamId, PUBLIC_PERMISSION_USER_ID) || isPubOrSub, "error_publicCanOnlySubsPubl");
+        require(userKey != streamIdToPublicPermissionUserKey[streamId] || isPubOrSub, "error_publicCanOnlySubsPubl");
 
         perm = streamIdToPermissions[streamId][userKey];
         if (!perm.canEdit && !perm.canDelete && !perm.canGrant && perm.publishExpiration < block.timestamp && perm.subscribeExpiration < block.timestamp) {
@@ -351,15 +346,15 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
 
     function grantPublicPermission(string calldata streamId, PermissionType permissionType) public hasGrantPermission(streamId) {
-        grantPermission(streamId, PUBLIC_PERMISSION_USER_ID, permissionType);
+        grantPermission(streamId, address(0), permissionType);
     }
 
     function revokePublicPermission(string calldata streamId, PermissionType permissionType) public hasGrantPermission(streamId) {
-        revokePermission(streamId, PUBLIC_PERMISSION_USER_ID, permissionType);
+        revokePermission(streamId, address(0), permissionType);
     }
 
     function setPublicPermission(string calldata streamId, uint256 publishExpiration, uint256 subscribeExpiration) public hasGrantPermission(streamId) {
-        setPermissionsForUser(streamId, PUBLIC_PERMISSION_USER_ID, false, false, publishExpiration, subscribeExpiration, false);
+        setPermissionsForUser(streamId, address(0), false, false, publishExpiration, subscribeExpiration, false);
     }
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -434,7 +429,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     }
     function _getPermissionsForUser(string calldata streamId, bytes32 userKey) private view returns (Permission memory permission) {
         permission = streamIdToPermissions[streamId][userKey];
-        Permission memory publicPermission = streamIdToPermissions[streamId][getUserKey(streamId, PUBLIC_PERMISSION_USER_ID)];
+        Permission memory publicPermission = streamIdToPermissions[streamId][streamIdToPublicPermissionUserKey[streamId]];
         if (permission.publishExpiration < block.timestamp && publicPermission.publishExpiration >= block.timestamp) {
             permission.publishExpiration = publicPermission.publishExpiration;
         }

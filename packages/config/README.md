@@ -101,3 +101,5 @@ make clean
 2.5.9: MarketplaceV4 address added on polygon, RemoteMarketpalce address added on gnosis
 
 2.5.10: Upgraded ProjectRegistry and RemoteMarketplace to ProjectRegistryV1 and RemoteMarketplaceV1
+
+5.4.0: Removed Mumbai (ETH-790)

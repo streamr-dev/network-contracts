@@ -1,4 +1,4 @@
-import { log, store } from '@graphprotocol/graph-ts'
+import { ByteArray, Bytes, log, store } from '@graphprotocol/graph-ts'
 
 import { StreamCreated, StreamDeleted, StreamUpdated, PermissionUpdated, PermissionUpdatedForUserId }
     from '../generated/StreamRegistry/StreamRegistry'
@@ -56,13 +56,19 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
 }
 
 export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserId): void {
-    log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
+    log.info('handlePermissionUpdateForUserId: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
     let stream = Stream.load(event.params.streamId)
     if (stream == null) { return }
 
     let permissionId = event.params.streamId + '-' + event.params.user.toHex()
     let permission = new StreamPermission(permissionId)
+    // pad/concatenate to 20 bytes, Ethereum addresses remain Ethereum addresses
+    permission.userAddress = Bytes.fromUint8Array(ByteArray
+        .fromHexString("0x0000000000000000000000000000000000000000")
+        .concat(event.params.user)
+        .slice(-20)
+    )
     permission.userId = event.params.user
     permission.stream = event.params.streamId
     permission.canEdit = event.params.canEdit
