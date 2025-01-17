@@ -66,11 +66,10 @@ StreamRegistryV5: added functions for arbitrary bytes user IDs (they can only pu
 ## Publish package
 
 - `npm version [major/minor]`
-- `npm run clean`
 - `npm run build`
 - `npm publish --dry-run`
 - `npm publish`
-- `git add .`
+- `git add package.json`
 - `git commit -m"release(network-contracts): vx.x.x"`
 - `git tag network-contracts/vx.x.x`
 - `git push`

@@ -62,17 +62,3 @@ npm run localUpgradeImpl
 StreamRegistryV5: added functions for arbitrary bytes user IDs (they can only publish and subscribe, not grant/edit/delete)
 7.0.8 export ENS type
 4.2.0 export ERC677 ABI and type
-
-
-## Publish package
-
-- `npm version [major/minor]`
-- `npm run clean`
-- `npm run build`
-- `npm publish --dry-run`
-- `npm publish`
-- `git add .`
-- `git commit -m"release(network-contracts): vx.x.x"`
-- `git tag network-contracts/vx.x.x`
-- `git push`
-- `git push --tags`
