@@ -15,7 +15,6 @@
   "main": "./dist/src/exports.js",
   "types": "./dist/src/exports.d.ts",
   "scripts": {
-    "compile": "hardhat compile",
     "build": "./build.sh"
   },
   "devDependencies": {
