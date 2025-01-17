@@ -31,8 +31,10 @@ jobs:
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --no-audit
-      - name: Build and lint
-        run: npm run build && npm run lint
+      - name: Build
+        run: npm run build
+      - name: Lint
+        run: npm run lint
       - name: Unit tests
         run: npm run test
   fastchain-docker-image:
