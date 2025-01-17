@@ -31,8 +31,6 @@ jobs:
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --no-audit
-      - name: Install linux x64 specific package
-        run: npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu solidity-comments-linux-x64-gnu
       - name: Build and lint
         run: npm run build && npm run lint
       - name: Unit tests
@@ -60,8 +58,6 @@ jobs:
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --no-audit
-      - name: Install linux x64 specific package
-        run: npm i @nomicfoundation/solidity-analyzer-linux-x64-gnu solidity-comments-linux-x64-gnu
       - name: Build all packages
         run: npm run build
       - name: Build fastchain image
