@@ -84,6 +84,11 @@ async function deploy() {
         console.log(`- address: ${wallet.address} (private key: ${wallet.privateKey})`)
     }
 
+    // TODO move this e.g. to deploySponsorshipFactory() when deterministic contract address are in use (ETH-807)
+    // Currently all transactions affect the contract address calculation, i.e. some contract addresses change
+    // (relative to what's in @streamr/config) if this transaction is executed inside deploySponsorshipFactory()
+    await (await streamrEnvDeployer.contracts.streamrConfig.setMinimumDelegationSeconds(1)).wait()
+
     const contractAddresses = {
         ...streamrEnvDeployer.addresses,
         ...hubDeployer.addresses,
