@@ -93,5 +93,3 @@ export type { QueueModule } from "../typechain/contracts/OperatorTokenomics/Oper
 export { abi as stakeModuleABI, bytecode as stakeModuleBytecode }
     from "../artifacts/contracts/OperatorTokenomics/OperatorPolicies/StakeModule.sol/StakeModule.json"
 export type { StakeModule } from "../typechain/contracts/OperatorTokenomics/OperatorPolicies/StakeModule"
-
-// export * from "./StreamrEnvDeployer"
