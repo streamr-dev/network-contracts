@@ -16,8 +16,7 @@
   "types": "./dist/src/exports.d.ts",
   "scripts": {
     "compile": "hardhat compile",
-    "build": "./build.sh",
-    "clean": "rm -rf contracts artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json && cp -r ../network-contracts/contracts ."
+    "build": "./build.sh"
   },
   "devDependencies": {
     "@ensdomains/ens-contracts": "1.1.4",
