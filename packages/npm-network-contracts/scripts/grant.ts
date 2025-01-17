@@ -2,8 +2,7 @@
 //   start dev env: streamr-docker-dev start dev-chain-fast
 
 import {
-    Contract, Wallet, JsonRpcProvider,
-    parseEther, formatEther, parseUnits, isAddress,
+    Contract, JsonRpcProvider,
 } from "ethers"
 
 import { config } from "@streamr/config"

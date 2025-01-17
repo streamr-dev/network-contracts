@@ -17,6 +17,8 @@ const { operatorABI } = require('../../../network-contracts/dist/src/exports')
 
 const LARGE_NUMBER = "0x01104d6706312fa73d0e00"
 
+const log = require("debug")("event-queue-test")
+
 async function main() {
     const provider = new providers.JsonRpcProvider("http://10.200.10.1:8547")
 
@@ -25,16 +27,16 @@ async function main() {
 
     const operator = new Contract("0xb63c856cf861a88f4fa8587716fdc4e69cdf9ef1", operatorABI, provider)
 
-    console.log("Queue before: %o", await operator.undelegationQueue())
+    log("Queue before: %o", await operator.undelegationQueue())
 
     // clog up the undelegation queue
     await operator.connect(delegator).undelegate(LARGE_NUMBER)
 
-    console.log("Queue after tx 1: %o", await operator.undelegationQueue())
+    log("Queue after tx 1: %o", await operator.undelegationQueue())
 
     // this "non-undelegation" won't be processed
     await operator.connect(nonDelegator).undelegate(LARGE_NUMBER)
 
-    console.log("Queue after tx 2: %o", await operator.undelegationQueue())
+    log("Queue after tx 2: %o", await operator.undelegationQueue())
 }
 main().catch(console.error)
