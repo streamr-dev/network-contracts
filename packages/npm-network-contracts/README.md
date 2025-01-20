@@ -1,10 +1,8 @@
-## This package directory is for smart contracts development.
-
-## The npm package published here should have version number 7.x.x, and it will export Typechain interfaces for Ethers v5. For later versions that use Ethers v6, look into the [npm-network-contracts](../npm-network-contracts) package.
-
 # Streamr Network contracts
 
 Solidity files plus Typescript interfaces for the Streamr Network smart contracts.
+
+Exported interfaces are Ethers v5 format for versions 7.x.x and below, and Ethers v6 format for versions 8.0.0 and above.
 
 ## Contracts
 
@@ -42,7 +40,7 @@ The package exports all of the artifacts needed to interact with the contracts, 
 An example of how to use it can be seen in network-contracts/packages/network-contracts/scripts/tatum/streamrEnvDeployer.ts, that can be run with the streamrEnvDeployer npm task
 
 
-### Proxy contracts
+<h3>Proxy contracts</h3>
 
 The proxy enables upgradability of contract code without the need to change all addresses in software that talks to the contract and without the need to migrate data that is inside the old contract, that is being upgraded. Also the upgrade can only be controlled by a ProxyAdmin contract. To find out more visit
 https://docs.openzeppelin.com/contracts/3.x/api/proxy  and
@@ -55,10 +53,24 @@ npm run localDeployProxy
 then copy the Proxy and Proxyadmin addresses to the upgradeProxy.ts script and run it with
 ```
 npm run localUpgradeImpl
-```
+````
 
 # Changelog
 
 StreamRegistryV5: added functions for arbitrary bytes user IDs (they can only publish and subscribe, not grant/edit/delete)
+8.0.0 switch ethers v5 -> v6
 7.0.8 export ENS type
 4.2.0 export ERC677 ABI and type
+
+
+## Publish package
+
+- `npm version [major/minor]`
+- `npm run build`
+- `npm publish --dry-run`
+- `npm publish`
+- `git add package.json`
+- `git commit -m"release(network-contracts): vx.x.x"`
+- `git tag network-contracts/vx.x.x`
+- `git push`
+- `git push --tags`
