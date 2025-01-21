@@ -10,8 +10,8 @@
     "Dockerfile"
   ],
   "scripts": {
-    "docker:buildLocalArch": "./prepare.sh && docker build -t streamr/dev-chain-fast:dev .",
-    "docker:buildMultiArchAndPush": "./prepare.sh && docker buildx build --platform linux/amd64,linux/arm64 -t streamr/dev-chain-fast:dev --push .",
+    "docker:buildLocalArch": "./prepare.sh && docker build -t streamr/dev-chain-fast:dev . && rm *.tgz",
+    "docker:buildMultiArchAndPush": "./prepare.sh && docker buildx build --platform linux/amd64,linux/arm64 -t streamr/dev-chain-fast:dev --push . && rm *.tgz",
     "docker:buildStepOnly": "docker build -t streamr/dev-chain-fast:dev .",
     "preparebuild": "./prepare.sh",
     "deploy": "tsx ./src/deploy.ts",
