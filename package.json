@@ -45,6 +45,7 @@
     "gluegun": "5.1.2",
     "keyv": "4.5.2",
     "mocha": "9.2.0",
+    "prettier": "3.4.2",
     "ts-node": "10.4.0",
     "typescript": "4.2.4"
   }
