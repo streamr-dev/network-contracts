@@ -116,20 +116,21 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Hardhat run this sctipt",
-            "runtimeExecutable": "npx",
+            "name": "Run iotex testnet deployment",
+            "runtimeExecutable": "npm",
             "env": {
+                "KEY": "0x0efd0561f621d00c3dd22c0f70c299513838aa5a0ed27f3bf78e44aba4eb40c0",
+                "CHAIN": "iotexTestnet",
+                "OUTPUT_FILE": "addresses.json",
+                "SCRIPT_FILE": "scripts/deployStreamrContracts.ts",
                 "DEBUG": "*"
             },
             "runtimeArgs": [
-                "hardhat",
                 "run",
-                "--network",
-                "dev1",
-                "${file}"
+                "hardhatScript"
             ],
             "internalConsoleOptions": "openOnSessionStart",
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}/packages/network-contracts"
         },
     ]
 }
