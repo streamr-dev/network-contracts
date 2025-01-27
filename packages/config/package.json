@@ -19,8 +19,9 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsc --project tsconfig.json",
-        "pretest": "tsc --project tsconfig-test.json",
+        "generate-types": "node ./scripts/generate-types.mjs",
+        "build": "npm run generate-types && tsc --project tsconfig.json",
+        "pretest": "npm run generate-types && tsc --project tsconfig-test.json",
         "test": "mocha --config mocharc.json"
     },
     "repository": {
@@ -37,5 +38,9 @@
     "bugs": {
         "url": "https://github.com/streamr-dev/network-contracts/issues"
     },
-    "homepage": "https://github.com/streamr-dev/network-contracts/tree/master/packages/config#readme"
+    "homepage": "https://github.com/streamr-dev/network-contracts/tree/master/packages/config#readme",
+    "devDependencies": {
+        "prettier": "3.4.2",
+        "typescript": "5.7.3"
+    }
 }

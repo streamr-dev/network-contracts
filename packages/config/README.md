@@ -47,6 +47,11 @@ cd packages/config
 ### Programming
 Start with [Common Setup](#common-setup) before continuing.
 
+After each update to the source config file (config.json) re-generate and validate types:
+```bash
+npm run generate-types && npx tsc --noEmit
+```
+
 Run tests:
 ```bash
 make test
