@@ -19,8 +19,9 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsc --project tsconfig.json",
-        "pretest": "tsc --project tsconfig-test.json",
+        "generate-types": "node ./scripts/generate-types.mjs",
+        "build": "npm run generate-types && tsc --project tsconfig.json",
+        "pretest": "npm run generate-types && tsc --project tsconfig-test.json",
         "test": "mocha --config mocharc.json"
     },
     "repository": {

@@ -67,6 +67,13 @@ Run clean:
 make clean
 ```
 
+#### Changing the config
+
+After each update to the source config file (config.json) rebuild the package to validate integrity:
+```bash
+npm run build
+```
+
 ### Publish Release
 1. Start with [Common Setup](#common-setup) before continuing.
 1. Login to Npmjs.com:
