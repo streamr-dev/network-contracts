@@ -16,7 +16,8 @@
         "test": "./test"
     },
     "files": [
-        "dist"
+        "dist",
+        "config.json"
     ],
     "scripts": {
         "generate-types": "node ./scripts/generate-types.mjs",
