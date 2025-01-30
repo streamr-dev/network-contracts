@@ -1,7 +1,7 @@
 import prettier from 'prettier'
 import fs from 'fs'
 
-const json = JSON.parse(fs.readFileSync('./src/config.json', 'utf8'))
+const json = JSON.parse(fs.readFileSync('config.json', 'utf8'))
 
 const items = [
     '/* eslint-disable */',
