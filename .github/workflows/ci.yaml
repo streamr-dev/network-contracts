@@ -31,6 +31,8 @@ jobs:
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci --no-audit
+      - name: (Re-)install packages that have platform-specific implementations
+        run: npm i @nomicfoundation/solidity-analyzer solidity-comments
       - name: Build
         run: npm run build
       - name: Lint
