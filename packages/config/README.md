@@ -110,3 +110,7 @@ npm run build
 2.5.10: Upgraded ProjectRegistry and RemoteMarketplace to ProjectRegistryV1 and RemoteMarketplaceV1
 
 5.4.0: Removed Mumbai (ETH-790)
+
+5.5.0: Refactored the config package, now config.json is available in the NPM package root in plain JSON
+
+5.5.1: Added non-rate-limited apikey access for Amoy subgraph
