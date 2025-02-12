@@ -354,7 +354,7 @@ export const config = {
             DataUnionFeeOracle: '0x1A20217419156E09D36fd380d3F429d03AD2Dc97',
         },
         theGraphUrl:
-            'https://api.studio.thegraph.com/query/58729/streamr-amoy-testnet/version/latest',
+            'https://gateway.thegraph.com/api/dd2dd773d33a3b2f5028ddaa8e1874c1/subgraphs/id/3nVH84bDz3wFJ82UZxMD2WfpGyU2KzDnZdEdDQFsHAqp',
         blockExplorerUrl: 'https://amoy.polygonscan.com',
         entryPoints: [
             {
