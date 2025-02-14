@@ -20,6 +20,7 @@
         "config.json"
     ],
     "scripts": {
+        "clean": "rm -rf dist src/generated",
         "generate-types": "node ./scripts/generate-types.mjs",
         "build": "npm run generate-types && tsc --project tsconfig.json",
         "pretest": "npm run generate-types && tsc --project tsconfig-test.json",
