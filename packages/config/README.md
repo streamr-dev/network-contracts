@@ -114,3 +114,5 @@ npm run build
 5.5.0: Refactored the config package, now config.json is available in the NPM package root in plain JSON
 
 5.5.1: Added non-rate-limited apikey access for Amoy subgraph
+
+5.5.2: Changed entrypoint ports
