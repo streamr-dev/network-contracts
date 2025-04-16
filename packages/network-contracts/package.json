@@ -59,7 +59,7 @@
     "@ethersproject/keccak256": "5.7.0",
     "@ethersproject/strings": "5.7.0",
     "@ethersproject/constants": "5.7.0",
-    "@metamask/eth-sig-util": "7.0.1",
+    "@metamask/eth-sig-util": "8.2.0",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.5",
     "@nomicfoundation/hardhat-toolbox": "2.0.0",
     "@nomicfoundation/hardhat-verify": "2.0.11",
