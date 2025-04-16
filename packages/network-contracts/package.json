@@ -60,7 +60,7 @@
     "@ethersproject/strings": "5.7.0",
     "@ethersproject/constants": "5.7.0",
     "@metamask/eth-sig-util": "7.0.1",
-    "@nomicfoundation/hardhat-chai-matchers": "1.0.5",
+    "@nomicfoundation/hardhat-chai-matchers": "2.0.8",
     "@nomicfoundation/hardhat-toolbox": "2.0.0",
     "@nomicfoundation/hardhat-verify": "2.0.11",
     "@opengsn/provider": "2.2.6",
