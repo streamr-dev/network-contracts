@@ -11,7 +11,7 @@
   "files": [
     "dist/src",
     "dist/typechain/**/*.d.ts",
-    "dist/artifacts/**/*.json"
+    "dist/abis/**/*.json"
   ],
   "main": "./dist/src/exports.js",
   "types": "./dist/src/exports.d.ts",

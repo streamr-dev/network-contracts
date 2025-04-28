@@ -6,13 +6,15 @@ cp -r ../network-contracts/contracts .
 
 hardhat compile
 
-rm -rf dist
-tsc
-
 # create minified ABIs
-artifact_files=$(find artifacts/contracts -type f -name '*.json' ! -name '*.dbg.json' | grep -v 'build-info')
+artifact_files=$(find artifacts/contracts -type f -name '*.json' ! -name '*.dbg.json')
 for artifact_file in $artifact_files; do
-    abi_file="$(dirname "$artifact_file")/$(basename "$artifact_file" .json)ABI.json"
+    abi_file="$(echo "$artifact_file" | sed 's#^artifacts/#abis/#')"
+    mkdir -p "$(dirname "$abi_file")"
     jq '.abi' "$artifact_file" > "$abi_file"
     node minify-abi.mjs "$abi_file"
+    #echo $artifact_file $abi_file
 done
+
+rm -rf dist
+tsc
