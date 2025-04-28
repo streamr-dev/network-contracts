@@ -19,7 +19,12 @@
     "build": "./build.sh"
   },
   "devDependencies": {
+    "@chainlink/contracts": "0.3.1",
+    "@ensdomains/ens-contracts": "1.1.4",
     "@nomicfoundation/hardhat-toolbox": "5.0.0",
+    "@opengsn/provider": "2.2.6",
+    "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2",
+    "@openzeppelin/contracts-upgradeable": "4.8.0",
     "hardhat": "2.22.2",
     "hardhat-dependency-compiler": "1.1.4"
   }
