@@ -13,7 +13,6 @@ for artifact_file in $artifact_files; do
     mkdir -p "$(dirname "$abi_file")"
     jq '.abi' "$artifact_file" > "$abi_file"
     node minify-abi.mjs "$abi_file"
-    #echo $artifact_file $abi_file
 done
 
 rm -rf dist
