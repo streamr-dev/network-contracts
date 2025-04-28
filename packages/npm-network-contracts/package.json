@@ -9,8 +9,9 @@
     "access": "public"
   },
   "files": [
-    "dist",
-    "contracts"
+    "dist/src",
+    "dist/typechain/**/*.d.ts",
+    "dist/artifacts/**/*.json"
   ],
   "main": "./dist/src/exports.js",
   "types": "./dist/src/exports.d.ts",
@@ -18,10 +19,7 @@
     "build": "./build.sh"
   },
   "devDependencies": {
-    "@ensdomains/ens-contracts": "1.1.4",
     "@nomicfoundation/hardhat-toolbox": "5.0.0",
-    "@opengsn/provider": "2.2.6",
-    "@openzeppelin/contracts-upgradeable-4.4.2": "npm:@openzeppelin/contracts-upgradeable@4.4.2",
     "hardhat": "2.22.2",
     "hardhat-dependency-compiler": "1.1.4"
   }

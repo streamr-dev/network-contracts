@@ -33,14 +33,11 @@ const config: HardhatUserConfig = {
         paths: [
             "@openzeppelin/contracts/metatx/MinimalForwarder.sol",
             "@opengsn/contracts/src/forwarder/Forwarder.sol",
-            "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol",
-            "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol",
             "@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol",
             "@openzeppelin/contracts/interfaces/IERC1271.sol",
-            "@ensdomains/ens-contracts/contracts/registry/ENS.sol",
             "@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol",
             "@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol",
-            "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol", // exported in exports.ts
+            "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol"
         ],
     },
 }
