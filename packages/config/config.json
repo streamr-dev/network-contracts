@@ -275,10 +275,13 @@
         "url": "https://polygon.meowrpc.com"
       },
       {
-        "url": "https://rpc.ankr.com/polygon"
+        "url": "https://polygon.drpc.org"
       },
       {
         "url": "https://rpc-mainnet.matic.quiknode.pro"
+      },
+      {
+        "url": "https://polygon-bor-rpc.publicnode.com"
       }
     ],
     "contracts": {
