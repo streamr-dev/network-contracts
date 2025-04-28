@@ -58,6 +58,8 @@ npm run localUpgradeImpl
 # Changelog
 
 StreamRegistryV5: added functions for arbitrary bytes user IDs (they can only publish and subscribe, not grant/edit/delete)
+
+9.0.0 removed exports that aren't used in Streamr SDK or node
 8.0.0 switch ethers v5 -> v6
 7.0.8 export ENS type
 4.2.0 export ERC677 ABI and type
