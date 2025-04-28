@@ -1,7 +1,8 @@
 export { abi as streamRegistryABI } from '../artifacts/contracts/StreamRegistry/StreamRegistryV5.sol/StreamRegistryV5.json'
 export type { StreamRegistryV5 as StreamRegistry } from '../typechain/contracts/StreamRegistry/StreamRegistryV5'
 
-export { abi as streamStorageRegistryABI } from '../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol/StreamStorageRegistryV2.json'
+export { abi as streamStorageRegistryABI } from
+    '../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistryV2.sol/StreamStorageRegistryV2.json'
 export type { StreamStorageRegistryV2 as StreamStorageRegistry } from '../typechain/contracts/StreamStorageRegistry/StreamStorageRegistryV2'
 
 export { abi as nodeRegistryABI } from '../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json'
