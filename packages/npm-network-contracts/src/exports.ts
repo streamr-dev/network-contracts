@@ -1,3 +1,6 @@
+export { default as DATAv2ABI } from '../abis/@streamr/data-v2/flattened/DATAv2.sol/DATAv2.json'
+export type { DATAv2 } from '../typechain/@streamr/data-v2/flattened/DATAv2.sol/DATAv2'
+
 export { default as StreamRegistryABI } from '../abis/contracts/StreamRegistry/StreamRegistryV5.sol/StreamRegistryV5.json'
 export type { StreamRegistryV5 as StreamRegistry } from '../typechain/contracts/StreamRegistry/StreamRegistryV5'
 
