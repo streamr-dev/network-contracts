@@ -23,7 +23,7 @@ const config: HardhatUserConfig = {
                     },
                 },
             },
-            {
+            { // for DATAv2.sol compilation
                 version: "0.8.6",
                 settings: {
                     optimizer: {
