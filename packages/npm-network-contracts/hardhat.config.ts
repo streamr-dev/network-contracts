@@ -23,6 +23,15 @@ const config: HardhatUserConfig = {
                     },
                 },
             },
+            { // for DATAv2.sol compilation
+                version: "0.8.6",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 100,
+                    },
+                },
+            },
         ],
     },
     typechain: {
@@ -37,7 +46,8 @@ const config: HardhatUserConfig = {
             "@openzeppelin/contracts/interfaces/IERC1271.sol",
             "@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol",
             "@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol",
-            "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol"
+            "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol",
+            "@streamr/data-v2/flattened/DATAv2.sol",
         ],
     },
 }
