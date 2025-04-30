@@ -43,6 +43,7 @@ const config: HardhatUserConfig = {
             "@openzeppelin/contracts/metatx/MinimalForwarder.sol",
             "@opengsn/contracts/src/forwarder/Forwarder.sol",
             "@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol",
+            "@openzeppelin/contracts/interfaces/IERC1271.sol",
             "@ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol",
             "@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol",
             "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol",
