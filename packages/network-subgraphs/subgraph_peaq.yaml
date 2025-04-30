@@ -42,7 +42,7 @@ dataSources:
     name: NodeRegistry
     network: peaq
     source:
-      address: "0x02fdF917f4e6Ae8F7F1bBDd28179d819E2b76820"
+      address: "0xaCF9e8134047eDc671162D9404BF63a587435bAa"
       abi: NodeRegistry
       startBlock: 900000
     mapping:
@@ -64,7 +64,7 @@ dataSources:
     name: StreamStorageRegistry
     network: peaq
     source:
-      address: "0x0f3671A9A92416E1aD32750faCf2AD4FA1b66f78"
+      address: "0xB36CF8ee4219a3Ac9FBC3865C35E9a99353c26db"
       abi: StreamStorageRegistry
       startBlock: 900000
     mapping:
@@ -86,7 +86,7 @@ dataSources:
     name: ProjectRegistryV1
     network: peaq
     source:
-      address: "0xc5e1434d35c0c7291c7032Fd9C4096b4876C6823"
+      address: "0xB14205AE3D7672B937B972EBdf2b986fB0B8CfaA"
       abi: ProjectRegistryV1
       startBlock: 900000
     mapping:
@@ -121,7 +121,7 @@ dataSources:
     name: MarketplaceV4
     network: peaq
     source:
-      address: "0x6C8eaA8e0bF605469c15b6F9106387B4cEC99976"
+      address: "0x959684926448296ea72BD4B05593426A3cD3F0dF"
       abi: MarketplaceV4
       startBlock: 900000
     mapping:
@@ -142,7 +142,7 @@ dataSources:
     name: ProjectStakingV1
     network: peaq
     source:
-      address: "0x3A27A16770477EbcFb4B81cE462F4f12591767A0"
+      address: "0xd1cBD6b1Be710C41c01A9613802209843407b8b9"
       abi: ProjectStakingV1
       startBlock: 900000
     mapping:
@@ -168,7 +168,7 @@ dataSources:
     name: StreamrConfig
     network: peaq
     source:
-      address: '0x835bC97D2a61bbF5d05932C5105Ca34e1b815F94'
+      address: '0xc81Fa3Cc3E81dF24D21bfc608f8FB06262Da4F8c'
       abi: StreamrConfig
       startBlock: 900000
     mapping:
@@ -188,8 +188,7 @@ dataSources:
     name: SponsorshipFactory
     network: peaq
     source:
-      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xb194a68b166f2e3074B551393fA61490D19c69f8'
+      address: '0xdaF0905e19C45b9Fea7E60D232061edF78E9F570'
       abi: SponsorshipFactory
       startBlock: 900000
     mapping:
@@ -213,8 +212,7 @@ dataSources:
     name: OperatorFactory
     network: peaq
     source:
-      # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xE02E8E9fF5ea6a58F34D00C0e4B091e066B9fA81'
+      address: '0x6d201374D7c28EF1c3cc1b6FA300f06110B597A3'
       abi: OperatorFactory
       startBlock: 900000
     mapping:
