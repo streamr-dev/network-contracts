@@ -434,6 +434,7 @@
       "MarketplaceV4": "0x959684926448296ea72BD4B05593426A3cD3F0dF"
     },
     "blockExplorerUrl": "https://peaq.subscan.io",
+    "theGraphUrl": "https://gateway.thegraph.com/api/5bcf7b0d11045c944600d4007737d457/subgraphs/id/CV3grB3fYpUzET1s75kXG2BaNyREK5uRA8SkjLTyXXh7",
     "entryPoints": [
       {
         "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",
