@@ -416,6 +416,7 @@
       "DATA": "0xdCB1EcdD509c61De5C3B672fDD2335AC750142c9",
       "StreamRegistry": "0xD0C720e99Bd39311614f292d8B0B4e351Bde157c",
       "ENSCacheV2": "0x4A71d0FA9e3326E830048B1423d7010fB9343071",
+      "StorageNodeRegistry": "0xaCF9e8134047eDc671162D9404BF63a587435bAa",
       "StreamStorageRegistry": "0xB36CF8ee4219a3Ac9FBC3865C35E9a99353c26db",
       "StreamrConfig": "0xc81Fa3Cc3E81dF24D21bfc608f8FB06262Da4F8c",
       "SponsorshipOperatorContractOnlyJoinPolicy": "0xF655955dc561356851e95a6D0febeB0BAc955Ab5",
@@ -433,6 +434,7 @@
       "MarketplaceV4": "0x959684926448296ea72BD4B05593426A3cD3F0dF"
     },
     "blockExplorerUrl": "https://peaq.subscan.io",
+    "theGraphUrl": "https://gateway.thegraph.com/api/5bcf7b0d11045c944600d4007737d457/subgraphs/id/CV3grB3fYpUzET1s75kXG2BaNyREK5uRA8SkjLTyXXh7",
     "entryPoints": [
       {
         "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",
