@@ -437,17 +437,17 @@
     "theGraphUrl": "https://gateway.thegraph.com/api/5bcf7b0d11045c944600d4007737d457/subgraphs/id/CV3grB3fYpUzET1s75kXG2BaNyREK5uRA8SkjLTyXXh7",
     "entryPoints": [
       {
-        "nodeId": "d48787fc36eaed43770ec84947ef81557b19ec98",
+        "nodeId": "e5f87a7ee99b3c91e7b795b70f87ef8ba5497596",
         "websocket": {
-          "host": "amoy-entrypoint-1.streamr.network",
+          "host": "polygon-entrypoint-3.streamr.network",
           "port": 443,
           "tls": true
         }
       },
       {
-        "nodeId": "24395826687b099fd735a730219ba750169c4f40",
+        "nodeId": "6f5b53812fd9cc07f225a0b3a6aa5b96672e852e",
         "websocket": {
-          "host": "amoy-entrypoint-2.streamr.network",
+          "host": "polygon-entrypoint-4.streamr.network",
           "port": 443,
           "tls": true
         }
