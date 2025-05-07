@@ -1,8 +1,16 @@
-import { ByteArray, Bytes, log, store } from '@graphprotocol/graph-ts'
+import { ByteArray, Bytes, log, store, crypto } from '@graphprotocol/graph-ts'
 
 import { StreamCreated, StreamDeleted, StreamUpdated, PermissionUpdated, PermissionUpdatedForUserId }
     from '../generated/StreamRegistry/StreamRegistry'
 import { Stream, StreamPermission } from '../generated/schema'
+
+/**
+ * Hash the streamId and the userId, in order to get constant-length permission IDs (ETH-867)
+ * This avoids indexing problems if the userId is very long (many kilobytes).
+ **/
+function getPermissionId(streamId: string, userId: Bytes): string {
+    return crypto.keccak256(Bytes.fromUTF8(streamId).concat(userId)).toHexString()
+}
 
 export function handleStreamCreation(event: StreamCreated): void {
     log.info('handleStreamCreation: id={} metadata={} blockNumber={}',
@@ -39,7 +47,7 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     let stream = Stream.load(event.params.streamId)
     if (stream == null) { return }
 
-    let permissionId = event.params.streamId + '-' + event.params.user.toHex()
+    let permissionId = getPermissionId(event.params.streamId, event.params.user)
     let permission = new StreamPermission(permissionId)
     permission.userAddress = event.params.user
     permission.userId = event.params.user
@@ -61,9 +69,11 @@ export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserI
     let stream = Stream.load(event.params.streamId)
     if (stream == null) { return }
 
-    let permissionId = event.params.streamId + '-' + event.params.user.toHex()
+    let permissionId = getPermissionId(event.params.streamId, event.params.user)
     let permission = new StreamPermission(permissionId)
-    // pad/concatenate to 20 bytes, Ethereum addresses remain Ethereum addresses
+    // Backwards compatibility: pad/concatenate to 20 bytes, Ethereum addresses remain Ethereum addresses.
+    // This makes it possible to use both *forUserId functions and the old functions for Ethereum addresses.
+    // All new code should use userId instead of userAddress, though; userAddress is marked as deprecated
     permission.userAddress = Bytes.fromUint8Array(ByteArray
         .fromHexString("0x0000000000000000000000000000000000000000")
         .concat(event.params.user)
