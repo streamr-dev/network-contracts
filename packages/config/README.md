@@ -116,3 +116,9 @@ npm run build
 5.5.1: Added non-rate-limited apikey access for Amoy subgraph
 
 5.5.2: Changed entrypoint ports
+
+5.5.3: Polygon RPC endpoints updated
+
+5.5.4: Peaq subgraph URL added
+
+5.5.5: Peaq entrypoints set to same as current mainnet (polygon)
