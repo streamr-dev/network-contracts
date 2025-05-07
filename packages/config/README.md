@@ -92,33 +92,19 @@ npm run build
 ## Changelog
 
 2.5.0: DataUnionFactory address in dev1 updated
-
 2.5.3: ProjectRegistry address in dev1 added
-
 2.5.4: MarketplaceV3 address in dev1 added
-
 2.5.5: MarketplaceV4 address in dev1 added
-
 2.5.6: ProjectRegistry, MarketplaceV4, RemoteMarketplace address added on live testnet
-
 2.5.7: ProjectRegistry, ProjectStakingV1 address added on polygon
-
 2.5.8: LINK, ProjectStakingV1 address added on dev1
-
 2.5.9: MarketplaceV4 address added on polygon, RemoteMarketpalce address added on gnosis
-
 2.5.10: Upgraded ProjectRegistry and RemoteMarketplace to ProjectRegistryV1 and RemoteMarketplaceV1
 
 5.4.0: Removed Mumbai (ETH-790)
-
 5.5.0: Refactored the config package, now config.json is available in the NPM package root in plain JSON
-
 5.5.1: Added non-rate-limited apikey access for Amoy subgraph
-
 5.5.2: Changed entrypoint ports
-
 5.5.3: Polygon RPC endpoints updated
-
 5.5.4: Peaq subgraph URL added
-
 5.5.5: Peaq entrypoints set to same as current mainnet (polygon)
