@@ -73,7 +73,7 @@ export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserI
     let permission = new StreamPermission(permissionId)
     // Backwards compatibility: pad/concatenate to 20 bytes, Ethereum addresses remain Ethereum addresses.
     // This makes it possible to use both *forUserId functions and the old functions for Ethereum addresses.
-    // All new code should user userId instead of userAddress, though; userAddress is marked as deprecated
+    // All new code should use userId instead of userAddress, though; userAddress is marked as deprecated
     permission.userAddress = Bytes.fromUint8Array(ByteArray
         .fromHexString("0x0000000000000000000000000000000000000000")
         .concat(event.params.user)
