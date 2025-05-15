@@ -130,12 +130,6 @@ const config: HardhatUserConfig = {
         from: "../../node_modules/" +
             "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json",
         to: "./artifacts/PublicResolver_mainnet_9412610.json",
-        optional: true,
-    }, {
-        from: "./node_modules/" +
-            "@ensdomains/ens-contracts/deployments/archive/PublicResolver_mainnet_9412610.sol/PublicResolver_mainnet_9412610.json",
-        to: "./artifacts/PublicResolver_mainnet_9412610.json",
-        optional: true,
     }],
     solidity: {
         compilers: [
@@ -211,8 +205,8 @@ const config: HardhatUserConfig = {
             polygon: process.env.ETHERSCAN_KEY || "",
             polygonAmoy: process.env.ETHERSCAN_KEY || "",
             peaq: process.env.ETHERSCAN_KEY || "",
-            iotexTestnet: "no key needed!",
-            iotex: "no key needed!",
+            iotexTestnet: "no-key-needed",
+            iotex: "no-key-needed",
         },
         customChains: [{
             network: "polygonAmoy",

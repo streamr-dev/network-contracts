@@ -58,6 +58,9 @@ const {
 if (!CHAIN) {
     throw new Error("Must set CHAIN environment variable, e.g. CHAIN=dev2")
 }
+if ((config as any)[CHAIN] === undefined) {
+    throw new Error(`No config found for chain "${CHAIN}". Available chains: ${Object.keys(config).join(", ")}`)
+}
 
 const {
     contracts: {

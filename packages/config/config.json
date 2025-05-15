@@ -468,7 +468,22 @@
       }
     ],
     "contracts": {
-      "DATA": "0xD94be6fd546d4cE502CB1E870A58330Cc8869e9B"
+      "DATA": "0xD94be6fd546d4cE502CB1E870A58330Cc8869e9B",
+      "StreamRegistry": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
+      "ENSCacheV2": "0xAB072849dd3Cd648cb85c73d525a70A36523337d",
+      "StorageNodeRegistry": "0xb9e70Bd9833dd091f06edc8073aa86a76EdeF46D",
+      "StreamStorageRegistry": "0xF79c40Fbc432f1f8B8B017441B644e0ac7bccea2",
+      "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+      "SponsorshipOperatorContractOnlyJoinPolicy": "0xace5b2A71A44efD9259983b5671d8ba802703dF7",
+      "SponsorshipMaxOperatorsJoinPolicy": "0x6956abe11F99e3983282f8B4fFb30015cC45Ae1D",
+      "SponsorshipStakeWeightedAllocationPolicy": "0x0Eb81BF75e585B227c01BBd1Ba5Ee0Ab6b1b55d5",
+      "SponsorshipDefaultLeavePolicy": "0xb9fe5430aC3eE3B1D26734C513f41Bf96B10C830",
+      "SponsorshipVoteKickPolicy": "0xc4a1ba0655FC6C34F9283e33682e57031fC060af",
+      "SponsorshipFactory": "0x7ac03730374E995E366F2a466be6aCC14E1DB1C4",
+      "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+      "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+      "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+      "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
     },
     "blockExplorerUrl": "https://iotexscan.io"
   },

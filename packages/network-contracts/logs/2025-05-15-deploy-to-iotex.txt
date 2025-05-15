@@ -1,0 +1,330 @@
++ declare -p KEY
++ echo 'Using deployer private key from environment variable KEY'
+Using deployer private key from environment variable KEY
++ export CHAIN=iotex
++ CHAIN=iotex
++ export OUTPUT_FILE=addresses.json
++ OUTPUT_FILE=addresses.json
++ export SCRIPT_FILE=scripts/deployTokenomicsContracts.ts
++ SCRIPT_FILE=scripts/deployTokenomicsContracts.ts
++ npm run hardhatScript
+
+> @streamr/network-contracts@7.1.1 hardhatScript
+> hardhat run --network $CHAIN $SCRIPT_FILE
+
+WARNING: You are using a version of Node.js that is not supported, and it may work incorrectly, or not work at all. See https://hardhat.org/nodejs-versions
+
+
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+ ·----------------------------------|--------------------------------|--------------------------------·
+ |  Solc version: 0.8.13            ·  Optimizer enabled: true       ·  Runs: 100                     │
+ ···································|································|·································
+ |  Contract Name                   ·  Deployed size (KiB) (change)  ·  Initcode size (KiB) (change)  │
+ ···································|································|·································
+ |  AcceptEverythingPaymaster       ·                 3.571 (0.000)  ·                 3.694 (0.000)  │
+ ···································|································|·································
+ |  AddressUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  AddressUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  AdminKickPolicy                 ·                11.931 (0.000)  ·                11.976 (0.000)  │
+ ···································|································|·································
+ |  BasicToken                      ·                 0.497 (0.000)  ·                 0.528 (0.000)  │
+ ···································|································|·································
+ |  BufferChainlink                 ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  CBORChainlink                   ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  Chainlink                       ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ClonesUpgradeable               ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  DefaultDelegationPolicy         ·                18.962 (0.000)  ·                19.007 (0.000)  │
+ ···································|································|·································
+ |  DefaultExchangeRatePolicy       ·                18.966 (0.000)  ·                19.011 (0.000)  │
+ ···································|································|·································
+ |  DefaultLeavePolicy              ·                11.669 (0.000)  ·                11.714 (0.000)  │
+ ···································|································|·································
+ |  DefaultUndelegationPolicy       ·                19.318 (0.000)  ·                19.363 (0.000)  │
+ ···································|································|·································
+ |  ECDSA                           ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ECDSAUpgradeable                ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ENSCache                        ·                 7.256 (0.000)  ·                 7.967 (0.000)  │
+ ···································|································|·································
+ |  ENSCacheV1                      ·                 6.815 (0.000)  ·                 7.526 (0.000)  │
+ ···································|································|·································
+ |  ENSCacheV2Streamr               ·                 5.178 (0.000)  ·                 5.252 (0.000)  │
+ ···································|································|·································
+ |  ENSRegistry                     ·                 2.417 (0.000)  ·                 2.504 (0.000)  │
+ ···································|································|·································
+ |  ERC20                           ·                 2.190 (0.000)  ·                 2.832 (0.000)  │
+ ···································|································|·································
+ |  ERC20Mintable                   ·                 2.525 (0.000)  ·                 3.192 (0.000)  │
+ ···································|································|·································
+ |  ERC20Upgradeable                ·                 2.097 (0.000)  ·                 2.128 (0.000)  │
+ ···································|································|·································
+ |  FIFSRegistrar                   ·                 0.574 (0.000)  ·                 0.731 (0.000)  │
+ ···································|································|·································
+ |  Forwarder                       ·                 4.759 (0.000)  ·                 5.229 (0.000)  │
+ ···································|································|·································
+ |  GsnEip712Library                ·                 1.294 (0.000)  ·                 1.351 (0.000)  │
+ ···································|································|·································
+ |  GsnUtils                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  LinkToken                       ·                 2.676 (0.000)  ·                 2.736 (0.000)  │
+ ···································|································|·································
+ |  MathUpgradeable                 ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  MaxOperatorsJoinPolicy          ·                11.454 (0.000)  ·                11.499 (0.000)  │
+ ···································|································|·································
+ |  MinimalForwarder                ·                 2.813 (0.000)  ·                 3.156 (0.000)  │
+ ···································|································|·································
+ |  MinimalForwarderUpgradeable     ·                 2.394 (0.000)  ·                 2.425 (0.000)  │
+ ···································|································|·································
+ |  MinLibBytes                     ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  MockRandomOracle                ·                 0.734 (0.000)  ·                 0.921 (0.000)  │
+ ···································|································|·································
+ |  NetworkParameters               ·                 1.621 (0.000)  ·                 2.296 (0.000)  │
+ ···································|································|·································
+ |  NodeDomainNameHelper            ·                 0.452 (0.000)  ·                 0.483 (0.000)  │
+ ···································|································|·································
+ |  NodeModule                      ·                20.818 (0.000)  ·                20.863 (0.000)  │
+ ···································|································|·································
+ |  NodeRegistry                    ·                 8.724 (0.000)  ·                 8.791 (0.000)  │
+ ···································|································|·································
+ |  Operator                        ·                18.695 (0.000)  ·                18.740 (0.000)  │
+ ···································|································|·································
+ |  OperatorContractOnlyJoinPolicy  ·                11.516 (0.000)  ·                11.561 (0.000)  │
+ ···································|································|·································
+ |  OperatorFactory                 ·                11.744 (0.000)  ·                11.830 (0.000)  │
+ ···································|································|·································
+ |  Oracle                          ·                 4.589 (0.000)  ·                 4.763 (0.000)  │
+ ···································|································|·································
+ |  Ownable                         ·                 0.551 (0.000)  ·                 0.694 (0.000)  │
+ ···································|································|·································
+ |  QueueModule                     ·                21.135 (0.000)  ·                21.180 (0.000)  │
+ ···································|································|·································
+ |  SafeMath                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  SafeMathChainlink               ·                 0.084 (0.000)  ·                 0.118 (0.000)  │
+ ···································|································|·································
+ |  SafeMathChainlink               ·                 0.074 (0.000)  ·                 0.117 (0.000)  │
+ ···································|································|·································
+ |  Sponsorship                     ·                11.184 (0.000)  ·                11.229 (0.000)  │
+ ···································|································|·································
+ |  SponsorshipFactory              ·                10.454 (0.000)  ·                10.540 (0.000)  │
+ ···································|································|·································
+ |  StakeModule                     ·                23.106 (0.000)  ·                23.152 (0.000)  │
+ ···································|································|·································
+ |  StakeWeightedAllocationPolicy   ·                13.097 (0.000)  ·                13.142 (0.000)  │
+ ···································|································|·································
+ |  StandardToken                   ·                 1.501 (0.000)  ·                 1.532 (0.000)  │
+ ···································|································|·································
+ |  StorageSlotUpgradeable          ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StorageSlotUpgradeable          ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StreamrConfig                   ·                10.344 (0.000)  ·                10.418 (0.000)  │
+ ···································|································|·································
+ |  StreamrConfigV1_1               ·                10.505 (0.000)  ·                10.579 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistry                  ·                20.528 (0.000)  ·                20.596 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV2                ·                20.520 (0.000)  ·                20.587 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV3                ·                22.183 (0.000)  ·                22.251 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV4                ·                23.188 (0.000)  ·                23.257 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV4_1              ·                23.265 (0.000)  ·                23.333 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV5                ·                23.490 (0.000)  ·                23.559 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV5_1              ·                23.567 (0.000)  ·                23.636 (0.000)  │
+ ···································|································|·································
+ |  StreamStorageRegistry           ·                 7.505 (0.000)  ·                 7.572 (0.000)  │
+ ···································|································|·································
+ |  StreamStorageRegistryV2         ·                 7.833 (0.000)  ·                 7.900 (0.000)  │
+ ···································|································|·································
+ |  Strings                         ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StringsUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StringsUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  TestAllocationPolicy            ·                12.381 (0.000)  ·                12.426 (0.000)  │
+ ···································|································|·································
+ |  TestBadOperator                 ·                 2.888 (0.000)  ·                 2.953 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy          ·                 0.397 (0.000)  ·                 0.429 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy2         ·                 0.464 (0.000)  ·                 0.495 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy3         ·                 0.392 (0.000)  ·                 0.423 (0.000)  │
+ ···································|································|·································
+ |  TestJoinPolicy                  ·                11.453 (0.000)  ·                11.498 (0.000)  │
+ ···································|································|·································
+ |  TestKickPolicy                  ·                11.760 (0.000)  ·                11.805 (0.000)  │
+ ···································|································|·································
+ |  TestToken                       ·                 2.818 (0.000)  ·                 3.466 (0.000)  │
+ ···································|································|·································
+ |  TokenBalanceWeightStrategy      ·                 0.390 (0.000)  ·                 0.533 (0.000)  │
+ ···································|································|·································
+ |  TrackerRegistry                 ·                 5.609 (0.000)  ·                 8.042 (0.000)  │
+ ···································|································|·································
+ |  VoteKickPolicy                  ·                19.976 (0.000)  ·                20.021 (0.000)  │
+ ···································|································|·································
+ |  WeightedNodeRegistry            ·                 9.456 (0.000)  ·                 9.523 (0.000)  │
+ ···································|································|·································
+ |  WhitelistPaymaster              ·                 4.631 (0.000)  ·                 4.754 (0.000)  │
+ ·----------------------------------|--------------------------------|--------------------------------·
+You have both ethereum-waffle and @nomicfoundation/hardhat-chai-matchers installed. They don't work correctly together, so please make sure you only use one.
+
+We recommend you migrate to @nomicfoundation/hardhat-chai-matchers. Learn how to do it here: https://hardhat.org/migrate-from-waffle
+Connected to network { chainId: 4689, name: 'unknown' }
+Estimated gas cost: 108.0 ETH (gas price 1800.0 gwei)
+Balance of 0x76433D40e6E44C17Baad265EF549A66CDc4987dB: 700.0 ETH
+Found DATA token at 0xD94be6fd546d4cE502CB1E870A58330Cc8869e9B
+Found StreamRegistry at 0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6
+Deployed StreamrConfig to 0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8
+Streamr tokenomics contract addresses so far:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8"
+}
+Done setting StreamrConfig.streamRegistryAddress (https://iotexscan.io/tx/0x8971e5e4302fc6ed7b697a239132aa79837760d05edbcfb360a9cd0a974ea23f )
+Deploying Operator policies...
+Deployed DefaultDelegationPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a"
+}
+Deployed DefaultExchangeRatePolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47"
+}
+Operator policies deployed; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c"
+}
+Deployed NodeModule at 0xe59c76A125834B134FC694C3D1b3b02F67ec4f61
+Deployed QueueModule at 0xD5243a7e78001BC8b733B5ACb76f2Ec972ac7434
+Deployed StakeModule at 0x7Dd2b2c75390780C309936b1be1E63BAFfAe61f1
+Deployed Operator template at 0x97677F513b83f6aCE45992871B8B6a339142c84B
+Warning: Potentially unsafe deployment of contracts/OperatorTokenomics/OperatorFactory.sol:OperatorFactory
+
+    You are using the `unsafeAllow.delegatecall` flag.
+
+Deployed OperatorFactory; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+    "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+}
+Done adding trusted policies (https://iotexscan.io/tx/0xe1d99cf6eb9f7697a293122ba2f831114322548ad2fe7c606e6d6b13db3f4a9f )
+Done setting StreamrConfig.operatorFactory (https://iotexscan.io/tx/0xbc5113d1903b4089c0361923c8faa68c8215017401dfd68e21a515efe3dd404f )
+Deploying Sponsorship policies...
+Deployed MaxOperatorsJoinPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x6956abe11F99e3983282f8B4fFb30015cC45Ae1D",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+    "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+}
+Deployed OperatorContractOnlyJoinPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xace5b2A71A44efD9259983b5671d8ba802703dF7",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x6956abe11F99e3983282f8B4fFb30015cC45Ae1D",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+    "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+}
+Deployed StakeWeightedAllocationPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xace5b2A71A44efD9259983b5671d8ba802703dF7",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x6956abe11F99e3983282f8B4fFb30015cC45Ae1D",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x0Eb81BF75e585B227c01BBd1Ba5Ee0Ab6b1b55d5",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+    "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+}
+Deployed DefaultLeavePolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xace5b2A71A44efD9259983b5671d8ba802703dF7",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x6956abe11F99e3983282f8B4fFb30015cC45Ae1D",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x0Eb81BF75e585B227c01BBd1Ba5Ee0Ab6b1b55d5",
+    "SponsorshipDefaultLeavePolicy": "0xb9fe5430aC3eE3B1D26734C513f41Bf96B10C830",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+    "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+}
+Deployed VoteKickPolicy; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xace5b2A71A44efD9259983b5671d8ba802703dF7",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x6956abe11F99e3983282f8B4fFb30015cC45Ae1D",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x0Eb81BF75e585B227c01BBd1Ba5Ee0Ab6b1b55d5",
+    "SponsorshipDefaultLeavePolicy": "0xb9fe5430aC3eE3B1D26734C513f41Bf96B10C830",
+    "SponsorshipVoteKickPolicy": "0xc4a1ba0655FC6C34F9283e33682e57031fC060af",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+    "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+}
+Deployed Sponsorship template at 0xb58a7d4968B67Ccc645b1F9f77730B419a224125
+Warning: Potentially unsafe deployment of contracts/OperatorTokenomics/SponsorshipFactory.sol:SponsorshipFactory
+
+    You are using the `unsafeAllow.delegatecall` flag.
+
+Deployed SponsorshipFactory; Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xace5b2A71A44efD9259983b5671d8ba802703dF7",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x6956abe11F99e3983282f8B4fFb30015cC45Ae1D",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x0Eb81BF75e585B227c01BBd1Ba5Ee0Ab6b1b55d5",
+    "SponsorshipDefaultLeavePolicy": "0xb9fe5430aC3eE3B1D26734C513f41Bf96B10C830",
+    "SponsorshipVoteKickPolicy": "0xc4a1ba0655FC6C34F9283e33682e57031fC060af",
+    "SponsorshipFactory": "0x7ac03730374E995E366F2a466be6aCC14E1DB1C4",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+    "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+}
+Done adding trusted policies (https://iotexscan.io/tx/0xfd057f7bff46f9342ea091402f443aad2440bebaef8e3529dc7845eec64a0cc4 )
+Done setting StreamrConfig.operatorContractOnlyJoinPolicy (https://iotexscan.io/tx/0x522ef0ac404f5842221dd918adc4a9f0e785d25651859f0bb1669fe97a5aa7ff )
+Done setting StreamrConfig.sponsorshipFactory (https://iotexscan.io/tx/0x5b19daaeb18929fc88b1bdd1b317c19c144eb824802f3225f23c3f4f03d25013 )
+Spent 70.535642 ETH for gas
+Wrote contract addresses to addresses.json
+All done! Streamr tokenomics contract addresses:
+{
+    "StreamrConfig": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+    "SponsorshipOperatorContractOnlyJoinPolicy": "0xace5b2A71A44efD9259983b5671d8ba802703dF7",
+    "SponsorshipMaxOperatorsJoinPolicy": "0x6956abe11F99e3983282f8B4fFb30015cC45Ae1D",
+    "SponsorshipStakeWeightedAllocationPolicy": "0x0Eb81BF75e585B227c01BBd1Ba5Ee0Ab6b1b55d5",
+    "SponsorshipDefaultLeavePolicy": "0xb9fe5430aC3eE3B1D26734C513f41Bf96B10C830",
+    "SponsorshipVoteKickPolicy": "0xc4a1ba0655FC6C34F9283e33682e57031fC060af",
+    "SponsorshipFactory": "0x7ac03730374E995E366F2a466be6aCC14E1DB1C4",
+    "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
+    "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
+    "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
+    "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+}
