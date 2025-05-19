@@ -6,10 +6,12 @@ import { Stream, StreamPermission } from '../generated/schema'
 
 /**
  * Hash the streamId and the userId, in order to get constant-length permission IDs (ETH-867)
- * This avoids indexing problems if the userId is very long (many kilobytes).
+ * This avoids indexing problems if the userId or streamId is very long (many kilobytes).
+ *
+ * TODO: once streamId is no longer possibly very long, remove the slice(0, 1000)
  **/
 function getPermissionId(streamId: string, userId: Bytes): string {
-    return crypto.keccak256(Bytes.fromUTF8(streamId).concat(userId)).toHexString()
+    return streamId.slice(0, 1000) + "-" + crypto.keccak256(Bytes.fromUTF8(streamId).concat(userId)).toHexString()
 }
 
 export function handleStreamCreation(event: StreamCreated): void {
