@@ -12,6 +12,12 @@ The container and thus image that initially compiles and pushes the subgraph to 
 can be recreated with the Dockerfile. To do so:
 - build image for local testing first: `docker:buildLocalArch`
 - build & publish image: `docker:buildAndPushMultiArch`
+- check the image was pushed: https://hub.docker.com/r/streamr/deploy-network-subgraphs/tags
+
+Troubleshooting tips:
+* `ERROR: Multiple platforms feature is currently not supported for docker driver.`
+  * maybe for some reason buildx driver isn't selected/enabled
+  * if `docker buildx ls` lists `mybuilder`, use that: `docker buildx use mybuilder` and try again
 
 ## Mainnet deployment to the Arbitrum / decentralized service (indexing Polygon MATIC)
 1. Authenticate: Log into `https://thegraph.com/studio/subgraph/streamr/` using "Streamr subgraph owner" key from 1password. On the right hand side, look for "Auth & Deploy" and "Authenticate in CLI". Copy the command and run it in the terminal: `npx graph auth DEPLOY_KEY`
