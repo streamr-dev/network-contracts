@@ -52,6 +52,10 @@ can be recreated with the Dockerfile. To do so:
   * StreamRegistryV5 (Arbitrary length user id, ETH-787) deployment to Polygon
 * v0.0.10
   * Fixed log message
+* v0.0.12
+  * StreamPermission.id is now a hash of streamId and userId (ETH-867)
+* v0.0.13
+  * StreamPermission.id is now start of streamId + a hash of streamId and userId (ETH-875)
 
 # Developer notes
 
