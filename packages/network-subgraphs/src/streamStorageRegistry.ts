@@ -6,36 +6,38 @@ import {
 } from '../generated/StreamStorageRegistry/StreamStorageRegistry'
 import { Node } from '../generated/schema'
 
-export function handleStorageNodeAddedToStream(event: Added): void {
-    let nodeId = event.params.nodeAddress.toHexString()
-    let streamId = event.params.streamId.toString()
-    log.info('handleStorageNodeAddedToStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
+import { getStreamEntityId } from './streamRegistry'
 
-    let node = Node.load(nodeId)!
+export function handleStorageNodeAddedToStream(event: Added): void {
+    const nodeId = event.params.nodeAddress.toHexString()
+    const streamEntityId = getStreamEntityId(event.params.streamId)
+    log.info('handleStorageNodeAddedToStream: stream={} node={} blockNumber={}', [streamEntityId, nodeId, event.block.number.toString()])
+
+    const node = Node.load(nodeId)!
     if (!node.storedStreams) {
-        node.storedStreams = [streamId]
+        node.storedStreams = [streamEntityId]
     } else {
         let streams = node.storedStreams
         if (!streams) { streams = [] }
-        if (streams.includes(streamId)) { return }
-        streams.push(streamId)
+        if (streams.includes(streamEntityId)) { return }
+        streams.push(streamEntityId)
         node.storedStreams = streams
     }
     node.save()
 }
 
 export function handleStorageNodeRemovedFromStream(event: Removed): void {
-    let nodeId = event.params.nodeAddress.toHexString()
-    let streamId = event.params.streamId.toString()
-    log.info('handleStorageNodeRemovedFromStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
+    const nodeId = event.params.nodeAddress.toHexString()
+    const streamEntityId = getStreamEntityId(event.params.streamId)
+    log.info('handleStorageNodeRemovedFromStream: stream={} node={} blockNumber={}', [streamEntityId, nodeId, event.block.number.toString()])
 
     let node = Node.load(nodeId)!
     if (!node) { return }
     if (!node.storedStreams) { return }
     let streams = node.storedStreams as string[]
     for (let i = 0; i < streams.length; i++) {
-        let s = streams[i] as string
-        if (s == streamId) {
+        const s = streams[i] as string
+        if (s == streamEntityId) {
             streams.splice(i, 1)
             node.storedStreams = streams
             node.save()

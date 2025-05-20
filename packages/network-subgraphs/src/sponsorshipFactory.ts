@@ -5,7 +5,7 @@ import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFacto
 import { Sponsorship, Stream } from '../generated/schema'
 import { Sponsorship as SponsorshipTemplate } from '../generated/templates'
 import { loadOrCreateNetwork, loadOrCreateSponsorshipDailyBucket } from './helpers'
-
+import { getStreamEntityId } from './streamRegistry'
 export function handleNewSponsorship(event: NewSponsorship): void {
     const sponsorshipContractAddress = event.params.sponsorshipContract
     const sponsorshipContractAddressString = sponsorshipContractAddress.toHexString()
@@ -40,9 +40,10 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.save()
 
     // try to load stream entity
-    const stream = Stream.load(event.params.streamId.toString())
+    const streamEntityId = getStreamEntityId(event.params.streamId.toString())
+    const stream = Stream.load(streamEntityId)
     if (stream != null) {
-        sponsorship.stream = stream.id
+        sponsorship.stream = streamEntityId
         sponsorship.save()
     }
 

@@ -33,8 +33,10 @@ type StreamPermission @entity {
 }
 
 type Stream @entity {
-  "stream ID = 'creator address'/'path' where path can be any string"
+  "NOT THE SAME AS streamId if streamId is over 1000 characters"
   id: ID!
+  "stream ID = 'creator address'/'path' where path can be any string"
+  streamId: String!
   "Stream metadata JSON"
   metadata: String!
   "Permissions that each Ethereum address owns to this stream"
