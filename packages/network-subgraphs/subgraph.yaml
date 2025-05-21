@@ -11,11 +11,11 @@ features:
 dataSources:
   - kind: ethereum/contract
     name: StreamRegistry
-    network: polygon-amoy
+    network: xDai
     source:
-      address: "0xE9C98bdE63248e58E9137Db8270D9675B9E34b93"
+      address: "0xd04af489677001444280366Dd0885B03dAaDe71D"
       abi: StreamRegistry
-      startBlock: 6550000
+      # startBlock: 10000000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -40,11 +40,11 @@ dataSources:
       file: ./src/streamRegistry.ts
   - kind: ethereum/contract
     name: NodeRegistry
-    network: polygon-amoy
+    network: xDai
     source:
-      address: "0x02fdF917f4e6Ae8F7F1bBDd28179d819E2b76820"
+      address: "0xCBAcfA0592B3D809aEc805d527f8ceAe9307D9C0"
       abi: NodeRegistry
-      startBlock: 6550000
+      # startBlock: 10000000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -62,11 +62,11 @@ dataSources:
       file: ./src/nodeRegistry.ts
   - kind: ethereum/contract
     name: StreamStorageRegistry
-    network: polygon-amoy
+    network: xDai
     source:
-      address: "0x0f3671A9A92416E1aD32750faCf2AD4FA1b66f78"
+      address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
       abi: StreamStorageRegistry
-      startBlock: 6550000
+      # startBlock: 10000000 #TODO
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -84,11 +84,11 @@ dataSources:
       file: ./src/streamStorageRegistry.ts
   - kind: ethereum/contract
     name: ProjectRegistryV1
-    network: polygon-amoy
+    network: xDai # xDai means dev1
     source:
-      address: "0xc5e1434d35c0c7291c7032Fd9C4096b4876C6823"
+      address: "0x3523F6Ff285D2A3F79A53d1E0953BD41bb7f6022"
       abi: ProjectRegistryV1
-      startBlock: 6550000
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -119,11 +119,11 @@ dataSources:
       file: ./src/projectRegistry.ts
   - kind: ethereum/contract
     name: MarketplaceV4
-    network: polygon-amoy
+    network: xDai
     source:
-      address: "0x6C8eaA8e0bF605469c15b6F9106387B4cEC99976"
+      address: "0x8015bb1954FaF2A6109F5c41b2086B250A6769A0"
       abi: MarketplaceV4
-      startBlock: 6550000
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -140,11 +140,11 @@ dataSources:
       file: ./src/marketplaceV4.ts
   - kind: ethereum/contract
     name: ProjectStakingV1
-    network: polygon-amoy
+    network: xDai
     source:
-      address: "0x3A27A16770477EbcFb4B81cE462F4f12591767A0"
+      address: "0x3Dd18E5E8C4f6291Db26795CC154918f7Ac1D875"
       abi: ProjectStakingV1
-      startBlock: 6550000
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -166,11 +166,11 @@ dataSources:
       file: ./src/projectStaking.ts
   - kind: ethereum/contract
     name: StreamrConfig
-    network: polygon-amoy
+    network: xDai
     source:
-      address: '0x835bC97D2a61bbF5d05932C5105Ca34e1b815F94'
+      address: '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
       abi: StreamrConfig
-      startBlock: 6550000
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -186,12 +186,12 @@ dataSources:
           handler: handleConfigChanged
   - kind: ethereum/contract
     name: SponsorshipFactory
-    network: polygon-amoy
+    network: xDai
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xb194a68b166f2e3074B551393fA61490D19c69f8'
+      address: '0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873'
       abi: SponsorshipFactory
-      startBlock: 6550000
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -211,12 +211,12 @@ dataSources:
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
-    network: polygon-amoy
+    network: xDai
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xE02E8E9fF5ea6a58F34D00C0e4B091e066B9fA81'
+      address: '0x3AE0ad89b0e094fD09428589849C161f0F7f4E6A'
       abi: OperatorFactory
-      startBlock: 6550000
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -239,7 +239,7 @@ dataSources:
 templates:
   - name: Sponsorship
     kind: ethereum/contract
-    network: polygon-amoy
+    network: xDai
     source:
       abi: Sponsorship
     mapping:
@@ -281,7 +281,7 @@ templates:
             handler: handleSponsorshipReceived
   - name: Operator
     kind: ethereum/contract
-    network: polygon-amoy
+    network: xDai
     source:
       abi: Operator
     mapping:
