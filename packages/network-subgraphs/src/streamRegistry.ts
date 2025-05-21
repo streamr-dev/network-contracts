@@ -19,6 +19,7 @@ export function handleStreamCreation(event: StreamCreated): void {
     log.info('handleStreamCreation: id={} metadata={} blockNumber={}',
         [event.params.id, event.params.metadata, event.block.number.toString()])
     let stream = new Stream(event.params.id)
+    stream.idAsString = event.params.id,
     stream.metadata = event.params.metadata
     stream.createdAt = event.block.timestamp
     stream.updatedAt = event.block.timestamp
