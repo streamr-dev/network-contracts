@@ -13,7 +13,7 @@ import { MAX_STREAM_ID_LENGTH } from './helpers'
  *       because it could cause some streams with same 1k-prefix to mix up when sorting
  **/
 function getPermissionId(streamId: string, userId: Bytes): string {
-    return streamId.slice(0, 1000) + "-" + crypto.keccak256(Bytes.fromUTF8(streamId).concat(userId)).toHexString()  // TODO remove the slice and Bytes.fromUTF8(streamId)
+    return streamId + "-" + crypto.keccak256(userId).toHexString()  // TODO remove the slice and Bytes.fromUTF8(streamId)
 }
 
 export function handleStreamCreation(event: StreamCreated): void {
