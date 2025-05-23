@@ -5,11 +5,16 @@ import {
     Removed
 } from '../generated/StreamStorageRegistry/StreamStorageRegistry'
 import { Node } from '../generated/schema'
+import { MAX_STREAM_ID_LENGTH } from './helpers'
 
 export function handleStorageNodeAddedToStream(event: Added): void {
     let nodeId = event.params.nodeAddress.toHexString()
     let streamId = event.params.streamId.toString()
     log.info('handleStorageNodeAddedToStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
+    if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
+        log.warning("Overlong stream id not supporte:d {}", [event.params.streamId]) 
+        return
+    }
 
     let node = Node.load(nodeId)!
     if (!node.storedStreams) {
@@ -28,7 +33,11 @@ export function handleStorageNodeRemovedFromStream(event: Removed): void {
     let nodeId = event.params.nodeAddress.toHexString()
     let streamId = event.params.streamId.toString()
     log.info('handleStorageNodeRemovedFromStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
-
+    if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
+        log.warning("Overlong stream id not supporte:d {}", [event.params.streamId]) 
+        return
+    }
+    
     let node = Node.load(nodeId)!
     if (!node) { return }
     if (!node.storedStreams) { return }
