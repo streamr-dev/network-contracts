@@ -17,6 +17,7 @@ import { Operator as OperatorContract } from '../generated/templates/Operator/Op
 
 const BUCKET_SECONDS = BigInt.fromI32(60 * 60 * 24) // 1 day
 const NETWORK_ENTITY_ID = "network-entity-id"
+export const MAX_STREAM_ID_LENGTH = 1000
 
 /**
  * Helper function to load a project or create a project with default values. It will probably silence some errors.

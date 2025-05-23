@@ -4,7 +4,7 @@ import { Sponsorship as SponsorshipContract } from '../generated/templates/Spons
 import { NewSponsorship } from '../generated/SponsorshipFactory/SponsorshipFactory'
 import { Sponsorship, Stream } from '../generated/schema'
 import { Sponsorship as SponsorshipTemplate } from '../generated/templates'
-import { loadOrCreateNetwork, loadOrCreateSponsorshipDailyBucket } from './helpers'
+import { loadOrCreateNetwork, loadOrCreateSponsorshipDailyBucket, MAX_STREAM_ID_LENGTH } from './helpers'
 
 export function handleNewSponsorship(event: NewSponsorship): void {
     const sponsorshipContractAddress = event.params.sponsorshipContract
@@ -14,6 +14,10 @@ export function handleNewSponsorship(event: NewSponsorship): void {
         [event.block.number.toString(), sponsorshipContractAddressString,
             event.params.policies.map<string>((x) => x.toHexString()).join(", "), event.params.policyParams.toString(), creator]
     )
+    if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
+        log.warning("Overlong stream id not supported: {}", [event.params.streamId]) 
+        return
+    }
 
     const sponsorship = new Sponsorship(sponsorshipContractAddressString)
     sponsorship.totalStakedWei = BigInt.zero()

@@ -3,6 +3,7 @@ import { ByteArray, Bytes, log, store, crypto } from '@graphprotocol/graph-ts'
 import { StreamCreated, StreamDeleted, StreamUpdated, PermissionUpdated, PermissionUpdatedForUserId }
     from '../generated/StreamRegistry/StreamRegistry'
 import { Stream, StreamPermission } from '../generated/schema'
+import { MAX_STREAM_ID_LENGTH } from './helpers'
 
 /**
  * Hash the streamId and the userId, in order to get constant-length permission IDs (ETH-867)
@@ -12,12 +13,16 @@ import { Stream, StreamPermission } from '../generated/schema'
  *       because it could cause some streams with same 1k-prefix to mix up when sorting
  **/
 function getPermissionId(streamId: string, userId: Bytes): string {
-    return streamId.slice(0, 1000) + "-" + crypto.keccak256(Bytes.fromUTF8(streamId).concat(userId)).toHexString()
+    return streamId + "-" + crypto.keccak256(userId).toHexString()
 }
 
 export function handleStreamCreation(event: StreamCreated): void {
     log.info('handleStreamCreation: id={} metadata={} blockNumber={}',
         [event.params.id, event.params.metadata, event.block.number.toString()])
+    if (event.params.id.length > MAX_STREAM_ID_LENGTH) {
+        log.warning("Overlong stream id not supported: {}", [event.params.id]) 
+        return
+    }
     let stream = new Stream(event.params.id)
     stream.metadata = event.params.metadata
     stream.createdAt = event.block.timestamp
@@ -47,6 +52,10 @@ export function handleStreamUpdate(event: StreamUpdated): void {
 export function handlePermissionUpdate(event: PermissionUpdated): void {
     log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
+    if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
+        log.warning("Overlong stream id not supported: {}", [event.params.streamId]) 
+        return
+    }
     let stream = Stream.load(event.params.streamId)
     if (stream == null) { return }
 
@@ -69,6 +78,10 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
 export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserId): void {
     log.info('handlePermissionUpdateForUserId: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
+    if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
+        log.warning("Overlong stream id not supported: {}", [event.params.streamId]) 
+        return
+    }
     let stream = Stream.load(event.params.streamId)
     if (stream == null) { return }
 

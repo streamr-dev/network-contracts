@@ -10,7 +10,7 @@ import {
     StreamRemoved,
     PaymentDetailsByChainUpdated,
 } from '../generated/ProjectRegistryV1/ProjectRegistryV1'
-import { getIsDataUnionValue, loadOrCreateProject } from './helpers'
+import { getIsDataUnionValue, loadOrCreateProject, MAX_STREAM_ID_LENGTH } from './helpers'
 
 export function handleProjectCreation(event: ProjectCreated): void {
     const id = event.params.id.toHexString()
@@ -151,7 +151,11 @@ export function handleStreamAddition(event: StreamAdded): void {
     const streamId = event.params.streamId
     log.info('handleStreamAddition: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
-
+    if (streamId.length > MAX_STREAM_ID_LENGTH) {
+        log.warning("Overlong stream id not supported: {}", [streamId]) 
+        return
+    }
+        
     let project = loadOrCreateProject(event.params.projectId)
 
     const streams = project.streams
@@ -165,6 +169,10 @@ export function handleStreamRemoval(event: StreamRemoved): void {
     const streamId = event.params.streamId
     log.info('handleStreamRemoval: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
+    if (streamId.length > MAX_STREAM_ID_LENGTH) {
+        log.warning("Overlong stream id not supported: {}", [streamId]) 
+        return
+    }
 
     let project = loadOrCreateProject(event.params.projectId)
 
