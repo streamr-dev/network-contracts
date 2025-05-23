@@ -15,7 +15,7 @@ export function handleNewSponsorship(event: NewSponsorship): void {
             event.params.policies.map<string>((x) => x.toHexString()).join(", "), event.params.policyParams.toString(), creator]
     )
     if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
-        log.warning("Overlong stream id not supporte:d {}", [event.params.streamId]) 
+        log.warning("Overlong stream id not supported: {}", [event.params.streamId]) 
         return
     }
 

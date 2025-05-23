@@ -20,7 +20,7 @@ export function handleStreamCreation(event: StreamCreated): void {
     log.info('handleStreamCreation: id={} metadata={} blockNumber={}',
         [event.params.id, event.params.metadata, event.block.number.toString()])
     if (event.params.id.length > MAX_STREAM_ID_LENGTH) {
-        log.warning("Overlong stream id not supporte:d {}", [event.params.id]) 
+        log.warning("Overlong stream id not supported: {}", [event.params.id]) 
         return
     }
     let stream = new Stream(event.params.id)
@@ -53,7 +53,7 @@ export function handlePermissionUpdate(event: PermissionUpdated): void {
     log.info('handlePermissionUpdate: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
     if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
-        log.warning("Overlong stream id not supporte:d {}", [event.params.streamId]) 
+        log.warning("Overlong stream id not supported: {}", [event.params.streamId]) 
         return
     }
     let stream = Stream.load(event.params.streamId)
@@ -79,7 +79,7 @@ export function handlePermissionUpdateForUserId(event: PermissionUpdatedForUserI
     log.info('handlePermissionUpdateForUserId: user={} streamId={} blockNumber={}',
         [event.params.user.toHexString(), event.params.streamId, event.block.number.toString()])
     if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
-        log.warning("Overlong stream id not supporte:d {}", [event.params.streamId]) 
+        log.warning("Overlong stream id not supported: {}", [event.params.streamId]) 
         return
     }
     let stream = Stream.load(event.params.streamId)

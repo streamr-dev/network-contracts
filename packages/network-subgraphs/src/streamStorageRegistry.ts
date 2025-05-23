@@ -12,7 +12,7 @@ export function handleStorageNodeAddedToStream(event: Added): void {
     let streamId = event.params.streamId.toString()
     log.info('handleStorageNodeAddedToStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
     if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
-        log.warning("Overlong stream id not supporte:d {}", [event.params.streamId]) 
+        log.warning("Overlong stream id not supported: {}", [event.params.streamId]) 
         return
     }
 
@@ -34,7 +34,7 @@ export function handleStorageNodeRemovedFromStream(event: Removed): void {
     let streamId = event.params.streamId.toString()
     log.info('handleStorageNodeRemovedFromStream: stream={} node={} blockNumber={}', [streamId, nodeId, event.block.number.toString()])
     if (event.params.streamId.length > MAX_STREAM_ID_LENGTH) {
-        log.warning("Overlong stream id not supporte:d {}", [event.params.streamId]) 
+        log.warning("Overlong stream id not supported: {}", [event.params.streamId]) 
         return
     }
     

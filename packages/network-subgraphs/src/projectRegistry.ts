@@ -152,7 +152,7 @@ export function handleStreamAddition(event: StreamAdded): void {
     log.info('handleStreamAddition: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
     if (streamId.length > MAX_STREAM_ID_LENGTH) {
-        log.warning("Overlong stream id not supporte:d {}", [streamId]) 
+        log.warning("Overlong stream id not supported: {}", [streamId]) 
         return
     }
         
@@ -170,7 +170,7 @@ export function handleStreamRemoval(event: StreamRemoved): void {
     log.info('handleStreamRemoval: projectId={} streamId={} blockNumber={}',
         [projectId, streamId, event.block.number.toString()])
     if (streamId.length > MAX_STREAM_ID_LENGTH) {
-        log.warning("Overlong stream id not supporte:d {}", [streamId]) 
+        log.warning("Overlong stream id not supported: {}", [streamId]) 
         return
     }
 
