@@ -35,8 +35,6 @@ type StreamPermission @entity {
 type Stream @entity {
   "stream ID = 'creator address'/'path' where path can be any string"
   id: ID!
-  "This field has the same value as the ID field. It enables us to perform substring queries on the id field using the idAsString_contains where clause"
-  idAsString: String! @index
   "Stream metadata JSON"
   metadata: String!
   "Permissions that each Ethereum address owns to this stream"
