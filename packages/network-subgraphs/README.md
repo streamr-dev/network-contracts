@@ -62,9 +62,8 @@ Troubleshooting tips:
   * StreamPermission.id is now a hash of streamId and userId (ETH-867)
 * v0.0.13
   * StreamPermission.id is now start of streamId + a hash of streamId and userId (ETH-875)
-* v0.0.14
-  * Streams with id over 1000 characters are now dropped from the subgraph. They still exist in the StreamRegistry but are not indexed.
-  * added Stream.idAsString field
+* v0.0.15
+  * Streams with id over 1000 characters are now dropped from the subgraph. They still exist in the StreamRegistry but are not indexed. (ETH-876)
 
 # Developer notes
 
