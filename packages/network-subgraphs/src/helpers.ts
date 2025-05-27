@@ -7,6 +7,7 @@ import {
     Flag,
     Operator,
     OperatorDailyBucket,
+    PastDelegationCount,
     Project,
     ProjectStakeByUser,
     ProjectStakingDayBucket,
@@ -245,7 +246,13 @@ export function loadOrCreateOperatorDailyBucket(contractAddress: Address, timest
 }
 
 export function loadOrCreateDelegation(operator: Operator, delegatorId: string): Delegation {
-    const delegationId = operator.id + "-" + delegatorId
+    let pastDelegationCount = PastDelegationCount.load(operator.id + "-" + delegatorId)
+    if (pastDelegationCount == null) {
+        pastDelegationCount = new PastDelegationCount(operator.id + "-" + delegatorId)
+        pastDelegationCount.count = 0
+        pastDelegationCount.save()
+    }
+    const delegationId = operator.id + "-" + delegatorId + "-" + pastDelegationCount.count.toString()
     let delegation = Delegation.load(delegationId)
     if (delegation == null) {
         delegation = new Delegation(delegationId)
