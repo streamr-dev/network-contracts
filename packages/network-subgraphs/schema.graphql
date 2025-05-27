@@ -393,7 +393,7 @@ type OperatorDailyBucket @entity {
 
 # Delegation events in an Operator contract signals trust in the operator
 type Delegation @entity {
-  "0xoperatorAddress-0xdelegatorAddress"
+  "0xoperatorAddress-0xdelegatorAddress-PastDelegationCount"
   id: ID!
   operator: Operator!
   delegator: Delegator!
@@ -412,6 +412,16 @@ type Delegation @entity {
 
   "earliest time this delegator can undelegate from this operator (0 if this.isSelfDelegation because it doesn't apply)"
   earliestUndelegationTimestamp: Int!
+}
+
+# Tracking past delegations to be able to create a clean running ID for the Delegation entity
+# Clean ID is required because otherwise we may hit a situation where we delete a Delegation (BalanceUpdate -> 0)
+#   then create it again later (e.g. Delegated event), and results in
+#   `internal error: impossible combination of entity operations: Remove and then Overwrite`
+type PastDelegationCount @entity {
+  "0xoperatorAddress-0xdelegatorAddress"
+  id: ID!
+  count: Int!
 }
 
 type Delegator @entity {

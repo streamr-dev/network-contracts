@@ -19,7 +19,7 @@ import { loadOrCreateDelegation, loadOrCreateDelegator, loadOrCreateDelegatorDai
     loadOrCreateNetwork,
     loadOrCreateFlag,
     loadOrCreateOperator, loadOrCreateOperatorDailyBucket } from './helpers'
-import { Flag, QueueEntry } from '../generated/schema'
+import { Flag, QueueEntry, PastDelegationCount } from '../generated/schema'
 
 /** Undelegated is used for tracking the total amount undelegated across all Operators */
 export function handleUndelegated(event: Undelegated): void {
@@ -101,6 +101,11 @@ export function handleBalanceUpdate(event: BalanceUpdate): void {
         // delegator left
         // delegator burned/transfered all their operator tokens => remove Delegation entity & decrease delegator count
         store.remove('Delegation', delegation.id)
+        // also increment PastDelegationCount.count, so that if the Delegation needs to be re-created, it will have a new ID
+        // re-using the ID may result in `internal error: impossible combination of entity operations: Remove and then Overwrite`
+        const pastDelegationCount = PastDelegationCount.load(operator.id + "-" + delegatorId)!
+        pastDelegationCount.count = pastDelegationCount.count + 1
+        pastDelegationCount.save()
         operator.delegatorCount = operator.delegatorCount - 1
         delegator.numberOfDelegations = delegator.numberOfDelegations - 1
         delegatorDailyBucket.operatorCount = delegatorDailyBucket.operatorCount - 1
