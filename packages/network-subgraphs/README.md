@@ -64,6 +64,8 @@ Troubleshooting tips:
   * StreamPermission.id is now start of streamId + a hash of streamId and userId (ETH-875)
 * v0.0.15
   * Streams with id over 1000 characters are now dropped from the subgraph. They still exist in the StreamRegistry but are not indexed. (ETH-876)
+* v0.0.16
+  * Added PastDelegationCount entity, add running count into Delegation.id
 
 # Developer notes
 
