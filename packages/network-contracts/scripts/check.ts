@@ -3,7 +3,6 @@
 
 import { Contract } from "@ethersproject/contracts"
 import { JsonRpcProvider } from "@ethersproject/providers"
-import { hexZeroPad } from "@ethersproject/bytes"
 
 import { config } from "@streamr/config"
 import { streamRegistryABI, ENSCacheV2ABI } from "@streamr/network-contracts"

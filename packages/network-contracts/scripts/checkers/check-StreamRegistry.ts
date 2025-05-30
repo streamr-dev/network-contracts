@@ -28,7 +28,7 @@ const UUPS_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d3
 checkDeployments(chainNames).catch(console.error)
 // dumpBytecodes().catch(console.error)
 
-async function dumpBytecodes() {
+export async function dumpBytecodes(): Promise<void> {
     writeFileSync("deployed-1.txt", deployed1)
     writeFileSync("deployed-2.txt", deployed2)
     writeFileSync("deployed-3.txt", deployed3)
@@ -117,7 +117,6 @@ async function checkStreamRegistry(provider: providers.BaseProvider, address: st
 
     return contractName
 }
-
 
 async function checkChain(chainKey: keyof typeof config) {
     const {
