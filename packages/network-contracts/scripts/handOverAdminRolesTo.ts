@@ -3,8 +3,8 @@
 import { utils, Contract, providers, Wallet, Overrides } from "ethers"
 import { config } from "@streamr/config"
 
-import { operatorFactoryABI, sponsorshipFactoryABI, streamrConfigABI } from "@streamr/network-contracts"
-import type { StreamrConfig, SponsorshipFactory, OperatorFactory } from "@streamr/network-contracts"
+import { operatorFactoryABI, sponsorshipFactoryABI, streamrConfigABI, streamRegistryABI } from "@streamr/network-contracts"
+import type { StreamrConfig, SponsorshipFactory, OperatorFactory, StreamRegistry } from "@streamr/network-contracts"
 
 const { log } = console
 
@@ -31,12 +31,11 @@ const {
         StreamrConfig: STREAMR_CONFIG_ADDRESS,
         OperatorFactory: OPERATOR_FACTORY_ADDRESS,
         SponsorshipFactory: SPONSORSHIP_FACTORY_ADDRESS,
+        StreamRegistry: STREAM_REGISTRY_ADDRESS,
     },
     rpcEndpoints: [{ url: ETHEREUM_RPC_URL }],
+    blockExplorerUrl = "",
 } = (config as any)[CHAIN]
-
-// TODO: add to @streamr/config
-const blockExplorerUrl = "https://polygonscan.com"
 
 const txOverrides: Overrides = {}
 if (GAS_PRICE_GWEI) {
@@ -46,7 +45,7 @@ if (GAS_PRICE_GWEI) {
 const lastArg = process.argv[process.argv.length - 1]
 const targetAddress = isAddress(lastArg) ? getAddress(lastArg) : isAddress(NEW_ADMIN_ADDRESS) ? getAddress(NEW_ADMIN_ADDRESS) : null
 if (targetAddress === null) {
-    log("Target address can be given as command-line argument, or as TARGET_ADDRESS environment variable.")
+    log("Target address can be given as command-line argument, or as NEW_ADMIN_ADDRESS environment variable.")
     throw new Error("Must give target address!")
 }
 
@@ -59,6 +58,16 @@ async function main() {
 export default async function handover(currentAdminWallet: Wallet, targetAddress: string): Promise<void> {
     const { provider } = currentAdminWallet
     const myAddress = currentAdminWallet.address
+
+    if (!STREAM_REGISTRY_ADDRESS) {
+        throw new Error(`StreamRegistry must be set in the config! Not found in chain "${CHAIN}".
+            Check CHAIN environment variable, or deploy StreamRegistry first.`)
+    }
+    const streamRegistry = new Contract(STREAM_REGISTRY_ADDRESS, streamRegistryABI, currentAdminWallet) as StreamRegistry
+    if (!await streamRegistry.hasRole(await streamRegistry.DEFAULT_ADMIN_ROLE(), currentAdminWallet.address)) {
+        throw new Error(`${currentAdminWallet.address} doesn't have StreamRegistry.DEFAULT_ADMIN_ROLE`)
+    }
+    log("Found StreamRegistry at %s", streamRegistry.address)
 
     if (!STREAMR_CONFIG_ADDRESS || await provider.getCode(STREAMR_CONFIG_ADDRESS) === "0x") {
         throw new Error(`StreamrConfig must be set in the config! Not found in chain "${CHAIN}".
@@ -116,6 +125,11 @@ export default async function handover(currentAdminWallet: Wallet, targetAddress
     log("Granted SponsorshipFactory.ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr9.transactionHash)
     const tr10 = await (await sponsorshipFactory.revokeRole(await sponsorshipFactory.ADMIN_ROLE(), myAddress, txOverrides)).wait()
     log("Revoked SponsorshipFactory.ADMIN_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr10.transactionHash)
+
+    const tr11 = await (await streamRegistry.grantRole(await streamRegistry.DEFAULT_ADMIN_ROLE(), targetAddress, txOverrides)).wait()
+    log("Granted StreamRegistry.DEFAULT_ADMIN_ROLE to %s (%s/tx/%s )", targetAddress, blockExplorerUrl, tr11.transactionHash)
+    const tr12 = await (await streamRegistry.revokeRole(await streamRegistry.DEFAULT_ADMIN_ROLE(), myAddress, txOverrides)).wait()
+    log("Revoked StreamRegistry.DEFAULT_ADMIN_ROLE from %s (%s/tx/%s )", myAddress, blockExplorerUrl, tr12.transactionHash)
 }
 
 if (require.main === module) {

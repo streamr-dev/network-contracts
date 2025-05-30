@@ -3,6 +3,7 @@
 
 import { Contract } from "@ethersproject/contracts"
 import { JsonRpcProvider } from "@ethersproject/providers"
+import { hexZeroPad } from "@ethersproject/bytes"
 
 import { config } from "@streamr/config"
 import { streamRegistryABI, ENSCacheV2ABI } from "@streamr/network-contracts"
@@ -63,25 +64,32 @@ const AddressZero = "0x0000000000000000000000000000000000000000"
 // const Bytes32Zero = "0x0000000000000000000000000000000000000000000000000000000000000000"
 const TRUSTED_ROLE = "0x2de84d9fbdf6d06e2cc584295043dbd76046423b9f8bae9426d4fa5e7c03f4a7"
 async function main() {
-    log("Checking ENS (cache/bridge) state")
-    log("Checking the network setup: %o", await provider.getNetwork())
+    log("Reading ENS (cache/bridge) state")
+    log("Reading the network: %o", await provider.getNetwork())
     // log("ENS contract at: %s (deployer %s)", ensContract.address, await ensContract.owner(Bytes32Zero))
     log("StreamRegistry contract at: %s (%s)", streamRegistry.address, TRUSTED_ROLE == await streamRegistry.TRUSTED_ROLE())
     log("ENSCacheV2 contract at: %s (%s)", ensCacheContract.address, await ensCacheContract.owners(AddressZero))
 
     if (STREAM_ID) {
-        log("Checking stream '%s'", STREAM_ID)
+        log("Reading stream '%s'", STREAM_ID)
         log("  Metadata: %s", await streamRegistry.getStreamMetadata(STREAM_ID))
         if (USER_ID) {
-            log("  %s permissions: %o", USER_ID, await streamRegistry.getPermissionsForUser(STREAM_ID, USER_ID).then(formatPermissions))
-            log("  %s permissions: %o", USER_ID, await streamRegistry.getPermissionsForUserId(STREAM_ID, USER_ID)
-                .then(formatPermissions).catch(() => "error")
-            )
+            // pad to 32 bytes, TODO: below lines should Just Work in the same way (ETH-777)
+            const userIdBytes = hexZeroPad(USER_ID, 32)
+            log("User ID bytes: %s", userIdBytes)
+            log("  permissionsForUser(%s) = %o", USER_ID, await streamRegistry.getPermissionsForUser(STREAM_ID, USER_ID).then(formatPermissions))
+            log("  permissionsForUserId(%s) = %o", USER_ID, await streamRegistry.getPermissionsForUserId(STREAM_ID, USER_ID).then(formatPermissions))
+            log("  permissionsForUserId(%s) = %o", userIdBytes, await streamRegistry.getPermissionsForUserId(STREAM_ID, userIdBytes)
+                .then(formatPermissions).catch(() => "error"))
+
+            log("addressKey(%s) = %o", USER_ID, await streamRegistry.getAddressKey(STREAM_ID, USER_ID))
+            log("userKeyForUserId(%s) = %o", USER_ID, await streamRegistry.getUserKeyForUserId(STREAM_ID, USER_ID))
+            log("userKeyForUserId(%s) = %o", userIdBytes, await streamRegistry.getUserKeyForUserId(STREAM_ID, userIdBytes))
         }
     }
 
     if (TX) {
-        log("Checking transaction %s", TX)
+        log("Reading transaction %s", TX)
         log("  Receipt: %o", await provider.getTransactionReceipt(TX))
     }
 }
