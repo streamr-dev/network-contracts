@@ -37,6 +37,9 @@ async function main() {
     }
     console.log("Chain node is up, deploying contracts...")
     await deploy()
+
+    // set block timestamp to wall clock time
+    await provider.send("evm_mine", [ Math.ceil(Date.now() / 1000) ])
 }
 
 async function deploy() {

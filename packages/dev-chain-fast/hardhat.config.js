@@ -3,10 +3,16 @@ module.exports = {
     defaultNetwork: 'hardhat',
     networks: {
         hardhat: {
+            initialDate: "2025-01-01T00:00:00Z", // deploy.ts will set block timestamp to wall clock time after it's done
             gas: 12000000,
             blockGasLimit: 0x1fffffffffffff,
             allowUnlimitedContractSize: true,
             mining: {
+                // TODO: consider setting auto to false
+                //   pro: in real setting, many tx can go into the same block, with automine every tx gets its own block
+                //   pro: with auto:true, if tx are sent very fast, since each block must increment by at least 1 second
+                //     it may cause block timestamps to drift forward from the wall clock time; auto:false would fix this
+                //   con: tests will probably run slower
                 auto: true,
                 interval: 1000
             },
