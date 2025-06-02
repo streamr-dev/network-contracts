@@ -1,0 +1,9 @@
+Checking network peaq
+    { chainId: 3338, name: 'unknown' }
+Checking StreamRegistry at 0xD0C720e99Bd39311614f292d8B0B4e351Bde157c
+    0x2de84d9fbdf6d06e2cc584295043dbd76046423b9f8bae9426d4fa5e7c03f4a7 [OK]
+Balance of 0xAe1Ba4036610cF18A2Ca6ba0f43DB957ffA21024: 4.852085949003732736 native tokens
+Checking new StreamRegistry at 0xD0C720e99Bd39311614f292d8B0B4e351Bde157c
+    0xbc6e092677d3938fa44d98435a824f9921ff50822ce3ae9111b53784379cd87e [OK]
+Implementation address: 0x4eB94a81a10E7A1C916FC1b6E43986abc6822f7b
+Spent 0.020238 ETH for gas
