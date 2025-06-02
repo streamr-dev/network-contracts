@@ -17,3 +17,28 @@ Addresses for the implementation contracts as of 2025-05-28:
 the addresses marked "proxy" are the ones found in config.json because the implementations are used via those proxies.
 
 The `StorageNodeRegistry` is a guess; in deployStreamrContracts.ts, it's deployed as a proxy, but in block explorer only one contract showed up. Not sure what's up with that.
+
+## StreamRegistry issue fixed in 2025-05-30
+
+Before the fix:
+```
+$ CHAIN=peaq STREAM_ID=0xc0147a6a8e21be06edb0703b008f0e732ceea531/peaq/DePIN_1 USER_ID=0xc0147a6a8e21be06edb0703b008f0e732ceea531 SCRIPT_FILE=scripts/check.ts npm run hardhatScript
+...
+Checking ENS (cache/bridge) state
+Checking the network setup: { chainId: 3338, name: 'unknown' }
+StreamRegistry contract at: 0xD0C720e99Bd39311614f292d8B0B4e351Bde157c (true)
+ENSCacheV2 contract at: 0x4A71d0FA9e3326E830048B1423d7010fB9343071 (0x0000000000000000000000000000000000000000)
+Checking stream '0xc0147a6a8e21be06edb0703b008f0e732ceea531/peaq/DePIN_1'
+  Metadata: {"partitions":1}
+User ID bytes: 0x000000000000000000000000c0147a6a8e21be06edb0703b008f0e732ceea531
+  0xc0147a6a8e21be06edb0703b008f0e732ceea531 permissions: [ 'grant', 'edit', 'delete', 'publish', 'subscribe', [length]: 5 ]
+  0xc0147a6a8e21be06edb0703b008f0e732ceea531 permissions: [ [length]: 0 ]
+```
+
+After the fix:
+```
+Checking stream '0xc0147a6a8e21be06edb0703b008f0e732ceea531/peaq/DePIN_1'
+  Metadata: {"partitions":1}
+  0xc0147a6a8e21be06edb0703b008f0e732ceea531 permissions: [ 'grant', 'edit', 'delete', 'publish', 'subscribe', [length]: 5 ]
+  0xc0147a6a8e21be06edb0703b008f0e732ceea531 permissions: [ 'grant', 'edit', 'delete', 'publish', 'subscribe', [length]: 5 ]
+```
