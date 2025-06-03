@@ -485,7 +485,25 @@
       "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
       "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
     },
-    "blockExplorerUrl": "https://iotexscan.io"
+    "blockExplorerUrl": "https://iotexscan.io",
+    "entryPoints": [
+      {
+        "nodeId": "e5f87a7ee99b3c91e7b795b70f87ef8ba5497596",
+        "websocket": {
+          "host": "polygon-entrypoint-3.streamr.network",
+          "port": 443,
+          "tls": true
+        }
+      },
+      {
+        "nodeId": "6f5b53812fd9cc07f225a0b3a6aa5b96672e852e",
+        "websocket": {
+          "host": "polygon-entrypoint-4.streamr.network",
+          "port": 443,
+          "tls": true
+        }
+      }
+    ]
   },
   "iotexTestnet": {
     "id": 4690,
