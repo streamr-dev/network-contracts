@@ -109,3 +109,4 @@ npm run build
 5.5.4: Peaq subgraph URL added
 5.5.5: Peaq entrypoints set to same as current mainnet (polygon)
 5.6.0: IoTeX deployment
+5.7.0: IoTeX entrypoints and theGraphUrl added
