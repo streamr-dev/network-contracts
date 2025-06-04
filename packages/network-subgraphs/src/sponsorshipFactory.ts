@@ -27,6 +27,11 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     sponsorship.operatorCount = 0
     sponsorship.isRunning = false
     sponsorship.metadata = event.params.metadata
+    // The first item in the array must be a trusted allocation policy (see SponsorshipFactory#deploySponsorship()).
+    // Currently, StakeWeightedAllocationPolicy is the only trusted allocation policy.
+    // Therefore, we assume the first policy parameter corresponds to StakeWeightedAllocationPolicy#incomePerSecond.
+    // If more trusted allocation policies are added in the future, we must add a check here (i.e. verify that event.params.policies[0]
+    // matches the address of StakeWeightedAllocationPolicy).
     sponsorship.totalPayoutWeiPerSec = event.params.policyParams[0]
     sponsorship.minimumStakingPeriodSeconds = event.params.policyParams[1]
     sponsorship.creator = creator
@@ -35,9 +40,11 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     // TODO: once it's possible to add minOperatorCount to NewSponsorship event, get rid of this smart contract call
     sponsorship.minOperators = SponsorshipContract.bind(sponsorshipContractAddress).minOperatorCount().toI32()
 
-    // The standard ordering is: allocation, leave, kick, join policies
-    // "Operator-only join policy" is always set, so we check if we have 5 policies,
-    //   and in that case we assume the 4th policy is the "max-operators join policy"
+    // If there is a 4th item in the array, it is a trusted join policy. All policies beyond the third are join policies,
+    // and all join policies are trusted (see SponsorshipFactory#deploySponsorship()). Technically, it could be any join policy,
+    // but in practice, it is currently always MaxOperatorsJoinPolicy, as that is the only trusted join policy available.
+    // If more trusted join policies are added in the future, we must add a check here (i.e. verify that event.params.policies[3]
+    // matches the address of MaxOperatorsJoinPolicy).
     if (event.params.policies.length == 4) {
         sponsorship.maxOperators = event.params.policyParams[3].toI32()
     }
