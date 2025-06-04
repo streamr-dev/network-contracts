@@ -9,5 +9,4 @@ This is a monorepo containing various smart contracts and subgraphs used by the 
 
 ## Other packages
 
-- [chainlink-ens-external-adapter](https://github.com/streamr-dev/network-contracts/tree/master/packages/chainlink-ens-external-adapter) Custom Chainlink job that implements an ENS oracle used to verify ENS ownership on mainnet when creating streams
 - [brubeck-migration-script](https://github.com/streamr-dev/network-contracts/tree/master/packages/brubeck-migration-script) Script that migrates opted-in streams from Corea to Brubeck network
