@@ -108,12 +108,11 @@ contract SponsorshipFactory is Initializable, AccessControlUpgradeable, UUPSUpgr
     }
 
     /**
-     * Policies array is interpreted as follows:
+     * @param policies smart contract addresses found in the trustedPolicies. It is interpreted as follows:
      *   0: allocation policy (mandatory!)
      *   1: leave policy (address(0) for none)
      *   2: kick policy (address(0) for none)
      *   3+: join policies (leave out if none)
-     * @param policies smart contract addresses found in the trustedPolicies
      */
     function deploySponsorship(
         uint minOperatorCount,
