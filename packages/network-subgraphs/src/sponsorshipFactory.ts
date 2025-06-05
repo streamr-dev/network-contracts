@@ -35,12 +35,12 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     // TODO: once it's possible to add minOperatorCount to NewSponsorship event, get rid of this smart contract call
     sponsorship.minOperators = SponsorshipContract.bind(sponsorshipContractAddress).minOperatorCount().toI32()
 
-// The standard ordering is: allocation, leave, kick, join policies
-// "Operator-only join policy" is always set, so we check if we have 5 policies,
-//   and in that case we assume the 4th policy is the "max-operators join policy"
-if (event.params.policies.length == 4) {
-    sponsorship.maxOperators = event.params.policyParams[3].toI32()
-}
+    // The standard ordering is: allocation, leave, kick, join policies
+    // "Operator-only join policy" is always set, so we check if we have 5 policies,
+    //   and in that case we assume the 4th policy is the "max-operators join policy"
+    if (event.params.policies.length == 4) {
+        sponsorship.maxOperators = event.params.policyParams[3].toI32()
+    }
     sponsorship.save()
 
     // try to load stream entity
