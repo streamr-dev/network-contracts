@@ -33,6 +33,11 @@ export function handleNewSponsorship(event: NewSponsorship): void {
     // If more trusted allocation policies are added in the future, we must add a check here (i.e. verify that event.params.policies[0]
     // matches the address of StakeWeightedAllocationPolicy).
     sponsorship.totalPayoutWeiPerSec = event.params.policyParams[0]
+    // The second item in the array must be a trusted leave policy (see SponsorshipFactory#deploySponsorship()).
+    // Currently, DefaultLeavePolicy is the only trusted leave policy.
+    // Therefore, we assume the second policy parameter corresponds to DefaultLeavePolicy#penaltyPeriodSeconds.
+    // If more trusted allocation policies are added in the future, we must add a check here (i.e. verify that event.params.policies[1]
+    // matches the address of DefaultLeavePolicy).
     sponsorship.minimumStakingPeriodSeconds = event.params.policyParams[1]
     sponsorship.creator = creator
     sponsorship.cumulativeSponsoring = BigInt.zero()
