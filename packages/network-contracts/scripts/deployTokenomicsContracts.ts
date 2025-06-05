@@ -258,7 +258,6 @@ export default async function deployTokenomicsContracts(
             contracts.sponsorshipDefaultLeavePolicy!.address,
             contracts.sponsorshipVoteKickPolicy!.address,
             contracts.sponsorshipMaxOperatorsJoinPolicy!.address,
-            contracts.sponsorshipOperatorContractOnlyJoinPolicy!.address,
         ])).wait()
         log("Done adding trusted policies (%s/tx/%s )", blockExplorerUrl, tr1.transactionHash)
 
