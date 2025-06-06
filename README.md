@@ -6,7 +6,3 @@ This is a monorepo containing various smart contracts and subgraphs used by the 
 - [Network contracts NPM package](https://github.com/streamr-dev/network-contracts/tree/master/packages/npm-network-contracts) ABI and Typechain interfaces for the Streamr Network smart contracts for Ethers v6, plus scripts for interacting with the smart contracts.
 - [Network subgraphs](https://github.com/streamr-dev/network-contracts/tree/master/packages/network-subgraphs) The Graph subgraphs for many contracts in the `network-contracts` package
 - [config](https://github.com/streamr-dev/network-contracts/tree/master/packages/config) Addresses of deployed Streamr contracts on various chains, importable as an npm package
-
-## Other packages
-
-- [brubeck-migration-script](https://github.com/streamr-dev/network-contracts/tree/master/packages/brubeck-migration-script) Script that migrates opted-in streams from Corea to Brubeck network

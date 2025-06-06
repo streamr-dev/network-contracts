@@ -486,7 +486,7 @@
       "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
     },
     "blockExplorerUrl": "https://iotexscan.io",
-    "theGraphUrl": "https://gateway.thegraph.com/api/subgraphs/id/CvGQcfBwWH1SvyxJDGjRRMa4YXQpxmpt369orMirZ3RH",
+    "theGraphUrl": "https://gateway.thegraph.com/api/4bddc6e1e1fe65a49bf8091785478835/subgraphs/id/CvGQcfBwWH1SvyxJDGjRRMa4YXQpxmpt369orMirZ3RH",
     "entryPoints": [
       {
         "nodeId": "e5f87a7ee99b3c91e7b795b70f87ef8ba5497596",
