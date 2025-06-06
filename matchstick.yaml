@@ -1,2 +1,2 @@
 testsFolder: ./packages/network-subgraphs/tests
-manifestPath: ./packages/network-subgraphs/subgraph.yaml
+manifestPath: ./packages/network-subgraphs/subgraph_dev2.yaml
