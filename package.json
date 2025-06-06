@@ -25,9 +25,7 @@
     "graph2_copyInfo": "./scripts/copyAbis.sh && ./scripts/generateYaml.sh",
     "graph3_build": "npm run doAll --workspace=network-subgraphs",
     "graph": "npm run graph1_build && npm run graph2_copyInfo && npm run graph3_build",
-    "e2etest": "npm run e2etest --workspace=network-contracts",
-    "migration-build": "npm run build -w=brubeck-migration-script",
-    "migration-run": "npm run migration -w=brubeck-migration-script"
+    "e2etest": "npm run e2etest --workspace=network-contracts"
   },
   "devDependencies": {
     "@chainsafe/ssz": "^0.10.2",
