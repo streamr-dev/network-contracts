@@ -5,11 +5,8 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf build generated abis",
-    "codegen": "graph codegen",
-    "graphbuild": "graph build",
-    "build": "./scripts/copyAbisFromContractsPackage.sh && npm run codegen && npm run graphbuild",
-    "docker:buildLocalArch": "cp subgraph_dev2.yaml subgraph.yaml && npm run build && docker build . -t streamr/deploy-network-subgraphs:dev-fastchain && rm subgraph.yaml",
-    "docker:buildMultiArchAndPush": "cp subgraph_dev2.yaml subgraph.yaml && npm run build && docker buildx build --platform linux/amd64,linux/arm64 . -t streamr/deploy-network-subgraphs:dev-fastchain --push && rm subgraph.yaml",
+    "docker:buildLocalArch": "./build.sh subgraph_dev2.yaml && docker build . -t streamr/deploy-network-subgraphs:dev-fastchain && rm subgraph.yaml",
+    "docker:buildMultiArchAndPush": "./build.sh subgraph_dev2.yaml && docker buildx build --platform linux/amd64,linux/arm64 . -t streamr/deploy-network-subgraphs:dev-fastchain --push && rm subgraph.yaml",
     "test": "cd ../../ && graph test -d --version 0.5.4",
     "coverage": "cd ../../ && graph test -d -- -c"
   },
