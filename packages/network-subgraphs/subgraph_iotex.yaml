@@ -88,7 +88,7 @@ dataSources:
     source:
       address: '0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8'
       abi: StreamrConfig
-      startBlock: 33510000
+      startBlock: 36298428
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -108,7 +108,7 @@ dataSources:
     source:
       address: '0x7ac03730374E995E366F2a466be6aCC14E1DB1C4'
       abi: SponsorshipFactory
-      startBlock: 33510000
+      startBlock: 36298474
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -132,7 +132,7 @@ dataSources:
     source:
       address: '0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1'
       abi: OperatorFactory
-      startBlock: 33510000
+      startBlock: 36298454
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
