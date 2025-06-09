@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf build generated abis",
-    "docker:buildLocalArch": "./build.sh subgraph_dev2.yaml && docker build . -t streamr/deploy-network-subgraphs:dev-fastchain && rm subgraph.yaml",
-    "docker:buildMultiArchAndPush": "./build.sh subgraph_dev2.yaml && docker buildx build --platform linux/amd64,linux/arm64 . -t streamr/deploy-network-subgraphs:dev-fastchain --push && rm subgraph.yaml",
+    "docker:buildLocalArch": "./build.sh dev2 && docker build . -t streamr/deploy-network-subgraphs:dev-fastchain && rm subgraph.yaml",
+    "docker:buildMultiArchAndPush": "./build.sh dev2 && docker buildx build --platform linux/amd64,linux/arm64 . -t streamr/deploy-network-subgraphs:dev-fastchain --push && rm subgraph.yaml",
     "test": "cd ../../ && graph test -d --version 0.5.4",
     "coverage": "cd ../../ && graph test -d -- -c"
   },
