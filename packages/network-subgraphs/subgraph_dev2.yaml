@@ -1,0 +1,328 @@
+specVersion: 0.0.4
+description: Subgraph definitions for the stream permission registry
+repository:
+schema:
+  file: ./schema.graphql
+features:
+  - fullTextSearch
+dataSources:
+  - kind: ethereum/contract
+    name: StreamRegistry
+    network: xDai
+    source:
+      address: "0xd04af489677001444280366Dd0885B03dAaDe71D"
+      abi: StreamRegistry
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Stream
+        - StreamPermission
+      abis:
+        - name: StreamRegistry
+          file: ./abis/StreamRegistry.json
+      eventHandlers:
+        - event: StreamCreated(string,string)
+          handler: handleStreamCreation
+        - event: StreamDeleted(string)
+          handler: handleStreamDeletion
+        - event: StreamUpdated(string,string)
+          handler: handleStreamUpdate
+        - event: PermissionUpdated(string,address,bool,bool,uint256,uint256,bool)
+          handler: handlePermissionUpdate
+        - event: PermissionUpdatedForUserId(string,bytes,bool,bool,uint256,uint256,bool)
+          handler: handlePermissionUpdateForUserId
+      file: ./src/streamRegistry.ts
+  - kind: ethereum/contract
+    name: NodeRegistry
+    network: xDai
+    source:
+      address: "0xCBAcfA0592B3D809aEc805d527f8ceAe9307D9C0"
+      abi: NodeRegistry
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Node
+      abis:
+        - name: NodeRegistry
+          file: ./abis/NodeRegistry.json
+      eventHandlers:
+        - event: NodeUpdated(indexed address,string,indexed uint256,uint256)
+          handler: handleNodeUpdate
+        - event: NodeRemoved(indexed address)
+          handler: handleNodeRemoved
+      file: ./src/nodeRegistry.ts
+  - kind: ethereum/contract
+    name: StreamStorageRegistry
+    network: xDai
+    source:
+      address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
+      abi: StreamStorageRegistry
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Node
+      abis:
+        - name: StreamStorageRegistry
+          file: ./abis/StreamStorageRegistry.json
+      eventHandlers:
+        - event: Added(string,indexed address)
+          handler: handleStorageNodeAddedToStream
+        - event: Removed(string,indexed address)
+          handler: handleStorageNodeRemovedFromStream
+      file: ./src/streamStorageRegistry.ts
+  - kind: ethereum/contract
+    name: ProjectRegistryV1
+    network: xDai # xDai means dev1
+    source:
+      address: "0x3523F6Ff285D2A3F79A53d1E0953BD41bb7f6022"
+      abi: ProjectRegistryV1
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Project
+        - ProjectPermission
+      abis:
+        - name: ProjectRegistryV1
+          file: ./abis/ProjectRegistryV1.json
+      eventHandlers:
+        - event: ProjectCreated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
+          handler: handleProjectCreation
+        - event: ProjectDeleted(indexed bytes32)
+          handler: handleProjectDeletion
+        - event: ProjectUpdated(indexed bytes32,uint32[],(address,address,uint256)[],string[],uint256,string)
+          handler: handleProjectUpdate
+        - event: PaymentDetailsByChainUpdated(indexed bytes32,uint32,address,address,uint256)
+          handler: handlePaymentDetailsByChainUpdate
+        - event: StreamAdded(bytes32,string)
+          handler: handleStreamAddition
+        - event: StreamRemoved(bytes32,string)
+          handler: handleStreamRemoval
+        - event: PermissionUpdated(bytes32,address,bool,bool,bool,bool)
+          handler: handlePermissionUpdate
+        - event: Subscribed(indexed bytes32,indexed address,uint256)
+          handler: handleSubscriptionUpdate
+      file: ./src/projectRegistry.ts
+  - kind: ethereum/contract
+    name: MarketplaceV4
+    network: xDai
+    source:
+      address: "0x8015bb1954FaF2A6109F5c41b2086B250A6769A0"
+      abi: MarketplaceV4
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Project
+        - ProjectPurchase
+      abis:
+        - name: MarketplaceV4
+          file: ./abis/MarketplaceV4.json
+      eventHandlers:
+        - event: ProjectPurchased(bytes32,address,uint256,uint256,uint256)
+          handler: handleProjectPurchase
+      file: ./src/marketplaceV4.ts
+  - kind: ethereum/contract
+    name: ProjectStakingV1
+    network: xDai
+    source:
+      address: "0x3Dd18E5E8C4f6291Db26795CC154918f7Ac1D875"
+      abi: ProjectStakingV1
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      entities:
+        - Project
+        - ProjectStakeByUser
+        - ProjectStakingDayBucket
+        - ProjectPaymentDetails
+        - ProjectSubscription
+      abis:
+        - name: ProjectStakingV1
+          file: ./abis/ProjectStakingV1.json
+      eventHandlers:
+        - event: Stake(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleStake
+        - event: Unstake(indexed bytes32,indexed address,uint256,uint256)
+          handler: handleUnstake
+      file: ./src/projectStaking.ts
+  - kind: ethereum/contract
+    name: StreamrConfig
+    network: xDai
+    source:
+      address: '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
+      abi: StreamrConfig
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/streamrConfig.ts
+      entities:
+        - Network
+      abis:
+        - name: StreamrConfig
+          file: ./abis/StreamrConfig.json
+      eventHandlers:
+        - event: ConfigChanged(indexed string,indexed uint256,indexed address)
+          handler: handleConfigChanged
+  - kind: ethereum/contract
+    name: SponsorshipFactory
+    network: xDai
+    source:
+      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      address: '0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873'
+      abi: SponsorshipFactory
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/sponsorshipFactory.ts
+      entities:
+        - Sponsorship
+        - SponsorshipDailyBucket
+        - Network
+      abis:
+        - name: SponsorshipFactory
+          file: ./abis/SponsorshipFactory.json
+        - name: Sponsorship
+          file: ./abis/Sponsorship.json
+      eventHandlers:
+        - event: NewSponsorship(indexed address,string,string,address[],uint256[],indexed address)
+          handler: handleNewSponsorship
+  - kind: ethereum/contract
+    name: OperatorFactory
+    network: xDai
+    source:
+      # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
+      address: '0x3AE0ad89b0e094fD09428589849C161f0F7f4E6A'
+      abi: OperatorFactory
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/operatorFactory.ts
+      entities:
+        - Operator
+        - Network
+      abis:
+        - name: OperatorFactory
+          file: ./abis/OperatorFactory.json
+        - name: Operator
+          file: ./abis/Operator.json
+      eventHandlers:
+        - event: NewOperator(indexed address,indexed address)
+          handler: handleNewOperator
+        - event: VoterUpdate(indexed address,indexed bool)
+          handler: handleVoterUpdate
+
+templates:
+  - name: Sponsorship
+    kind: ethereum/contract
+    network: xDai
+    source:
+      abi: Sponsorship
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/sponsorship.ts
+      entities:
+        - Sponsorship
+        - Operator
+        - Stake
+        - StakingEvent
+        - SlashingEvent
+        - SponsoringEvent
+        - Flag
+        - Vote
+        - SponsorshipDailyBucket
+      abis:
+        - name: Sponsorship
+          file: ./abis/Sponsorship.json
+      eventHandlers:
+          - event: StakeUpdate(indexed address,uint256,uint256)
+            handler: handleStakeUpdated
+          - event: StakeLockUpdate(indexed address,uint256,uint256)
+            handler: handleStakeLockUpdated
+          - event: InsolvencyStarted(uint256)
+            handler: handleInsolvencyStarted
+          - event: InsolvencyEnded(uint256,uint256,uint256)
+            handler: handleInsolvencyEnded
+          - event: SponsorshipUpdate(uint256,uint256,indexed uint256,indexed bool)
+            handler: handleSponsorshipUpdated
+          - event: Flagged(indexed address,indexed address,uint256,indexed uint256,string)
+            handler: handleFlagged
+          - event: FlagUpdate(indexed address,indexed uint8,uint256,uint256,indexed address,int256)
+            handler: handleFlagUpdate
+          - event: OperatorSlashed(indexed address,uint256)
+            handler: handleOperatorSlashed
+          - event: SponsorshipReceived(indexed address,uint256)
+            handler: handleSponsorshipReceived
+  - name: Operator
+    kind: ethereum/contract
+    network: xDai
+    source:
+      abi: Operator
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/operator.ts
+      entities:
+        - Operator
+        - Delegator
+        - OperatorDailyBucket
+        - DelegatorDailyBucket
+        - Delegation
+        - QueueEntry
+        - Network
+      abis:
+        - name: Operator
+          file: ./abis/Operator.json
+      eventHandlers:
+          - event: Delegated(indexed address,uint256)
+            handler: handleDelegated
+          - event: Undelegated(indexed address,uint256)
+            handler: handleUndelegated
+          - event: BalanceUpdate(indexed address,uint256,uint256,uint256)
+            handler: handleBalanceUpdate
+          - event: OperatorValueUpdate(uint256,uint256)
+            handler: handleOperatorValueUpdate
+          - event: Profit(uint256,indexed uint256,indexed uint256)
+            handler: handleProfit
+          - event: Loss(uint256)
+            handler: handleLoss
+          - event: QueuedDataPayout(indexed address,uint256,uint256)
+            handler: handleQueuedDataPayout
+          - event: QueueUpdated(indexed address,uint256,uint256)
+            handler: handleQueueUpdated
+          - event: NodesSet(address[])
+            handler: handleNodesSet
+          - event: Heartbeat(indexed address,string)
+            handler: handleHeartbeat
+          - event: MetadataUpdated(string,indexed address,indexed uint256)
+            handler: handleMetadataUpdate
+          - event: ReviewRequest(indexed address,indexed address,uint256,uint256,string)
+            handler: handleReviewRequest
+          - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+            handler: handleRoleGranted
+          - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+            handler: handleRoleRevoked
