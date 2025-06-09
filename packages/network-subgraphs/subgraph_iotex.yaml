@@ -86,7 +86,7 @@ dataSources:
     name: StreamrConfig
     network: iotex
     source:
-      address: '0x23Dd2D1f39AD0f9d517ce56Ca490eF19B50e6f1A'
+      address: '0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8'
       abi: StreamrConfig
       startBlock: 33510000
     mapping:
@@ -106,8 +106,7 @@ dataSources:
     name: SponsorshipFactory
     network: iotex
     source:
-      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xe4Ae8e6c5b6E85914738803ad73c111eF2618621'
+      address: '0x7ac03730374E995E366F2a466be6aCC14E1DB1C4'
       abi: SponsorshipFactory
       startBlock: 33510000
     mapping:
@@ -131,8 +130,7 @@ dataSources:
     name: OperatorFactory
     network: iotex
     source:
-      # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
-      address: '0xbC1cC84912d54fCf7316A6dA2e7A884731a87935'
+      address: '0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1'
       abi: OperatorFactory
       startBlock: 33510000
     mapping:
