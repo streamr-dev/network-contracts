@@ -1,6 +1,3 @@
-# if you recreate the docker image to autodeploy in the dev env this file is used directly
-# if you deploy locally use the npm task or scripts/generateYaml.sh to re-generate/update this file
-
 specVersion: 0.0.4
 description: Subgraph definitions for the Streamr contracts
 repository:
