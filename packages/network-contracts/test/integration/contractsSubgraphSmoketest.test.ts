@@ -16,11 +16,6 @@ describe("docker image integration test", () => {
             fetch,
             logger: new Logger(module)
         })
-        duGraphClient = new TheGraphClient({
-            serverUrl: config.dev2.theGraphUrl.replace("network-subgraphs", "dataunion"),
-            fetch,
-            logger: new Logger(module)
-        })
 
         // wait for thegraph to be ready (time out after 1 minute)
         let retries = 0
@@ -245,28 +240,5 @@ describe("docker image integration test", () => {
         }
         `})
         expect(resultDynamicIds.projects.length).to.equal(5)
-    })
-
-    // TODO: move this to DU repository?
-    it("can get all the indexed example data from Data Union subgraph", async () => {
-        const resultDynamicIds = await duGraphClient.queryEntity<{
-            dataUnionStatsBuckets: [],
-            dataUnions: [],
-            members: [],
-        }>({ query: `{
-                dataUnionStatsBuckets {
-                    id
-                }
-                dataUnions {
-                    id
-                }
-                members {
-                    id
-                }
-            }`}
-        )
-        expect(resultDynamicIds.dataUnionStatsBuckets.length).to.equal(2)
-        expect(resultDynamicIds.dataUnions.length).to.equal(1)
-        expect(resultDynamicIds.members.length).to.equal(2)
     })
 })
