@@ -188,7 +188,6 @@ dataSources:
     name: SponsorshipFactory
     network: matic
     source:
-      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0x820b2f9a15ed45F9802c59d0CC77C22C81755e45'
       abi: SponsorshipFactory
       startBlock: 50046404
@@ -213,7 +212,6 @@ dataSources:
     name: OperatorFactory
     network: matic
     source:
-      # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0x935734e66729b69260543Cf6e5EfeB42AC962183'
       abi: OperatorFactory
       startBlock: 50046356
