@@ -4,7 +4,6 @@ import { HubEnvDeployer } from "@streamr/hub-contracts"
 
 import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "@ethersproject/wallet"
-import { parseEther } from "@ethersproject/units"
 
 import { projects } from "./projects"
 

@@ -7,7 +7,6 @@ import { BigNumber } from "ethers"
 describe("docker image integration test", () => {
 
     let graphClient: TheGraphClient
-    let duGraphClient: TheGraphClient
 
     before(async function () {
         this.timeout(200000)
