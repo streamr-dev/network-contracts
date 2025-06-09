@@ -84,7 +84,7 @@ dataSources:
       file: ./src/streamStorageRegistry.ts
   - kind: ethereum/contract
     name: ProjectRegistryV1
-    network: dev2 # xDai means dev1
+    network: dev2
     source:
       address: "0x3523F6Ff285D2A3F79A53d1E0953BD41bb7f6022"
       abi: ProjectRegistryV1
