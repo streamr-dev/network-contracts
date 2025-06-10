@@ -19,8 +19,8 @@ if [ ! -e $CONTAINER_ALREADY_STARTED ]; then
     # TODO we could also wait for dev-chain-fast and postgres start, but in practice these are started almost immediately
     # and therefore it makes sense to wait only for the Graph Node
     wait_for_graph_node_start
-    npm run create-docker-dev
-    npm run deploy-docker-dev
+    npx graph create streamr-dev/network-subgraphs --node http://streamr-dev-thegraph-node-fastchain:8020
+    npx graph deploy streamr-dev/network-subgraphs --version-label v0.0.1 --ipfs http://streamr-dev-ipfs:5001 --node http://streamr-dev-thegraph-node-fastchain:8020
 else
     echo "-- Not first container startup, doing nothing.--"
 fi
