@@ -1,6 +1,3 @@
-# if you recreate the docker image to autodeploy in the dev env this file is used directly
-# if you deploy locally use the npm task or scripts/generateYaml.sh to re-generate/update this file
-
 specVersion: 0.0.4
 description: Subgraph definitions for the stream permission registry
 repository:
@@ -15,7 +12,7 @@ dataSources:
     source:
       address: "0xd04af489677001444280366Dd0885B03dAaDe71D"
       abi: StreamRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -44,7 +41,7 @@ dataSources:
     source:
       address: "0xCBAcfA0592B3D809aEc805d527f8ceAe9307D9C0"
       abi: NodeRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -66,7 +63,7 @@ dataSources:
     source:
       address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
       abi: StreamStorageRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
