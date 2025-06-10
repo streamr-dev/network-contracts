@@ -8,7 +8,7 @@ features:
 dataSources:
   - kind: ethereum/contract
     name: StreamRegistry
-    network: xDai
+    network: dev2
     source:
       address: "0xd04af489677001444280366Dd0885B03dAaDe71D"
       abi: StreamRegistry
@@ -37,7 +37,7 @@ dataSources:
       file: ./src/streamRegistry.ts
   - kind: ethereum/contract
     name: NodeRegistry
-    network: xDai
+    network: dev2
     source:
       address: "0xCBAcfA0592B3D809aEc805d527f8ceAe9307D9C0"
       abi: NodeRegistry
@@ -59,7 +59,7 @@ dataSources:
       file: ./src/nodeRegistry.ts
   - kind: ethereum/contract
     name: StreamStorageRegistry
-    network: xDai
+    network: dev2
     source:
       address: "0xB9372284e0D61607aF3B7EF5f022e7D599Ed2a37"
       abi: StreamStorageRegistry
@@ -81,7 +81,7 @@ dataSources:
       file: ./src/streamStorageRegistry.ts
   - kind: ethereum/contract
     name: ProjectRegistryV1
-    network: xDai # xDai means dev1
+    network: dev2
     source:
       address: "0x3523F6Ff285D2A3F79A53d1E0953BD41bb7f6022"
       abi: ProjectRegistryV1
@@ -116,7 +116,7 @@ dataSources:
       file: ./src/projectRegistry.ts
   - kind: ethereum/contract
     name: MarketplaceV4
-    network: xDai
+    network: dev2
     source:
       address: "0x8015bb1954FaF2A6109F5c41b2086B250A6769A0"
       abi: MarketplaceV4
@@ -137,7 +137,7 @@ dataSources:
       file: ./src/marketplaceV4.ts
   - kind: ethereum/contract
     name: ProjectStakingV1
-    network: xDai
+    network: dev2
     source:
       address: "0x3Dd18E5E8C4f6291Db26795CC154918f7Ac1D875"
       abi: ProjectStakingV1
@@ -163,7 +163,7 @@ dataSources:
       file: ./src/projectStaking.ts
   - kind: ethereum/contract
     name: StreamrConfig
-    network: xDai
+    network: dev2
     source:
       address: '0xc24BA8c05E5206F1bE57bfA0aD14E9882126eD38'
       abi: StreamrConfig
@@ -183,7 +183,7 @@ dataSources:
           handler: handleConfigChanged
   - kind: ethereum/contract
     name: SponsorshipFactory
-    network: xDai
+    network: dev2
     source:
       # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0xbfa4EcF9d107De5720446e6dd8162ef6bf4b3873'
@@ -208,7 +208,7 @@ dataSources:
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
-    network: xDai
+    network: dev2
     source:
       # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0x3AE0ad89b0e094fD09428589849C161f0F7f4E6A'
@@ -236,7 +236,7 @@ dataSources:
 templates:
   - name: Sponsorship
     kind: ethereum/contract
-    network: xDai
+    network: dev2
     source:
       abi: Sponsorship
     mapping:
@@ -278,7 +278,7 @@ templates:
             handler: handleSponsorshipReceived
   - name: Operator
     kind: ethereum/contract
-    network: xDai
+    network: dev2
     source:
       abi: Operator
     mapping:
