@@ -6,3 +6,4 @@
 /abis/
 /tests/.docker/
 /tests/.latest.json
+subgraph.yaml
