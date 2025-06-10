@@ -12,7 +12,7 @@ dataSources:
     source:
       address: "0x18E0937099660B82464475Ea2B7e6Af4f2BFE5F0"
       abi: StreamRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -41,7 +41,7 @@ dataSources:
     source:
       address: "0x338090C5492C5c5E41a4458f5FC4b205cbc54A24"
       abi: NodeRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -63,7 +63,7 @@ dataSources:
     source:
       address: "0xB73189CeBCc870bE6f9aa16764bbB3665e4B49B6"
       abi: StreamStorageRegistry
-      # startBlock: 10000000 #TODO
+      startBlock: 0
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
