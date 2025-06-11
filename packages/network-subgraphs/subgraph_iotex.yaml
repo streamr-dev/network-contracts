@@ -10,7 +10,7 @@ dataSources:
     name: StreamRegistry
     network: iotex
     source:
-      address: "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6"
+      address: '0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6'
       abi: StreamRegistry
       startBlock: 33510000
     mapping:
@@ -39,7 +39,7 @@ dataSources:
     name: NodeRegistry
     network: iotex
     source:
-      address: "0xb9e70Bd9833dd091f06edc8073aa86a76EdeF46D"
+      address: '0xb9e70Bd9833dd091f06edc8073aa86a76EdeF46D'
       abi: NodeRegistry
       startBlock: 33510000
     mapping:
@@ -61,7 +61,7 @@ dataSources:
     name: StreamStorageRegistry
     network: iotex
     source:
-      address: "0xF79c40Fbc432f1f8B8B017441B644e0ac7bccea2"
+      address: '0xF79c40Fbc432f1f8B8B017441B644e0ac7bccea2'
       abi: StreamStorageRegistry
       startBlock: 33510000
     mapping:

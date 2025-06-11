@@ -10,7 +10,7 @@ dataSources:
     name: StreamRegistry
     network: peaq
     source:
-      address: "0xD0C720e99Bd39311614f292d8B0B4e351Bde157c"
+      address: '0xD0C720e99Bd39311614f292d8B0B4e351Bde157c'
       abi: StreamRegistry
       startBlock: 900000
     mapping:
@@ -39,7 +39,7 @@ dataSources:
     name: NodeRegistry
     network: peaq
     source:
-      address: "0xaCF9e8134047eDc671162D9404BF63a587435bAa"
+      address: '0xaCF9e8134047eDc671162D9404BF63a587435bAa'
       abi: NodeRegistry
       startBlock: 900000
     mapping:
@@ -61,7 +61,7 @@ dataSources:
     name: StreamStorageRegistry
     network: peaq
     source:
-      address: "0xB36CF8ee4219a3Ac9FBC3865C35E9a99353c26db"
+      address: '0xB36CF8ee4219a3Ac9FBC3865C35E9a99353c26db'
       abi: StreamStorageRegistry
       startBlock: 900000
     mapping:
@@ -83,7 +83,7 @@ dataSources:
     name: ProjectRegistryV1
     network: peaq
     source:
-      address: "0xB14205AE3D7672B937B972EBdf2b986fB0B8CfaA"
+      address: '0xB14205AE3D7672B937B972EBdf2b986fB0B8CfaA'
       abi: ProjectRegistryV1
       startBlock: 900000
     mapping:
@@ -118,7 +118,7 @@ dataSources:
     name: MarketplaceV4
     network: peaq
     source:
-      address: "0x959684926448296ea72BD4B05593426A3cD3F0dF"
+      address: '0x959684926448296ea72BD4B05593426A3cD3F0dF'
       abi: MarketplaceV4
       startBlock: 900000
     mapping:
@@ -139,7 +139,7 @@ dataSources:
     name: ProjectStakingV1
     network: peaq
     source:
-      address: "0xd1cBD6b1Be710C41c01A9613802209843407b8b9"
+      address: '0xd1cBD6b1Be710C41c01A9613802209843407b8b9'
       abi: ProjectStakingV1
       startBlock: 900000
     mapping:
