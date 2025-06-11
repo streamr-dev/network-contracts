@@ -1,5 +1,5 @@
 specVersion: 0.0.4
-description: Subgraph definitions for the stream permission registry
+description: Subgraph definitions for the Streamr contracts
 repository:
 schema:
   file: ./schema.graphql
