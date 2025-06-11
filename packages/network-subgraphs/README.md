@@ -21,8 +21,7 @@ Troubleshooting tips:
 
 ## Mainnet deployment to the Arbitrum / decentralized service (indexing Polygon MATIC)
 1. Authenticate: Log into `https://thegraph.com/studio/subgraph/streamr/` using "Streamr subgraph owner" key from 1password. On the right hand side, look for "Auth & Deploy" and "Authenticate in CLI". Copy the command and run it in the terminal: `npx graph auth DEPLOY_KEY`
-1. `cp subgraph_matic.yaml subgraph.yaml`
-1. `npm run build` (optional)
+1. `./build.sh polygon`
 1. `npx graph deploy streamr`
     * check version number from browser UI, bump it when asked
 1. Follow progress and look at https://thegraph.com/studio/subgraph/streamr/logs for errors
@@ -30,8 +29,7 @@ Troubleshooting tips:
 ## Testnet deployment to Studio (indexing Polygon Amoy)
 1. Log into: `https://thegraph.com/studio/subgraph/streamr-amoy-testnet/`
 1. `npx graph auth --studio <KEY>`
-1. `cp subgraph_amoy.yaml subgraph.yaml`
-1. `npm run build`
+1. `./build.sh polygonAmoy`
 1. `npx graph deploy --studio streamr-amoy-testnet`
 1. Follow progress and look at https://thegraph.com/hosted-service/subgraph/streamr-dev/network?version=pending&selected=logs for errors
 ``
