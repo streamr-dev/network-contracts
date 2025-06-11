@@ -185,7 +185,6 @@ dataSources:
     name: SponsorshipFactory
     network: polygon-amoy
     source:
-      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0xb194a68b166f2e3074B551393fA61490D19c69f8'
       abi: SponsorshipFactory
       startBlock: 6550000
@@ -210,7 +209,6 @@ dataSources:
     name: OperatorFactory
     network: polygon-amoy
     source:
-      # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0xE02E8E9fF5ea6a58F34D00C0e4B091e066B9fA81'
       abi: OperatorFactory
       startBlock: 6550000

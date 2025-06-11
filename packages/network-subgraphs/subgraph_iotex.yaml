@@ -103,7 +103,6 @@ dataSources:
     name: SponsorshipFactory
     network: iotex
     source:
-      # make sure this is same as config.contracts.SponsorshipFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0xe4Ae8e6c5b6E85914738803ad73c111eF2618621'
       abi: SponsorshipFactory
       startBlock: 33510000
@@ -128,7 +127,6 @@ dataSources:
     name: OperatorFactory
     network: iotex
     source:
-      # make sure this is same as config.contracts.OperatorFactory in https://github.com/streamr-dev/network-contracts/blob/develop/packages/config/src/networks.json
       address: '0xbC1cC84912d54fCf7316A6dA2e7A884731a87935'
       abi: OperatorFactory
       startBlock: 33510000
