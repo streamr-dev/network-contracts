@@ -21,7 +21,6 @@
   "dependencies": {
     "@streamr/hub-contracts": "file:../hub-contracts",
     "@streamr/network-contracts": "file:../network-contracts",
-    "@dataunions/contracts": "^3.0.8",
     "hardhat": "2.22.9"
   },
   "devDependencies": {
