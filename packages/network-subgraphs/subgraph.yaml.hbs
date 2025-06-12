@@ -1,5 +1,5 @@
 specVersion: 0.0.4
-description: Subgraph definitions for the stream permission registry
+description: Subgraph definitions for the Streamr contracts
 repository:
 schema:
   file: ./schema.graphql
@@ -8,11 +8,11 @@ features:
 dataSources:
   - kind: ethereum/contract
     name: StreamRegistry
-    network: matic
+    network: {{networkId}}
     source:
-      address: "0x0D483E10612F327FC11965Fc82E90dC19b141641"
+      address: '{{contracts.StreamRegistry.address}}'
       abi: StreamRegistry
-      startBlock: 23586971
+      startBlock: {{contracts.StreamRegistry.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -37,11 +37,11 @@ dataSources:
       file: ./src/streamRegistry.ts
   - kind: ethereum/contract
     name: NodeRegistry
-    network: matic
+    network: {{networkId}}
     source:
-      address: "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6"
+      address: '{{contracts.StorageNodeRegistry.address}}'
       abi: NodeRegistry
-      startBlock: 23562861
+      startBlock: {{contracts.StorageNodeRegistry.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -59,11 +59,11 @@ dataSources:
       file: ./src/nodeRegistry.ts
   - kind: ethereum/contract
     name: StreamStorageRegistry
-    network: matic
+    network: {{networkId}}
     source:
-      address: "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399"
+      address: '{{contracts.StreamStorageRegistry.address}}'
       abi: StreamStorageRegistry
-      startBlock: 23586998
+      startBlock: {{contracts.StreamStorageRegistry.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -79,13 +79,14 @@ dataSources:
         - event: Removed(string,indexed address)
           handler: handleStorageNodeRemovedFromStream
       file: ./src/streamStorageRegistry.ts
+{{#if hubContracts}}
   - kind: ethereum/contract
     name: ProjectRegistryV1
-    network: matic
+    network: {{networkId}}
     source:
-      address: "0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1"
+      address: '{{contracts.ProjectRegistryV1.address}}'
       abi: ProjectRegistryV1
-      startBlock: 38700928
+      startBlock: {{contracts.ProjectRegistryV1.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -116,11 +117,11 @@ dataSources:
       file: ./src/projectRegistry.ts
   - kind: ethereum/contract
     name: MarketplaceV4
-    network: matic
+    network: {{networkId}}
     source:
-      address: "0xdF8b74D735197dCD5C94bE933db080E69A958de6"
+      address: '{{contracts.MarketplaceV4.address}}'
       abi: MarketplaceV4
-      startBlock: 39591313
+      startBlock: {{contracts.MarketplaceV4.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -137,11 +138,11 @@ dataSources:
       file: ./src/marketplaceV4.ts
   - kind: ethereum/contract
     name: ProjectStakingV1
-    network: matic
+    network: {{networkId}}
     source:
-      address: "0xAA7a4BdBE91F143F3103206e48A8AfF21101B6DE"
+      address: '{{contracts.ProjectStakingV1.address}}'
       abi: ProjectStakingV1
-      startBlock: 38701364
+      startBlock: {{contracts.ProjectStakingV1.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -161,13 +162,14 @@ dataSources:
         - event: Unstake(indexed bytes32,indexed address,uint256,uint256)
           handler: handleUnstake
       file: ./src/projectStaking.ts
+{{/if}}
   - kind: ethereum/contract
     name: StreamrConfig
-    network: matic
+    network: {{networkId}}
     source:
-      address: '0x869e88dB146ECAF20dDf199a12684cD80c263c8f'
+      address: '{{contracts.StreamrConfig.address}}'
       abi: StreamrConfig
-      startBlock: 50045923
+      startBlock: {{contracts.StreamrConfig.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -183,11 +185,11 @@ dataSources:
           handler: handleConfigChanged
   - kind: ethereum/contract
     name: SponsorshipFactory
-    network: matic
+    network: {{networkId}}
     source:
-      address: '0x820b2f9a15ed45F9802c59d0CC77C22C81755e45'
+      address: '{{contracts.SponsorshipFactory.address}}'
       abi: SponsorshipFactory
-      startBlock: 50046404
+      startBlock: {{contracts.SponsorshipFactory.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -207,11 +209,11 @@ dataSources:
           handler: handleNewSponsorship
   - kind: ethereum/contract
     name: OperatorFactory
-    network: matic
+    network: {{networkId}}
     source:
-      address: '0x935734e66729b69260543Cf6e5EfeB42AC962183'
+      address: '{{contracts.OperatorFactory.address}}'
       abi: OperatorFactory
-      startBlock: 50046356
+      startBlock: {{contracts.OperatorFactory.startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -234,7 +236,7 @@ dataSources:
 templates:
   - name: Sponsorship
     kind: ethereum/contract
-    network: matic
+    network: {{networkId}}
     source:
       abi: Sponsorship
     mapping:
@@ -276,7 +278,7 @@ templates:
             handler: handleSponsorshipReceived
   - name: Operator
     kind: ethereum/contract
-    network: matic
+    network: {{networkId}}
     source:
       abi: Operator
     mapping:
