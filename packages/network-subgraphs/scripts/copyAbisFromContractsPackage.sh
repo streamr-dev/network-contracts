@@ -4,6 +4,9 @@ set -ex
 pushd ../network-contracts
 npm run build
 popd
+pushd ../hub-contracts
+npm run build
+popd
 
 mkdir -p abis
 jq .abi ../network-contracts/artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json > abis/NodeRegistry.json
