@@ -62,20 +62,6 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Mocha Test All with Options",
-            "program": "${workspaceFolder}/node_modules/ts-mocha/bin/ts-mocha",
-            "args": [
-                "${workspaceFolder}/test/*.test.ts",
-                "--timeout",
-                "200000"
-            ],
-            "skipFiles": [
-                "<node_internals>/**/*.js"
-            ]
-        },
-        {
-            "type": "node",
-            "request": "launch",
             "name": "Hardhat test this file",
             "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/hardhat",
             "env": {

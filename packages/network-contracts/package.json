@@ -19,9 +19,7 @@
     "build": "./build.sh",
     "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "npm run test:fast && npm run test:slow",
-    "integration-test": "npm run test:dev-chain",
-    "integration-test-TODO": "npm run test:dev-chain && npm run test:ens-e2e",
-    "test:dev-chain": "ts-mocha test/integration/contractsSubgraphSmoketest.test.ts",
+    "integration-test-TODO": "npm run test:ens-e2e",
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",
     "test:ens-e2e": "hardhat run --network dev2 test/integration/ens-e2e.test.ts",
@@ -76,7 +74,6 @@
     "hardhat-gas-reporter": "1.0.9",
     "hardhat-ignore-warnings": "0.2.8",
     "solhint": "3.4.1",
-    "ts-mocha": "10.0.0",
     "web3-providers-http": "1.8.0"
   }
 }
