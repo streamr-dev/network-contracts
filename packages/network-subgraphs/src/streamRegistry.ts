@@ -5,14 +5,10 @@ import { StreamCreated, StreamDeleted, StreamUpdated, PermissionUpdated, Permiss
 import { Stream, StreamPermission } from '../generated/schema'
 import { MAX_STREAM_ID_LENGTH } from './helpers'
 
-/**
- * Hash the streamId and the userId, in order to get constant-length permission IDs (ETH-867)
- * This avoids indexing problems if the userId or streamId is very long (many kilobytes).
- *
- * TODO: after ETH-876 is solved, streamId can't be over-long, remove the slice(0, 1000) below
- *       because it could cause some streams with same 1k-prefix to mix up when sorting
- **/
 function getPermissionId(streamId: string, userId: Bytes): string {
+    // Uses the hash of userId instead of the full ID, since userId can be very long (potentially several kilobytes).
+    // It's unclear whether there is a strict character limit for ID fields, but in practice, multi-kilobyte IDs can
+    // cause indexing issues (see ETH-867).
     return streamId + "-" + crypto.keccak256(userId).toHexString()
 }
 
