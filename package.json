@@ -10,7 +10,6 @@
     "./packages/network-contracts",
     "./packages/hub-contracts",
     "./packages/network-subgraphs",
-    "./packages/chat-contracts",
     "./packages/ens-sync-script",
     "./packages/dev-chain-fast"
   ],

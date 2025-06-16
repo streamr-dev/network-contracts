@@ -1,1 +1,0 @@
-# thechat.eth smart contracts
