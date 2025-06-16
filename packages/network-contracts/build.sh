@@ -5,6 +5,6 @@ rm -rf artifacts
 npm run compile
 
 rm -rf dist
-tsc -p tsconfig.build.json
+npx tsc -p tsconfig.build.json
 
 npx ts-node generateSelectors.ts > selectors.txt
