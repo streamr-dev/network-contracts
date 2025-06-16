@@ -1,3 +1,5 @@
+/* eslint-disable quotes, no-console */
+
 import { ethers } from 'ethers'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -33,7 +35,7 @@ function crawlDirectory(directoryPath: string): string[] {
 }
 
 function generateSelectorForItem(item: AbiItem, isFunction: boolean): string {
-    const signature = `${item.name}(${item.inputs.map(input => input.type).join(',')})`
+    const signature = `${item.name}(${item.inputs.map((input) => input.type).join(',')})`
     const selector = ethers.utils.id(signature).slice(0, 10)  // first 4 bytes and the 0x prefix
     const suffix = isFunction ? '()' : ''
     return `${selector} ${item.name}${suffix}`
@@ -48,7 +50,7 @@ function generateSelectorsForArtifacts(filePath: string): string {
             .filter((sectionType) => artifact.abi.some((item) => item.type === sectionType))
             .map((sectionType) => {
                 const header = `# ${contractName} ${sectionType}s`
-                const items = artifact.abi.filter(item => item.type === sectionType)
+                const items = artifact.abi.filter((item) => item.type === sectionType)
                 return [header, ...items.map((item) => generateSelectorForItem(item, (sectionType === 'function')))].join('\n')
             })
             .join('\n\n')
