@@ -64,6 +64,8 @@ Troubleshooting tips:
   * Streams with id over 1000 characters are now dropped from the subgraph. They still exist in the StreamRegistry but are not indexed. (ETH-876)
 * v0.0.16
   * Added PastDelegationCount entity, add running count into Delegation.id
+* v0.0.17
+  * Added Stream#idAsString field (ETH-879)
 
 # Developer notes
 
