@@ -147,5 +147,3 @@ export const publicResolverCodehash = keccak256(publicResolverBytecode)
 export const nodeModuleCodehash = keccak256(nodeModuleBytecode)
 export const queueModuleCodehash = keccak256(queueModuleBytecode)
 export const stakeModuleCodehash = keccak256(stakeModuleBytecode)
-
-export * from "./StreamrEnvDeployer"

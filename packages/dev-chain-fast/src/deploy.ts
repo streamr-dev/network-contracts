@@ -1,11 +1,9 @@
 /* eslint-disable no-console */
-import { StreamrEnvDeployer } from "@streamr/network-contracts"
-import { HubEnvDeployer } from "@streamr/hub-contracts"
-
 import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "@ethersproject/wallet"
-
+import { HubEnvDeployer } from "./HubEnvDeployer"
 import { projects } from "./projects"
+import { StreamrEnvDeployer } from "./StreamrEnvDeployer"
 
 // hardhat node mockchain (first private key from testrpc mnemonic)
 const key = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
