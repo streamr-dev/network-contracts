@@ -49,14 +49,14 @@
   "devDependencies": {
     "@chainsafe/as-sha256": "^0.3.1",
     "@ensdomains/ens-contracts": "0.0.22",
-    "@ethersproject/providers": "5.7.0",
-    "@ethersproject/wallet": "5.7.0",
+    "@ethersproject/constants": "5.7.0",
     "@ethersproject/contracts": "5.7.0",
-    "@ethersproject/units": "5.7.0",
     "@ethersproject/hash": "5.7.0",
     "@ethersproject/keccak256": "5.7.0",
+    "@ethersproject/providers": "5.7.0",
     "@ethersproject/strings": "5.7.0",
-    "@ethersproject/constants": "5.7.0",
+    "@ethersproject/units": "5.7.0",
+    "@ethersproject/wallet": "5.7.0",
     "@metamask/eth-sig-util": "7.0.1",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.5",
     "@nomicfoundation/hardhat-toolbox": "2.0.0",
@@ -74,6 +74,7 @@
     "hardhat-gas-reporter": "1.0.9",
     "hardhat-ignore-warnings": "0.2.8",
     "solhint": "3.4.1",
+    "ts-node": "10.9.2",
     "web3-providers-http": "1.8.0"
   }
 }
