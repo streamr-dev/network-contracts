@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "@ethersproject/wallet"
-import { HubEnvDeployer } from "@streamr/hub-contracts"
+import { HubEnvDeployer } from "./HubEnvDeployer"
 import { projects } from "./projects"
 import { StreamrEnvDeployer } from "./StreamrEnvDeployer"
 

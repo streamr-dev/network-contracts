@@ -1,12 +1,12 @@
-import { ContractFactory, Wallet, providers } from "ethers"
 import {
     MarketplaceV4, marketplaceV4ABI, marketplaceV4Bytecode,
     ProjectRegistryV1, projectRegistryV1ABI, projectRegistryV1Bytecode,
+    ProjectStakingV1, projectStakingV1ABI, projectStakingV1Bytecode,
     RemoteMarketplaceV1, remoteMarketplaceV1ABI, remoteMarketplaceV1Bytecode,
     Uniswap2AdapterV4, uniswap2AdapterV4ABI, uniswap2AdapterV4Bytecode,
-    ProjectStakingV1, projectStakingV1ABI, projectStakingV1Bytecode,
-} from "./exports"
+} from "@streamr/hub-contracts"
 import debug from "debug"
+import { ContractFactory, providers, Wallet } from "ethers"
 
 const log = debug.log
 
