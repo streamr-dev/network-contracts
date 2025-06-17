@@ -1,30 +1,81 @@
-import { JsonRpcProvider } from "@ethersproject/providers"
-import { Wallet } from "@ethersproject/wallet"
+import { AddressZero, MaxUint256 } from "@ethersproject/constants"
 import { Contract, ContractFactory, Event } from "@ethersproject/contracts"
-import { parseEther } from "@ethersproject/units"
 import { namehash } from "@ethersproject/hash"
 import { keccak256 } from "@ethersproject/keccak256"
+import { JsonRpcProvider } from "@ethersproject/providers"
 import { toUtf8Bytes } from "@ethersproject/strings"
-import { AddressZero, MaxUint256 } from "@ethersproject/constants"
-
-import debug from "debug"
+import { parseEther } from "@ethersproject/units"
+import { Wallet } from "@ethersproject/wallet"
+import type {
+    DefaultDelegationPolicy,
+    DefaultExchangeRatePolicy,
+    DefaultLeavePolicy,
+    DefaultUndelegationPolicy,
+    ENSCacheV2,
+    MaxOperatorsJoinPolicy,
+    NodeRegistry,
+    Operator,
+    OperatorContractOnlyJoinPolicy,
+    OperatorFactory,
+    Sponsorship,
+    SponsorshipFactory,
+    StakeWeightedAllocationPolicy,
+    StreamrConfig,
+    StreamRegistry,
+    StreamStorageRegistry,
+    TestToken,
+    VoteKickPolicy
+} from "@streamr/network-contracts"
 import {
-    DefaultDelegationPolicy, DefaultLeavePolicy, DefaultExchangeRatePolicy, DefaultUndelegationPolicy,
-    ENSCacheV2, ENSCacheV2ABI, ENSCacheV2Bytecode, MaxOperatorsJoinPolicy, NodeRegistry, Operator, OperatorContractOnlyJoinPolicy,
-    OperatorFactory, Sponsorship, SponsorshipFactory, StakeWeightedAllocationPolicy, StreamRegistry,
-    StreamStorageRegistry, StreamrConfig, TestToken, VoteKickPolicy, defaultDelegationPolicyABI,
-    defaultDelegationPolicyBytecode, defaultLeavePolicyABI,
-    defaultLeavePolicyBytecode, defaultExchangeRatePolicyABI, defaultExchangeRatePolicyBytecode,
-    defaultUndelegationPolicyABI, defaultUndelegationPolicyBytecode, ensRegistryABI, ensRegistryBytecode,
-    fifsRegistrarABI, fifsRegistrarBytecode, maxOperatorsJoinPolicyABI,
-    maxOperatorsJoinPolicyBytecode, nodeRegistryABI, nodeRegistryBytecode,
-    nodeModuleABI, nodeModuleBytecode, operatorABI, operatorBytecode, operatorFactoryABI,
-    operatorFactoryBytecode, publicResolverABI, publicResolverBytecode, queueModuleABI, queueModuleBytecode,
-    sponsorshipABI, sponsorshipBytecode, sponsorshipFactoryABI,
-    sponsorshipFactoryBytecode, stakeModuleABI, stakeModuleBytecode, stakeWeightedAllocationPolicyABI, stakeWeightedAllocationPolicyBytecode,
-    streamRegistryABI, streamRegistryBytecode, streamStorageRegistryABI, streamStorageRegistryBytecode, streamrConfigABI, streamrConfigBytecode,
-    tokenABI, tokenBytecode, voteKickPolicyABI, voteKickPolicyBytecode, operatorContractOnlyJoinPolicyABI, operatorContractOnlyJoinPolicyBytecode
-} from "./exports"
+    defaultDelegationPolicyABI,
+    defaultDelegationPolicyBytecode,
+    defaultExchangeRatePolicyABI,
+    defaultExchangeRatePolicyBytecode,
+    defaultLeavePolicyABI,
+    defaultLeavePolicyBytecode,
+    defaultUndelegationPolicyABI,
+    defaultUndelegationPolicyBytecode,
+    ENSCacheV2ABI,
+    ENSCacheV2Bytecode,
+    ensRegistryABI,
+    ensRegistryBytecode,
+    fifsRegistrarABI,
+    fifsRegistrarBytecode,
+    maxOperatorsJoinPolicyABI,
+    maxOperatorsJoinPolicyBytecode,
+    nodeModuleABI,
+    nodeModuleBytecode,
+    nodeRegistryABI,
+    nodeRegistryBytecode,
+    operatorABI,
+    operatorBytecode,
+    operatorContractOnlyJoinPolicyABI,
+    operatorContractOnlyJoinPolicyBytecode,
+    operatorFactoryABI,
+    operatorFactoryBytecode,
+    publicResolverABI,
+    publicResolverBytecode,
+    queueModuleABI,
+    queueModuleBytecode,
+    sponsorshipABI,
+    sponsorshipBytecode,
+    sponsorshipFactoryABI,
+    sponsorshipFactoryBytecode,
+    stakeModuleABI,
+    stakeModuleBytecode,
+    stakeWeightedAllocationPolicyABI,
+    stakeWeightedAllocationPolicyBytecode,
+    streamrConfigABI,
+    streamrConfigBytecode,
+    streamRegistryABI,
+    streamRegistryBytecode,
+    streamStorageRegistryABI,
+    streamStorageRegistryBytecode,
+    tokenABI,
+    tokenBytecode,
+    voteKickPolicyABI, voteKickPolicyBytecode
+} from "@streamr/network-contracts"
+import debug from "debug"
 
 const VOTE_KICK = "0x0000000000000000000000000000000000000000000000000000000000000001"
 
