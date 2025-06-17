@@ -20,6 +20,7 @@ export function handleStreamCreation(event: StreamCreated): void {
         return
     }
     let stream = new Stream(event.params.id)
+    stream.idAsString = event.params.id
     stream.metadata = event.params.metadata
     stream.createdAt = event.block.timestamp
     stream.updatedAt = event.block.timestamp
@@ -37,7 +38,15 @@ export function handleStreamUpdate(event: StreamUpdated): void {
         [event.params.id, event.params.metadata, event.block.number.toString()])
     let stream = Stream.load(event.params.id)
     if (stream === null) {
+        // If the stream was initialized using the trustedSetStreamMetadata() method instead of the usual createStream(), 
+        // the Stream entity does not yet exist. This pattern was used at least in the brubeck-migration-script 
+        // (see https://github.com/streamr-dev/network-contracts/pull/1007), and possibly also in ENS stream creation
+        // (see https://github.com/streamr-dev/network-contracts/pull/109).
+        // The trustedSetStreamMetadata() method, which existed in StreamRegistry before version 5, only emitted 
+        // the StreamUpdated event. Since no StreamCreated event was triggered during this process, the handleStreamCreation() 
+        // function was not called, and therefore the Stream entity wasn't created. For this reason we need to create it here.
         stream = new Stream(event.params.id)
+        stream.idAsString = event.params.id
         stream.createdAt = event.block.timestamp
     }
     stream.metadata = event.params.metadata
