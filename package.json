@@ -8,7 +8,6 @@
   "workspaces": [
     "./packages/config",
     "./packages/network-contracts",
-    "./packages/hub-contracts",
     "./packages/network-subgraphs",
     "./packages/ens-sync-script",
     "./packages/dev-chain-fast"
