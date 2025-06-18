@@ -3329,20 +3329,6 @@
 
 
 
-# GasReporter functions
-0x9a8a0592 chainId()
-0x96b52599 getPurchaseInfo()
-0x940083f6 getSubscriptionInfo()
-0x9a7b7856 handle()
-0x66d003ac recipient()
-
-
-
-# IMessageRecipient functions
-0x56d5d475 handle()
-
-
-
 # MockMarketplaceBeneficiary functions
 0x4a439cc0 onPurchase()
 0xa4c0ed36 onTokenTransfer()
