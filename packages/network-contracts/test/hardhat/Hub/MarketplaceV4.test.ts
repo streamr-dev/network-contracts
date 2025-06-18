@@ -7,7 +7,6 @@ import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth
 import type {
     DATAv2,
     ERC20Mintable,
-    GasReporter,
     MarketplaceV4,
     MinimalForwarder,
     ProjectRegistryV1,
@@ -60,7 +59,6 @@ describe("MarketplaceV4", () => {
 
         await streamRegistry.grantRole(id("TRUSTED_ROLE"), projectRegistry.address)
         marketplace = await deployMarketplace()
-        await deployGasReporter(marketplace.address)
 
         chainIds.push(chainId)
         paymentDetailsDefault.push([
@@ -131,11 +129,6 @@ describe("MarketplaceV4", () => {
         // grant trusted role to marketpalce contract => needed for granting permissions to buyers
         await projectRegistry.grantRole(id("TRUSTED_ROLE"), market.address)
         return market
-    }
-
-    async function deployGasReporter(recipientAddress: string): Promise<void> {
-        const factory = await getContractFactory('GasReporter', admin)
-        gasReporter = await factory.deploy(recipientAddress, chainId) as GasReporter
     }
 
     async function createProject({
