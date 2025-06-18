@@ -1,3 +1,6 @@
+import { ContractFactory } from "@ethersproject/contracts"
+import { JsonRpcProvider } from "@ethersproject/providers"
+import { Wallet } from "@ethersproject/wallet"
 import {
     MarketplaceV4, marketplaceV4ABI, marketplaceV4Bytecode,
     ProjectRegistryV1, projectRegistryV1ABI, projectRegistryV1Bytecode,
@@ -6,7 +9,6 @@ import {
     Uniswap2AdapterV4, uniswap2AdapterV4ABI, uniswap2AdapterV4Bytecode,
 } from "@streamr/network-contracts"
 import debug from "debug"
-import { ContractFactory, providers, Wallet } from "ethers"
 
 const log = debug.log
 
@@ -31,7 +33,7 @@ export class HubEnvDeployer {
     readonly destinationDomainId: number
     readonly addresses: HubEnvContractAddresses
     readonly contracts: HubEnvContracts
-    readonly provider: providers.JsonRpcProvider
+    readonly provider: JsonRpcProvider
     readonly adminWallet: Wallet
 
     constructor(
@@ -44,7 +46,7 @@ export class HubEnvDeployer {
         this.destinationDomainId = destinationDomainId
         this.addresses = {} as HubEnvContractAddresses
         this.contracts = {} as HubEnvContracts
-        this.provider = new providers.JsonRpcProvider(chainEndpointUrl)
+        this.provider = new JsonRpcProvider(chainEndpointUrl)
         this.adminWallet = new Wallet(key, this.provider)
     }
 
