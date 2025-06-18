@@ -89,7 +89,7 @@ describe("MarketplaceV4", () => {
     async function deployOtherERC20(): Promise<void> {
         log("Deploying another ERC20 for testing: ")
         const otherTokenFactory = await getContractFactory("ERC20Mintable", admin)
-        otherToken = await otherTokenFactory.deploy() as ERC20Mintable
+        otherToken = await otherTokenFactory.deploy("Mintable Test Token", "TTT") as ERC20Mintable
 
         // mint tokens for testing
         await otherToken.mint(admin.address, parseEther("1000"))

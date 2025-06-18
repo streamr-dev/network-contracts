@@ -111,7 +111,7 @@ describe("Uniswap2AdapterV4", () => {
 
         // deploy ERC20 for testing
         const fromTokenFactory = await getContractFactory("ERC20Mintable", admin)
-        fromToken = await fromTokenFactory.deploy() as ERC20Mintable
+        fromToken = await fromTokenFactory.deploy("Mintable Test Token", "TTT") as ERC20Mintable
 
         // mint tokens for testing
         await dataToken.mint(admin.address, parseEther("100000000"))

@@ -37,7 +37,7 @@ describe("MarketplaceV3", () => {
         mockBeneficiary = await mockBeneficiaryFactory.deploy() as MockMarketplaceBeneficiary
 
         const otherTokenFactory = await getContractFactory("ERC20Mintable", admin)
-        erc20token = await otherTokenFactory.deploy() as ERC20Mintable
+        erc20token = await otherTokenFactory.deploy("Mintable Test Token", "TTT") as ERC20Mintable
     })
 
     async function deployMarketplace(): Promise<MarketplaceV3> {
