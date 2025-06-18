@@ -20,7 +20,7 @@ const {
 } = (config as any)[CHAIN]
 
 const projectRegistryAddress = PROJECT_REGISTRY_ADDRESS || PROJECT_REGISTRY_ADDRESS_FROM_CONFIG
-if (!PROJECT_REGISTRY_ADDRESS) {
+if (!projectRegistryAddress) {
     throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}", please supply it in env variable PROJECT_REGISTRY_ADDRESS`)
 }
 
