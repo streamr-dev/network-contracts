@@ -67,6 +67,8 @@
     "@streamr/config": "^5.0.0",
     "@streamr/utils": "8.5.5",
     "@types/debug": "4.1.7",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "debug": "4.3.3",
     "ethers": "5.7.0",
     "hardhat": "2.13.1",
