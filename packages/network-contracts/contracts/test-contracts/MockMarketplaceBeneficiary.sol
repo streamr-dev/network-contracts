@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.9;
 
-import "../Marketplace/IPurchaseListener.sol";
+import "../Hub/Marketplace/IPurchaseListener.sol";
 
 contract MockMarketplaceBeneficiary is IPurchaseListener {
     event OnTokenTransferCalled(address recipient, uint256 value, bytes data);
