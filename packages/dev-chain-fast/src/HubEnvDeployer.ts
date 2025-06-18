@@ -4,7 +4,7 @@ import {
     ProjectStakingV1, projectStakingV1ABI, projectStakingV1Bytecode,
     RemoteMarketplaceV1, remoteMarketplaceV1ABI, remoteMarketplaceV1Bytecode,
     Uniswap2AdapterV4, uniswap2AdapterV4ABI, uniswap2AdapterV4Bytecode,
-} from "@streamr/hub-contracts"
+} from "@streamr/network-contracts"
 import debug from "debug"
 import { ContractFactory, providers, Wallet } from "ethers"
 
