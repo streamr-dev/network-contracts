@@ -11,10 +11,10 @@ import type {
     MinimalForwarder,
     ProjectRegistryV1,
     StreamRegistryV5,
-} from "../../typechain"
+} from "../../../typechain"
 import { MockMailbox } from "@hyperlane-xyz/core"
 import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
-import { types } from "../constants"
+import { types } from "./constants"
 
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers

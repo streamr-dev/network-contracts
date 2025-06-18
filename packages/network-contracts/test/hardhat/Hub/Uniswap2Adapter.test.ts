@@ -4,7 +4,7 @@ import { constants, utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
 import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
-import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistryV1, StreamRegistryV5, Uniswap2Adapter } from "../../typechain"
+import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistryV1, StreamRegistryV5, Uniswap2Adapter } from "../../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
 const { hexlify, id, parseEther, toUtf8Bytes, zeroPad } = utils

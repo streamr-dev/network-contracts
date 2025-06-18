@@ -2,7 +2,7 @@ import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { utils, constants, BigNumber, Wallet } from "ethers"
 
-import type { DATAv2, MinimalForwarder, ProjectRegistryV1, ProjectStakingV1 } from "../../typechain"
+import type { DATAv2, MinimalForwarder, ProjectRegistryV1, ProjectStakingV1 } from "../../../typechain"
 
 const { id, hexlify, parseEther, toUtf8Bytes, zeroPad } = utils
 const { getContractFactory } = hardhatEthers

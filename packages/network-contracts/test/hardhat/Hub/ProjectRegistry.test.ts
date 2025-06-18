@@ -3,9 +3,9 @@ import { expect } from "chai"
 import { utils, Wallet, constants as ethersConstants, BigNumber } from "ethers"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
 
-import type { DATAv2, MinimalForwarder, ProjectRegistryV1 } from "../../typechain"
+import type { DATAv2, MinimalForwarder, ProjectRegistryV1 } from "../../../typechain"
 import type { StreamRegistry } from "@streamr/network-contracts"
-import { types } from "../constants"
+import { types } from "./constants"
 
 const { id, hexlify, parseEther, toUtf8Bytes, zeroPad } = utils
 const { getContractFactory } = hardhatEthers

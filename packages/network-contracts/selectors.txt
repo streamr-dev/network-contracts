@@ -501,50 +501,6 @@
 
 
 
-# ERC20Mintable functions
-0xdd62ed3e allowance()
-0x095ea7b3 approve()
-0x70a08231 balanceOf()
-0x313ce567 decimals()
-0xa457c2d7 decreaseAllowance()
-0x39509351 increaseAllowance()
-0x40c10f19 mint()
-0x06fdde03 name()
-0x95d89b41 symbol()
-0x18160ddd totalSupply()
-0xa9059cbb transfer()
-0x23b872dd transferFrom()
-
-# ERC20Mintable events
-0x8c5be1e5 Approval
-0xddf252ad Transfer
-
-
-
-# GasReporter functions
-0x9a8a0592 chainId()
-0x96b52599 getPurchaseInfo()
-0x940083f6 getSubscriptionInfo()
-0x9a7b7856 handle()
-0x66d003ac recipient()
-
-
-
-# IMessageRecipient functions
-0x56d5d475 handle()
-
-
-
-# MockMarketplaceBeneficiary functions
-0x4a439cc0 onPurchase()
-0xa4c0ed36 onTokenTransfer()
-
-# MockMarketplaceBeneficiary events
-0x9ad21c4b OnPurchaseCalled
-0xecc977eb OnTokenTransferCalled
-
-
-
 # DATAv2 functions
 0xa217fddf DEFAULT_ADMIN_ROLE()
 0x3644e515 DOMAIN_SEPARATOR()
@@ -604,26 +560,6 @@
 
 # IERC677Receiver functions
 0xa4c0ed36 onTokenTransfer()
-
-
-
-# ERC20Mintable functions
-0xdd62ed3e allowance()
-0x095ea7b3 approve()
-0x70a08231 balanceOf()
-0x313ce567 decimals()
-0xa457c2d7 decreaseAllowance()
-0x39509351 increaseAllowance()
-0x40c10f19 mint()
-0x06fdde03 name()
-0x95d89b41 symbol()
-0x18160ddd totalSupply()
-0xa9059cbb transfer()
-0x23b872dd transferFrom()
-
-# ERC20Mintable events
-0x8c5be1e5 Approval
-0xddf252ad Transfer
 
 
 
@@ -3370,3 +3306,47 @@
 0x8be0079c OwnershipTransferred
 0x6dca0be1 RequestENSOwnerAndCreateStream
 0xbc7cd75a Upgraded
+
+
+
+# ERC20Mintable functions
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x39509351 increaseAllowance()
+0x40c10f19 mint()
+0x06fdde03 name()
+0x95d89b41 symbol()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+
+# ERC20Mintable events
+0x8c5be1e5 Approval
+0xddf252ad Transfer
+
+
+
+# GasReporter functions
+0x9a8a0592 chainId()
+0x96b52599 getPurchaseInfo()
+0x940083f6 getSubscriptionInfo()
+0x9a7b7856 handle()
+0x66d003ac recipient()
+
+
+
+# IMessageRecipient functions
+0x56d5d475 handle()
+
+
+
+# MockMarketplaceBeneficiary functions
+0x4a439cc0 onPurchase()
+0xa4c0ed36 onTokenTransfer()
+
+# MockMarketplaceBeneficiary events
+0x9ad21c4b OnPurchaseCalled
+0xecc977eb OnTokenTransferCalled

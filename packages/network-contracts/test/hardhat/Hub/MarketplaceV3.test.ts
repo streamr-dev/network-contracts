@@ -2,10 +2,12 @@ import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { utils, Wallet } from "ethers"
 
-import type { MarketplaceV3, DATAv2, ERC20Mintable, MockMarketplaceBeneficiary } from "../../typechain"
+import type { MarketplaceV3, DATAv2, ERC20Mintable, MockMarketplaceBeneficiary } from "../../../typechain"
 
-import { ProductState } from "../../src/contracts/enums"
-
+const ProductState = {
+    NotDeployed: 0, // non-existent or deleted
+    Deployed: 1, // created or redeployed
+}
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
 
