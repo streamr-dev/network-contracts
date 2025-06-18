@@ -57,7 +57,7 @@ describe("Uniswap2AdapterV4", () => {
     let forwarder: Wallet
     let forwarder2: Wallet
     let signer: Wallet
-    let signerWallet: Wallet
+    let signerPrivateKey: string
 
     let dataToken: DATAv2 // the token in which the product is paid to product beneficiary
     let erc677Token: DATAv2
@@ -80,8 +80,7 @@ describe("Uniswap2AdapterV4", () => {
     before(async () => {
         [admin, beneficiary, buyer, forwarder, forwarder2, signer] = await hardhatEthers.getSigners() as unknown as Wallet[]
         const accounts = config.networks.hardhat.accounts as any
-        const indexSigner = 5 // sixth account => the signer from getSigners() above
-        signerWallet = hardhatEthers.Wallet.fromMnemonic(accounts.mnemonic, accounts.path + `/${indexSigner}`)
+        signerPrivateKey = accounts[5].privateKey
 
         await deployErc20ContractsAndMintTokens()
         domainIds.push(chainId)
@@ -367,7 +366,7 @@ describe("Uniswap2AdapterV4", () => {
         })
 
         it('buyWithERC20 - positivetest', async (): Promise<void> => {
-            const {req, sign, value} = await prepareBuyWithERC20Metatx(minimalForwarder.connect(forwarder), signer, signerWallet.privateKey)
+            const {req, sign, value} = await prepareBuyWithERC20Metatx(minimalForwarder.connect(forwarder), signer, signerPrivateKey)
             expect(await minimalForwarder.connect(forwarder).verify(req, sign))
                 .to.be.true
             await(await fromToken.mint(signer.address, value)).wait()
@@ -450,7 +449,7 @@ describe("Uniswap2AdapterV4", () => {
 
             // check that metatx works with new forwarder
             // const signer = hardhatEthers.Wallet.createRandom()
-            const {req, sign, value} = await prepareBuyWithERC20Metatx(newForwarder, signer, signerWallet.privateKey)
+            const {req, sign, value} = await prepareBuyWithERC20Metatx(newForwarder, signer, signerPrivateKey)
             expect(await newForwarder.verify(req, sign))
                 .to.be.true
             await(await fromToken.mint(signer.address, value)).wait()
