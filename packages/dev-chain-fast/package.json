@@ -19,6 +19,14 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
+    "@ethersproject/constants": "5.7.0",
+    "@ethersproject/contracts": "5.7.0",
+    "@ethersproject/hash": "5.7.0",
+    "@ethersproject/keccak256": "5.7.0",
+    "@ethersproject/providers": "5.7.0",
+    "@ethersproject/strings": "5.7.0",
+    "@ethersproject/units": "5.7.0",
+    "@ethersproject/wallet": "5.7.0",
     "@streamr/network-contracts": "file:../network-contracts",
     "hardhat": "2.22.9"
   },
