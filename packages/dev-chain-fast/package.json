@@ -19,7 +19,6 @@
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@streamr/hub-contracts": "file:../hub-contracts",
     "@streamr/network-contracts": "file:../network-contracts",
     "hardhat": "2.22.9"
   },
