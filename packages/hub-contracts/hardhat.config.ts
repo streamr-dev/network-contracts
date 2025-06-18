@@ -59,6 +59,12 @@ const config: HardhatUserConfig = {
             url: "http://localhost:8546",
             accounts: ["0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
         },
+        dev2: {
+            chainId: 31337,
+            url: "http://localhost:8547",
+            gasPrice: 1000000000,
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"]
+        },
         gnosis: {
             chainId: 100,
             url: "https://rpc.gnosischain.com/",
@@ -93,6 +99,13 @@ const config: HardhatUserConfig = {
             chainId: 3338,
             url: "https://peaq.api.onfinality.io/public",
             accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"] // dummy key
+        },
+        iotex: {
+            url: "https://babel-api.mainnet.IoTeX.io",
+            chainId: 4689,
+            gas: 8500000,
+            gasPrice: 1000000000000,
+            accounts: [process.env.KEY || "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"], // dummy key
         },
     },
     typechain: {

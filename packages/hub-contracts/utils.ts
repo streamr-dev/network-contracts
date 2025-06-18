@@ -1,5 +1,5 @@
-const testnet = ['alfajores', 'fuji', 'goerli', 'optGoerli', 'arbGoerli', 'polygonAmoy', 'peaq']
-const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism', 'arbitrum']
+const testnet = ['alfajores', 'fuji', 'goerli', 'optGoerli', 'arbGoerli', 'polygonAmoy', 'dev2']
+const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism', 'arbitrum', 'peaq', 'iotex']
 
 /**
  * Maps the chain name to a unique hyperlane domain id
@@ -26,6 +26,12 @@ export function chainToDomainId(name: string): number {
             return 8995
         case 'dev1':
             return 8997
+        case 'dev2':
+            return 31337
+        case 'iotex':
+            return 4689
+        case 'peaq':
+            return 3338
         default:
             throw new Error(`Unknown domain id for the given chain name (${name}).`)
     }
@@ -102,6 +108,8 @@ export function chainToEthereumRpcUrl(name: string): string {
             return `https://avalanche-fuji.infura.io/v3/${process.env.FUJI_API_KEY}`
         case 'dev1':
             return 'http://10.200.10.1:8546'
+        case 'dev2':
+            return 'http://10.200.10.1:8547'
 
         default:
             throw new Error('Unknown ethereum RPC URL for the given chain name.')
