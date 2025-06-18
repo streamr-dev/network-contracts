@@ -1,3 +1,5 @@
+/* eslint-disable quotes */
+
 export const types = {
     EIP712Domain: [
         {

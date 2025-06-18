@@ -1,3 +1,4 @@
+/* eslint-disable quotes, no-console */
 import { config, upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { BigNumber, utils, constants, Wallet } from "ethers"
@@ -38,7 +39,6 @@ describe("MarketplaceV4", () => {
     let projectRegistry: ProjectRegistryV1
     let streamRegistry: StreamRegistryV5
     const streamIds: string[] = []
-    let gasReporter: GasReporter
 
     const chainId = 137 // chain id for polygon mainnet
     const chainIds: number[] = [] // unique id assigned by hyperlane; same as chain id in EIP-155
@@ -112,17 +112,6 @@ describe("MarketplaceV4", () => {
         streamRegistry = await contractFactoryTx.deployed() as StreamRegistryV5
         log("   - StreamRegistry deployed at: ", streamRegistry.address)
 
-    }
-
-    const createStream = async (id?: string, creator = admin): Promise<string> => {
-        // create streams using the StreamRegistry contract (will give creator all permisisons to the stream)
-        const streamPath = '/projects/' + (id ?? Date.now())
-        const streamMetadata = `{"date": "${new Date().toLocaleString()}", "creator": "${creator.address}"}`
-        await(await streamRegistry.connect(creator)
-            .createStream(streamPath, streamMetadata)).wait()
-        const streamId = creator.address.toLowerCase() + streamPath
-        log('Stream created (streamId: %s)', streamId)
-        return streamId
     }
 
     async function deployProjectRegistry(): Promise<void> {

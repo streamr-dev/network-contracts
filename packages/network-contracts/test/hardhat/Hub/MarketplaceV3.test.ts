@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 import { upgrades, ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 import { utils, Wallet } from "ethers"

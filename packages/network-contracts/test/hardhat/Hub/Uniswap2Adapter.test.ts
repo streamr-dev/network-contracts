@@ -1,4 +1,4 @@
-import { config, upgrades, ethers as hardhatEthers } from "hardhat"
+/* eslint-disable quotes, no-console */
 import { expect } from "chai"
 import { constants, utils, Wallet } from "ethers"
 import  * as WETH9Json from '@uniswap/v2-periphery/build/WETH9.json'
@@ -6,49 +6,13 @@ import  * as UniswapV2FactoryJson from '@uniswap/v2-core/build/UniswapV2Factory.
 import  * as UniswapV2Router02Json from '@uniswap/v2-periphery/build/UniswapV2Router02.json'
 import type { DATAv2, ERC20Mintable, MarketplaceV4, MinimalForwarder, ProjectRegistryV1, StreamRegistryV5, Uniswap2Adapter } from "../../../typechain"
 import { signTypedData, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util'
+import { types } from './constants'
 
 const { hexlify, id, parseEther, toUtf8Bytes, zeroPad } = utils
 const { getContractFactory } = hardhatEthers
 
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
-
-const types = {
-    EIP712Domain: [
-        {
-            name: 'name', type: 'string'
-        },
-        {
-            name: 'version', type: 'string'
-        },
-        {
-            name: 'chainId', type: 'uint256'
-        },
-        {
-            name: 'verifyingContract', type: 'address'
-        },
-    ],
-    ForwardRequest: [
-        {
-            name: 'from', type: 'address'
-        },
-        {
-            name: 'to', type: 'address'
-        },
-        {
-            name: 'value', type: 'uint256'
-        },
-        {
-            name: 'gas', type: 'uint256'
-        },
-        {
-            name: 'nonce', type: 'uint256'
-        },
-        {
-            name: 'data', type: 'bytes'
-        },
-    ],
-}
 
 describe("Uniswap2AdapterV4", () => {
     let admin: Wallet
