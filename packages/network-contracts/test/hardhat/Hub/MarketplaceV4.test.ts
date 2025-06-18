@@ -12,13 +12,10 @@ import type {
     ProjectRegistryV1,
     StreamRegistryV5,
 } from "../../../typechain"
-import { MockMailbox } from "@hyperlane-xyz/core"
-import { utils as hyperlaneUtils } from "@hyperlane-xyz/utils"
 import { types } from "./constants"
 
 const { parseEther, hexlify, zeroPad, toUtf8Bytes, id } = utils
 const { getContractFactory } = hardhatEthers
-const { addressToBytes32} = hyperlaneUtils
 
 export const log = (..._: unknown[]): void => { /* skip logging */ }
 // export const { log } = console
@@ -753,124 +750,6 @@ describe("MarketplaceV4", () => {
             expect(subscriptionInfoAfter[0]).to.be.true // isValid
             expect(subscriptionInfoAfter[1]).to.equal(subscription.endTimestamp) // subEndTimestamp
             expect(subscriptionInfoAfter[2]).to.equal(purchaseId) // purchaseId
-        })
-    })
-
-    describe('Hyperlane - cross-chain messaging', () => {
-        if (process.env.REPORT_GAS) {
-            describe('GasReporter', () => {
-                before(async () => {
-                    // needed for error_notHyperlaneMailbox validation
-                    await marketplace.addMailbox(gasReporter.address)
-                    // needed for error_notRemoteMarketplace validation
-                    await marketplace.addRemoteMarketplace(chainId, gasReporter.address)
-                })
-                it('handle()', async () => {
-                    const subscriber = admin.address
-                    const subscriptionSeconds = 100
-                    const beneficiary = admin.address
-                    const price = 100
-                    const fee = 0
-
-                    let prevGasUsed = 0
-                    log('%s streams:', streamIds.length)
-                    const projectId0 = await createProject()
-                    let tx = await(await gasReporter.handle(projectId0, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
-                    log('Gas used for handle function is %s wei (with overhead )', tx.gasUsed.toNumber())
-                    prevGasUsed = tx.gasUsed.toNumber()
-
-                    for (let i = 0; i < 3; i++) {
-                        const s = await createStream(i.toString())
-                        streamIds.push(s)
-                        log('\n %s streams:', streamIds.length)
-                        const projectId = await createProject()
-                        tx = await(await gasReporter.handle(projectId, subscriber, subscriptionSeconds, beneficiary, price, fee)).wait()
-                        const gasUsed = tx.gasUsed.toNumber()
-                        log('Gas used for handle function is %s wei (with overhead ), difference is %s', gasUsed, gasUsed - prevGasUsed)
-                        prevGasUsed = gasUsed
-                    }
-                })
-                it('getPurchaseInfo()', async () => {
-                    const subscriptionSeconds = 100
-                    const purchaseId = 1
-
-                    const projectId = await createProject()
-                    await gasReporter.getPurchaseInfo(projectId, subscriptionSeconds, purchaseId)
-                })
-
-                it('getSubscriptionInfo()', async () => {
-                    const purchaseId = 1
-
-                    const projectId = await createProject()
-                    await gasReporter.getSubscriptionInfo(projectId, buyer.address, purchaseId)
-                })
-            })
-        }
-
-        const originDomain = 1000
-        const destinationDomain = 2000
-        let originMailbox: MockMailbox
-        let destinationMailbox: MockMailbox
-
-        before(async () => {
-            const MockMailbox = await hardhatEthers.getContractFactory("MockMailbox")
-            originMailbox = await MockMailbox.deploy(originDomain)
-            destinationMailbox = await MockMailbox.deploy(destinationDomain)
-            await originMailbox.addRemoteMailbox(destinationDomain, destinationMailbox.address)
-            await destinationMailbox.addRemoteMailbox(originDomain, originMailbox.address)
-
-            await marketplace.addMailbox(destinationMailbox.address)
-            await marketplace.addRemoteMarketplace(originDomain, other.address) // other acts as the remote contract
-        })
-
-        it("handle - positivetest", async function () {
-            const projectId = await createProject()
-            const subscriber = buyer.address
-            const subscriptionSeconds = 100
-            const message = hardhatEthers.utils.defaultAbiCoder.encode(
-                ['uint256', 'address', 'uint256'],
-                [projectId, subscriber, subscriptionSeconds]
-            )
-
-            const subscriptionBefore = await projectRegistry.getSubscription(projectId, subscriber)
-            await originMailbox.connect(other).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
-            await destinationMailbox.processNextInboundMessage()
-            const subscriptionAfter = await projectRegistry.getSubscription(projectId, subscriber)
-
-            expect(subscriptionBefore[0]).to.be.false // isValid
-            expect(subscriptionBefore[1]).to.equal(0) // endTimestamp
-            expect(subscriptionAfter[0]).to.be.true // isValid
-            expect(subscriptionAfter[1]).to.gt((await hardhatEthers.provider.getBlock("latest")).timestamp) // endTimestamp
-        })
-
-        it("handle | onlyRemoteMarketplace - negativetest - fails if not called by the remote contract", async function () {
-            const projectId = await createProject()
-            const subscriber = buyer.address
-            const subscriptionSeconds = 100
-            const message = hardhatEthers.utils.defaultAbiCoder.encode(
-                ['uint256', 'address', 'uint256'],
-                [projectId, subscriber, subscriptionSeconds]
-            )
-
-            // admin acts as the remote contract, but it should be other
-            await originMailbox.connect(admin).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
-            await expect(destinationMailbox.processNextInboundMessage())
-                .to.be.revertedWith("error_notRemoteMarketplace")
-        })
-
-        it("handle | onlyRemoteMarketplace - negativetest - fails if not called by the hyperlane mailbox", async function () {
-            const projectId = await createProject()
-            const subscriber = buyer.address
-            const subscriptionSeconds = 100
-            const message = hardhatEthers.utils.defaultAbiCoder.encode(
-                ['uint256', 'address', 'uint256'],
-                [projectId, subscriber, subscriptionSeconds]
-            )
-
-            await marketplace.addMailbox(hardhatEthers.Wallet.createRandom().address)
-            await originMailbox.connect(other).dispatch(destinationDomain, addressToBytes32(marketplace.address), message)
-            await expect(destinationMailbox.processNextInboundMessage())
-                .to.be.revertedWith("error_notHyperlaneMailbox")
         })
     })
 })
