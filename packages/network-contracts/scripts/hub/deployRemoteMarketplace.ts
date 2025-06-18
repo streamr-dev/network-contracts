@@ -1,6 +1,6 @@
 import { ethers, upgrades } from "hardhat"
 import { config } from "@streamr/config"
-import { chainToDomainId, chainToMailboxAddress, chainToDefaultPaymasterAddress, chainToQueryRouterAddress } from "../utils"
+import { chainToDomainId, chainToMailboxAddress, chainToDefaultPaymasterAddress, chainToQueryRouterAddress } from "./utils"
 
 const { log } = console
 

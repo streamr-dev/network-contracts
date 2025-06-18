@@ -2,7 +2,7 @@ import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
 import { config } from "@streamr/config"
 // import { chainToDomainId, chainToMailboxAddress } from "../utils"
-import { DATAv2, MarketplaceV4, ProjectRegistryV1, StreamRegistryV5, ProjectStakingV1 } from "../typechain"
+import { DATAv2, MarketplaceV4, ProjectRegistryV1, StreamRegistryV5, ProjectStakingV1 } from "../../typechain"
 
 const { getContractFactory } = hardhatEthers
 const { hexlify, toUtf8Bytes, zeroPad } = utils

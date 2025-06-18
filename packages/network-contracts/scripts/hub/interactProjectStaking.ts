@@ -1,7 +1,7 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { utils, Wallet, providers } from "ethers"
 import { config } from "@streamr/config"
-import { DATAv2, ProjectStakingV1 } from "../typechain"
+import { DATAv2, ProjectStakingV1 } from "../../typechain"
 
 const { getContractFactory } = hardhatEthers
 const { log } = console

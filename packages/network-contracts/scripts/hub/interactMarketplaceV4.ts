@@ -1,8 +1,8 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { Wallet } from "ethers"
 import { config } from "@streamr/config"
-import { MarketplaceV4 } from "../typechain"
-import { chainToDomainId } from "../utils"
+import { MarketplaceV4 } from "../../typechain"
+import { chainToDomainId } from "./utils"
 
 const { getContractFactory } = hardhatEthers
 const { log } = console
