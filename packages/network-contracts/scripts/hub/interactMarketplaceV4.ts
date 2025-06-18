@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 import { ethers as hardhatEthers } from "hardhat"
 import { Wallet } from "ethers"
 import { config } from "@streamr/config"

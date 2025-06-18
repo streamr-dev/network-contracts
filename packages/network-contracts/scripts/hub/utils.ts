@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 const testnet = ['alfajores', 'fuji', 'goerli', 'optGoerli', 'arbGoerli', 'polygonAmoy', 'peaq']
 const mainnet = ['celo', 'avalanche', 'polygon', 'gnosis', 'ethereum', 'optimism', 'arbitrum']
 

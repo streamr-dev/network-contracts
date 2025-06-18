@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 import { ethers as hardhatEthers } from "hardhat"
 import { config } from "@streamr/config"
 import { ProjectRegistryV1, StreamRegistryV5 } from "../../typechain"
