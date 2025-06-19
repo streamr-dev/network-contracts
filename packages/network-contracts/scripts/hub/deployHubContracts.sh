@@ -16,8 +16,8 @@ else
 fi
 
 export OUTPUT_FILE=address.txt
-npx hardhat run --network $CHAIN scripts/deployProjectRegistry.ts
+npx hardhat run --network $CHAIN scripts/hub/deployProjectRegistry.ts
 export PROJECT_REGISTRY_ADDRESS=$(cat address.txt)
-npx hardhat run --network $CHAIN scripts/deployProjectStakingV1.ts
-npx hardhat run --network $CHAIN scripts/deployMarketplaceV4.ts
+npx hardhat run --network $CHAIN scripts/hub/deployProjectStakingV1.ts
+npx hardhat run --network $CHAIN scripts/hub/deployMarketplaceV4.ts
 rm address.txt
