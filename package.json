@@ -17,7 +17,6 @@
     "clean": "npm run clean --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present && eslint .",
     "test": "npm run test --workspaces --if-present",
-    "integration-test": "npm run integration-test --workspaces --if-present",
     "test:subgraph": "graph test -d",
     "e2etest": "npm run e2etest --workspace=network-contracts"
   },

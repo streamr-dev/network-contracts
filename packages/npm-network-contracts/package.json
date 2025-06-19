@@ -19,7 +19,6 @@
     "build": "./build.sh"
   },
   "devDependencies": {
-    "@chainlink/contracts": "0.3.1",
     "@ensdomains/ens-contracts": "1.1.4",
     "@nomicfoundation/hardhat-toolbox": "5.0.0",
     "@opengsn/provider": "2.2.6",

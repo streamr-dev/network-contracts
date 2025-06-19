@@ -67,8 +67,6 @@ module.exports = {
     dependencyCompiler: {
         paths: [
             '@openzeppelin/contracts-upgradeable/metatx/MinimalForwarderUpgradeable.sol',
-            '@chainlink/contracts/src/v0.4/LinkToken.sol',
-            '@chainlink/contracts/src/v0.6/Oracle.sol'
         ],
     },
     solidity: {

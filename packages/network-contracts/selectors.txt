@@ -1,86 +1,14 @@
-# ENSCache functions
-0xec65d0f8 cancelRequest()
-0x913d9932 fulfillENSOwner()
-0x165d35e1 getChainlinkToken()
-0xc2939d97 jobId()
-0x7dc0d1d0 oracle()
-0x8da5cb5b owner()
-0x2b1fd995 owners()
-0x715018a6 renounceOwnership()
-0xd5f5729d requestENSOwner()
-0x1877e534 requestENSOwnerAndCreateStream()
-0x634172bf resetCacheForENSName()
-0x9a46768e resetCacheForMyENSName()
-0xe90f432c setChainlinkJobId()
-0x230e6d23 setChainlinkTokenAddress()
-0x4c69c00f setOracleAddress()
-0x0c3cac3b setStreamRegistry()
-0xadd14a74 tempENSnames()
-0xa74e712f tempIdPaths()
-0x413a38ed tempMetadatas()
-0x87103c5f tempRequestorAddress()
-0xf2fde38b transferOwnership()
-0x8dc654a2 withdrawLink()
-
-# ENSCache events
-0xe1fe3afa ChainlinkCancelled
-0x7cc135e0 ChainlinkFulfilled
-0xb5e6e01e ChainlinkRequested
-0x8be0079c OwnershipTransferred
-
-
-
-# IStreamRegistry functions
-0xdbfc1d87 ENScreateStreamCallback()
-
-
-
-# ENSCacheV1 functions
-0xec65d0f8 cancelRequest()
-0x913d9932 fulfillENSOwner()
-0x165d35e1 getChainlinkToken()
-0xc2939d97 jobId()
-0x7dc0d1d0 oracle()
-0x8da5cb5b owner()
-0x2b1fd995 owners()
-0x715018a6 renounceOwnership()
-0xd5f5729d requestENSOwner()
-0x1877e534 requestENSOwnerAndCreateStream()
-0xe90f432c setChainlinkJobId()
-0x230e6d23 setChainlinkTokenAddress()
-0x4c69c00f setOracleAddress()
-0x0c3cac3b setStreamRegistry()
-0xadd14a74 tempENSnames()
-0xa74e712f tempIdPaths()
-0x413a38ed tempMetadatas()
-0x87103c5f tempRequestorAddress()
-0xf2fde38b transferOwnership()
-0x8dc654a2 withdrawLink()
-
-# ENSCacheV1 events
-0xe1fe3afa ChainlinkCancelled
-0x7cc135e0 ChainlinkFulfilled
-0xb5e6e01e ChainlinkRequested
-0x8be0079c OwnershipTransferred
-
-
-
-# IStreamRegistry functions
-0xdbfc1d87 ENScreateStreamCallback()
-
-
-
 # ENSCacheV2Streamr functions
 0x5f4a21d8 fulfillENSOwner()
-0xc0c53b8b initialize()
+0x485cc955 initialize()
 0x8da5cb5b owner()
 0x2b1fd995 owners()
-0x52d1902d proxiableUUID()
 0x715018a6 renounceOwnership()
 0x1877e534 requestENSOwnerAndCreateStream()
-0x25119d79 setENSCacheV1()
 0x0c3cac3b setStreamRegistry()
 0xf11a120b setStreamrScript()
+0xe3642153 streamRegistry()
+0x2bf2680b streamrScript()
 0xf2fde38b transferOwnership()
 0x3659cfe6 upgradeTo()
 0x4f1ef286 upgradeToAndCall()
@@ -88,10 +16,14 @@
 # ENSCacheV2Streamr events
 0x7e644d79 AdminChanged
 0x1cf3b03a BeaconUpgraded
-0x7f26b83f Initialized
 0x8be0079c OwnershipTransferred
 0x6dca0be1 RequestENSOwnerAndCreateStream
 0xbc7cd75a Upgraded
+
+
+
+# IStreamRegistry functions
+0xdbfc1d87 ENScreateStreamCallback()
 
 
 

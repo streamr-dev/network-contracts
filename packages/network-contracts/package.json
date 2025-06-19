@@ -19,10 +19,8 @@
     "build": "./build.sh",
     "clean": "rm -rf artifacts dist cache coverage typechain deployments .openzeppelin/unknown-31337.json",
     "test": "npm run test:fast && npm run test:slow",
-    "integration-test-TODO": "npm run test:ens-e2e",
     "test:fast": "hardhat test `find test/hardhat -name '*.test.ts'`",
     "test:slow": "hardhat test `find test/hardhat-slow-tests -name '*.test.ts'`",
-    "test:ens-e2e": "hardhat run --network dev2 test/integration/ens-e2e.test.ts",
     "coverage": "hardhat coverage --testfiles 'test/hardhat/**/*.test.ts'",
     "lint": "solhint `find contracts -name '*.sol'`",
     "interactProd": "hardhat run --network polygon scripts/deployToLivenet/2_interactWithContracts.ts",
@@ -41,7 +39,6 @@
     "streamrEnvDeployerHardhat": "hardhat run --network localhost scripts/tatum/allinoneHardhat.ts"
   },
   "dependencies": {
-    "@chainlink/contracts": "0.3.1",
     "@opengsn/contracts": "2.2.6",
     "@openzeppelin/contracts": "4.4.2",
     "@openzeppelin/contracts-upgradeable": "4.8.0",

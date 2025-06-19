@@ -26,7 +26,7 @@ export type { StreamStorageRegistryV2 as StreamStorageRegistry } from "../typech
 
 export { abi as ENSCacheV2ABI, bytecode as ENSCacheV2Bytecode }
     from "../artifacts/contracts/ENS/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
-export type { ENSCacheV2Streamr as ENSCacheV2 } from "../typechain/contracts/ENS/ENSCacheV2Streamr"
+export type { ENSCacheV2Streamr as ENSCacheV2 } from "../typechain/contracts/ENS/ENSCacheV2Streamr.sol/ENSCacheV2Streamr"
 
 export { abi as nodeRegistryABI, bytecode as nodeRegistryBytecode }
     from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
@@ -104,11 +104,11 @@ export type { ProjectStakingV1 } from "../typechain/contracts/Hub/ProjectStaking
 
 export { abi as marketplaceV4ABI, bytecode as marketplaceV4Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4.json"
-export type { MarketplaceV4 } from "../typechain/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4"        
+export type { MarketplaceV4 } from "../typechain/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4"
 
 export { abi as uniswap2AdapterV4ABI, bytecode as uniswap2AdapterV4Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4.json"
-export type { Uniswap2AdapterV4 } from "../typechain/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4"        
+export type { Uniswap2AdapterV4 } from "../typechain/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4"
 
 export { abi as remoteMarketplaceV1ABI, bytecode as remoteMarketplaceV1Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/RemoteMarketplaceV1.sol/RemoteMarketplaceV1.json"
