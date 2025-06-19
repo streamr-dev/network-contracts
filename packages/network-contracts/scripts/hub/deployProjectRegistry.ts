@@ -1,4 +1,5 @@
 /* eslint-disable quotes */
+import { writeFileSync } from "fs"
 import { ethers as hhEthers, upgrades } from "hardhat"
 import { config } from "@streamr/config"
 
@@ -6,6 +7,7 @@ const { log } = console
 
 const {
     CHAIN = 'dev1',
+    OUTPUT_FILE,
 } = process.env
 
 const {
@@ -28,6 +30,11 @@ async function main() {
     const projectRegistryFactoryTx = await upgrades.deployProxy(projectRegistryFactory, [STREAM_REGISTRY_ADDRESS], { kind: 'uups' })
     const projectRegistry = await projectRegistryFactoryTx.deployed()
     log(`ProjectRegistryV1 deployed at: ${projectRegistry.address}`)
+
+    if (OUTPUT_FILE) {
+        writeFileSync(OUTPUT_FILE, projectRegistry.address)
+        log(`ProjectRegistryV1 address written to ${OUTPUT_FILE}`)
+    }
 }
 
 main().catch((error) => {
