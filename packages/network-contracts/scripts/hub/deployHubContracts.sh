@@ -8,8 +8,7 @@ else
     export KEY="$KEY"
 fi
 
-#export CHAIN=iotex
-export CHAIN=dev2
+export CHAIN=iotex
 export OUTPUT_FILE=address.txt
 npm run deploy-registry
 export PROJECT_REGISTRY_ADDRESS=$(cat address.txt)
