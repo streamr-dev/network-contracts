@@ -13,15 +13,20 @@
     "docker:buildLocalArch": "./prepare.sh && docker build -t streamr/dev-chain-fast:dev . && rm *.tgz",
     "docker:buildMultiArchAndPush": "./prepare.sh && docker buildx build --platform linux/amd64,linux/arm64 -t streamr/dev-chain-fast:dev --push . && rm *.tgz",
     "docker:buildStepOnly": "docker build -t streamr/dev-chain-fast:dev .",
-    "preparebuild": "./prepare.sh",
     "deploy": "tsx ./src/deploy.ts",
     "clean": "rm -fr node_modules dist",
     "build": "tsc -p tsconfig.build.json"
   },
   "dependencies": {
-    "@streamr/hub-contracts": "file:../hub-contracts",
+    "@ethersproject/constants": "5.7.0",
+    "@ethersproject/contracts": "5.7.0",
+    "@ethersproject/hash": "5.7.0",
+    "@ethersproject/keccak256": "5.7.0",
+    "@ethersproject/providers": "5.7.0",
+    "@ethersproject/strings": "5.7.0",
+    "@ethersproject/units": "5.7.0",
+    "@ethersproject/wallet": "5.7.0",
     "@streamr/network-contracts": "file:../network-contracts",
-    "@dataunions/contracts": "^3.0.8",
     "hardhat": "2.22.9"
   },
   "devDependencies": {

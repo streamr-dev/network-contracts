@@ -1,698 +1,3338 @@
-
-======= OperatorTokenomics/sol:AccessControlUpgradeable =======
-Function signatures:
-a217fddf: DEFAULT_ADMIN_ROLE()
-248a9ca3: getRoleAdmin(bytes32)
-2f2ff15d: grantRole(bytes32,address)
-91d14854: hasRole(bytes32,address)
-36568abe: renounceRole(bytes32,address)
-d547741f: revokeRole(bytes32,address)
-01ffc9a7: supportsInterface(bytes4)
-
-Event signatures:
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
-2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
-f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
-
-======= OperatorTokenomics/sol:AddressUpgradeable =======
-Function signatures:
-
-======= OperatorTokenomics/sol:ClonesUpgradeable =======
-Function signatures:
-
-======= OperatorTokenomics/sol:ContextUpgradeable =======
-Function signatures:
-
-Event signatures:
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-
-======= OperatorTokenomics/sol:ERC165Upgradeable =======
-Function signatures:
-01ffc9a7: supportsInterface(bytes4)
-
-Event signatures:
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-
-======= OperatorTokenomics/sol:ERC1967UpgradeUpgradeable =======
-Function signatures:
-
-Event signatures:
-7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
-1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
-
-======= OperatorTokenomics/sol:ERC20Upgradeable =======
-Function signatures:
-dd62ed3e: allowance(address,address)
-095ea7b3: approve(address,uint256)
-70a08231: balanceOf(address)
-313ce567: decimals()
-a457c2d7: decreaseAllowance(address,uint256)
-39509351: increaseAllowance(address,uint256)
-06fdde03: name()
-95d89b41: symbol()
-18160ddd: totalSupply()
-a9059cbb: transfer(address,uint256)
-23b872dd: transferFrom(address,address,uint256)
-
-Event signatures:
-8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
-
-======= OperatorTokenomics/sol:ERC2771ContextUpgradeable =======
-Function signatures:
-572b6c05: isTrustedForwarder(address)
-
-Event signatures:
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-
-======= OperatorTokenomics/sol:IAccessControlUpgradeable =======
-Function signatures:
-248a9ca3: getRoleAdmin(bytes32)
-2f2ff15d: grantRole(bytes32,address)
-91d14854: hasRole(bytes32,address)
-36568abe: renounceRole(bytes32,address)
-d547741f: revokeRole(bytes32,address)
-
-Event signatures:
-bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
-2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
-f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
-
-======= OperatorTokenomics/sol:IAllocationPolicy =======
-Function signatures:
-6e9bb3f7: getEarningsWei(address)
-de44bb88: getInsolvencyTimestamp()
-624ca99c: onJoin(address)
-19153386: onLeave(address)
-6fff860d: onSponsor(address,uint256)
-e178d930: onStakeChange(address,int256)
-3a82b50d: onWithdraw(address)
-4a45d2e6: setParam(uint256)
-
-======= OperatorTokenomics/sol:IBeaconUpgradeable =======
-Function signatures:
-5c60da1b: implementation()
-
-======= OperatorTokenomics/sol:IDelegationPolicy =======
-Function signatures:
-217fb33b: onDelegate(address)
-4a45d2e6: setParam(uint256)
-
-======= OperatorTokenomics/sol:IERC165 =======
-Function signatures:
-01ffc9a7: supportsInterface(bytes4)
-
-======= OperatorTokenomics/sol:IERC165Upgradeable =======
-Function signatures:
-01ffc9a7: supportsInterface(bytes4)
-
-======= OperatorTokenomics/sol:IERC1822ProxiableUpgradeable =======
-Function signatures:
-52d1902d: proxiableUUID()
-
-======= OperatorTokenomics/sol:IERC20 =======
-Function signatures:
-dd62ed3e: allowance(address,address)
-095ea7b3: approve(address,uint256)
-70a08231: balanceOf(address)
-18160ddd: totalSupply()
-a9059cbb: transfer(address,uint256)
-23b872dd: transferFrom(address,address,uint256)
-
-Event signatures:
-8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
-ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
-
-======= OperatorTokenomics/sol:IERC20MetadataUpgradeable =======
-Function signatures:
-dd62ed3e: allowance(address,address)
-095ea7b3: approve(address,uint256)
-70a08231: balanceOf(address)
-313ce567: decimals()
-06fdde03: name()
-95d89b41: symbol()
-18160ddd: totalSupply()
-a9059cbb: transfer(address,uint256)
-23b872dd: transferFrom(address,address,uint256)
-
-Event signatures:
-8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
-ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
-
-======= OperatorTokenomics/sol:IERC20Upgradeable =======
-Function signatures:
-dd62ed3e: allowance(address,address)
-095ea7b3: approve(address,uint256)
-70a08231: balanceOf(address)
-18160ddd: totalSupply()
-a9059cbb: transfer(address,uint256)
-23b872dd: transferFrom(address,address,uint256)
-
-Event signatures:
-8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
-ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
-
-======= OperatorTokenomics/sol:IERC677 =======
-Function signatures:
-dd62ed3e: allowance(address,address)
-095ea7b3: approve(address,uint256)
-70a08231: balanceOf(address)
-18160ddd: totalSupply()
-a9059cbb: transfer(address,uint256)
-4000aea0: transferAndCall(address,uint256,bytes)
-23b872dd: transferFrom(address,address,uint256)
-
-Event signatures:
-8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
-ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
-ce8124fd2ae9fd7904103e5a9ebe88b527b9ca0e32a32fd497845c82706542d3: TransferAndCall(address,address,uint256,bytes)
-
-======= OperatorTokenomics/sol:IERC677Receiver =======
-Function signatures:
-a4c0ed36: onTokenTransfer(address,uint256,bytes)
-
-======= OperatorTokenomics/sol:IExchangeRatePolicy =======
-Function signatures:
-e926d55c: dataToOperatorToken(uint256,uint256)
-6f398f98: operatorTokenToData(uint256)
-ae447024: operatorTokenToDataInverse(uint256)
-4a45d2e6: setParam(uint256)
-
-======= OperatorTokenomics/sol:IJoinPolicy =======
-Function signatures:
-07b88ea5: onJoin(address,uint256)
-4a45d2e6: setParam(uint256)
-
-======= OperatorTokenomics/sol:IKickPolicy =======
-Function signatures:
-c0275535: getFlagData(address)
-09f359be: getMinimumStakeOf(address)
-d11d8fc4: onFlag(address,address)
-fbbabed9: onVote(address,bytes32,address)
-4a45d2e6: setParam(uint256)
-
-======= OperatorTokenomics/sol:ILeavePolicy =======
-Function signatures:
-18820b1b: getLeavePenaltyWei(address)
-4a45d2e6: setParam(uint256)
-
-======= OperatorTokenomics/sol:INodeModule =======
-Function signatures:
-2c23c940: _setNodeAddresses(address[])
-bc59647e: _updateNodeAddresses(address[],address[])
-377f1ecb: createCoordinationStream()
-
-======= OperatorTokenomics/sol:IOperator =======
-Function signatures:
-20fed94f: onKick(uint256,uint256)
-7bf713b6: onSlash(uint256)
-
-======= OperatorTokenomics/sol:IQueueModule =======
-Function signatures:
-e4d10986: _payOutFirstInQueue()
-84733344: _payOutQueue(uint256)
-7a227c9f: _triggerAnotherOperatorWithdraw(address,address[])
-1d104c8c: _undelegate(uint256,address)
-
-======= OperatorTokenomics/sol:IRandomOracle =======
-Function signatures:
-f5b0fe54: getRandomBytes32()
-
-======= OperatorTokenomics/sol:IStakeModule =======
-Function signatures:
-3d16f42d: _forceUnstake(address)
-d572a9cd: _reduceStakeTo(address,uint256)
-b2279c28: _removeSponsorship(address,uint256)
-aa0d97b3: _stake(address,uint256)
-af9ee81d: _unstake(address)
-1b155aa0: _withdrawEarnings(address[])
-
-======= OperatorTokenomics/sol:IStreamRegistryV4 =======
-Function signatures:
-5e57966d: addressToString(address)
-0ef8cdc7: createStream(string,string)
-261a323e: exists(string)
-6394fbd2: getStreamMetadata(string)
-997e8aaa: grantPermission(string,address,uint8)
-466f878e: grantPublicPermission(string,uint8)
-3e397aea: revokePermission(string,address,uint8)
-42617fe7: updateStreamMetadata(string,string)
-
-======= OperatorTokenomics/sol:IUndelegationPolicy =======
-Function signatures:
-d82264d4: onUndelegate(address,uint256)
-4a45d2e6: setParam(uint256)
-
-======= OperatorTokenomics/sol:IVoterRegistry =======
-Function signatures:
-42169e48: voterCount()
-6a1ba88c: voterUpdate(address)
-da58c7d9: voters(uint256)
-
-Event signatures:
-190b16f47d6f4fe52425356b5df39a17e02bf9849f1637a8be52b19c442bcd42: VoterUpdate(address,bool)
-
-======= OperatorTokenomics/sol:Initializable =======
-Function signatures:
-
-Event signatures:
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-
-======= OperatorTokenomics/sol:MathUpgradeable =======
-Function signatures:
-
-======= OperatorTokenomics/sol:MockRandomOracle =======
-Function signatures:
-f5b0fe54: getRandomBytes32()
-2986c0e5: index()
-eed2a147: outcomes(uint256)
-6646586f: setOutcomes(bytes32[])
-
-======= OperatorTokenomics/sol:Operator =======
-Function signatures:
-092c5b3b: CONTROLLER_ROLE()
-a217fddf: DEFAULT_ADMIN_ROLE()
-e58378bb: OWNER_ROLE()
-dd62ed3e: allowance(address,address)
-095ea7b3: approve(address,uint256)
-a63ed2c8: balanceInData(address)
-70a08231: balanceOf(address)
-313ce567: decimals()
-a457c2d7: decreaseAllowance(address,uint256)
-9fa6dd35: delegate(uint256)
-799e2590: delegationPolicy()
-b72cd7a8: exchangeRatePolicy()
-4a178fe4: flag(address,address,string)
-a93a019f: forceUnstake(address,uint256)
-2e949824: getNodeAddresses()
-248a9ca3: getRoleAdmin(bytes32)
-2ebd89d1: getSponsorshipsAndEarnings()
-aa5703ad: getStreamMetadata()
-2f2ff15d: grantRole(bytes32,address)
-91d14854: hasRole(bytes32,address)
-0fd6ff49: heartbeat(string)
-39509351: increaseAllowance(address,uint256)
-58fc614a: indexOfSponsorships(address)
-a99fa31a: initialize(address,address,address,string,string,uint256,address[3])
-572b6c05: isTrustedForwarder(address)
-430457e1: latestDelegationTimestamp(address)
-392f37e9: metadata()
-06fdde03: name()
-d673de46: nodeIndex(address)
-63d1ecf2: nodeModule()
-1c53c280: nodes(uint256)
-20fed94f: onKick(uint256,uint256)
-64f1abb7: onReviewRequest(address)
-7bf713b6: onSlash(uint256)
-a4c0ed36: onTokenTransfer(address,uint256,bytes)
-558a1568: operatorsCutFraction()
-8da5cb5b: owner()
-11606010: payOutFirstInQueue()
-87396e3b: payOutQueue(uint256)
-aa77fd55: queueCurrentIndex()
-b07f3c47: queueEntryAt(uint256)
-5e61bb87: queueIsEmpty()
-9413462c: queueLastIndex()
-a48dca18: queueModule()
-d1b68611: reduceStakeTo(address,uint256)
-4b095c03: reduceStakeWithoutQueue(address,uint256)
-36568abe: renounceRole(bytes32,address)
-d547741f: revokeRole(bytes32,address)
-f3aea650: setDelegationPolicy(address,uint256)
-bc697ec5: setExchangeRatePolicy(address,uint256)
-25c33549: setNodeAddresses(address[])
-ffff59a6: setUndelegationPolicy(address,uint256)
-ba2bfc0a: slashedIn(address)
-a74194af: sponsorships(uint256)
-adc9772e: stake(address,uint256)
-21a76907: stakeModule()
-7d429385: stakedInto(address)
-f4408e4b: streamId()
-e3642153: streamRegistry()
-98833130: streamrConfig()
-01ffc9a7: supportsInterface(bytes4)
-95d89b41: symbol()
-fc0c546a: token()
-870ffde2: totalSlashedInSponsorshipsWei()
-04cbab8b: totalStakedIntoSponsorshipsWei()
-18160ddd: totalSupply()
-a9059cbb: transfer(address,uint256)
-23b872dd: transferFrom(address,address,uint256)
-f4350c24: triggerAnotherOperatorWithdraw(address,address[])
-6c68c0e1: undelegate(uint256)
-bc9b30c8: undelegationPolicy()
-7e82fd6f: undelegationQueue()
-f2888dbb: unstake(address)
-1401f70b: unstakeWithoutQueue(address)
-918b5be1: updateMetadata(string)
-14797daa: updateNodeAddresses(address[],address[])
-5dff6e9f: updateOperatorsCutFraction(uint256)
-21194bd7: updateStreamMetadata(string)
-c229918e: valueWithoutEarnings()
-54fd4d50: version()
-bed6ff09: voteOnFlag(address,address,bytes32)
-e8e658b4: withdrawEarningsFromSponsorships(address[])
-50d3ba9e: withdrawEarningsFromSponsorshipsWithoutQueue(address[])
-
-Error signatures:
-4ca88867: AccessDenied()
-231b3ae2: AccessDeniedDATATokenOnly()
-9e39d8be: AccessDeniedNodesOnly()
-69d9c224: AccessDeniedOperatorOnly()
-b3d3f77e: AccessDeniedStreamrSponsorshipOnly()
-24c69407: DelegationBelowMinimum(uint256,uint256)
-b1c5c787: DidNotReceiveReward()
-ec6c87a6: FirstEmptyQueueThenStake()
-f37a3008: InvalidOperatorsCut(uint256)
-918623b7: ModuleCallError(address,bytes)
-29801d70: ModuleGetError(bytes)
-4ee7a8de: NoEarnings()
-25b10de0: NotMyStakedSponsorship()
-c89199b3: SelfDelegationTooLow(uint256,uint256)
-81cf7f80: StakedInSponsorships()
-c0a6104c: ZeroUndelegation()
-
-Event signatures:
-8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925: Approval(address,address,uint256)
-861514f61b5b3fcfb87564eec25aa9bdfcf29e63af898e1fd66ba0f88ef51839: BalanceUpdate(address,uint256,uint256,uint256)
-83b3f5ce88736f0128f880f5cac19836da52ea5c5ca7704c7b38f3b06fffd7ab: Delegated(address,uint256)
-7432bbcdcf6009b3131a7b65f7af1fdbf79c27db5c115c1cdbcf9210298bc5f4: Heartbeat(address,string)
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-b65b2e085d7d040c313f7d4e1ac90f5937026fee497e0e24a7eff16a55e1c5ea: Loss(uint256)
-4e51a007a3ec0f4dbfd0901ad752077940f47293197538644ffc302b534527d0: MetadataUpdated(string,address,uint256)
-fa7fb8364e713f89c581b4b8a998a62e7be034cb4fffa97c6a4a62072ebddba6: NodesSet(address[])
-f22a8c26ad08bc6548cdae55fec4c309e15e9d2290ad7e1f9186fc20189e7a15: OperatorSlashed(uint256,uint256,uint256)
-41c23f1b303a0c4396ea09a7fb42b216cd382ec1ea27c71c3e89e314be197a03: OperatorValueUpdate(uint256,uint256)
-604b365b22dbda1203004fba26c477ed19c49ad01cadf6eedf5f17f52ebbae18: Profit(uint256,uint256,uint256)
-3aba5f85865b18cdf0791e165e7ab854e1601844fe7f2439485f7951a621bf20: QueueUpdated(address,uint256,uint256)
-8a228768f3ff659f1949219559062a5847e296af390cb8d3a02ad7ee8f2a3575: QueuedDataPayout(address,uint256,uint256)
-e89a7bfa490a911e4a2981566a4710a51b0057109370b86784fe0764904d036f: ReviewRequest(address,address,uint256,uint256,string)
-bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
-2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
-f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
-89dbe872fd688c751e8c5df10849155d89d1467fd56ddb92b0d0024cda2ccd78: StakeUpdate(address,uint256)
-77338642d9284a44296d29a273e04b8ab6b15c7d2439094cd460b7e4f0b33074: Staked(address)
-ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef: Transfer(address,address,uint256)
-4ae68879209bc4b489a38251122202a3653305e3d95a27baf7a5681410c90b38: Undelegated(address,uint256)
-908e667f6c2b13b8062954eb100253ea804c21222b190449e40d967a3ac0ff13: Unstaked(address)
-
-======= OperatorTokenomics/sol:OperatorFactory =======
-Function signatures:
-75b238fc: ADMIN_ROLE()
-a217fddf: DEFAULT_ADMIN_ROLE()
-b3a79c8d: addTrustedPolicies(address[])
-a0cdb9d2: addTrustedPolicy(address)
-1dac77c3: deployOperator(uint256,string,string,address[3],uint256[3])
-4703e001: deploymentTimestamp(address)
-248a9ca3: getRoleAdmin(bytes32)
-2f2ff15d: grantRole(bytes32,address)
-91d14854: hasRole(bytes32,address)
-cc2a9a5b: initialize(address,address,address,address,address,address)
-572b6c05: isTrustedForwarder(address)
-1a8eab7e: isTrustedPolicy(address)
-658de4e5: nodeModuleTemplate()
-a4c0ed36: onTokenTransfer(address,uint256,bytes)
-b190f493: operatorTemplate()
-13e7c9d8: operators(address)
-cb16c11e: predictAddress(address,string)
-52d1902d: proxiableUUID()
-869e3884: queueModuleTemplate()
-d8bd0de4: removeTrustedPolicy(address)
-36568abe: renounceRole(bytes32,address)
-d547741f: revokeRole(bytes32,address)
-5b8f0c58: stakeModuleTemplate()
-14c948eb: stakedWei(address)
-98833130: streamrConfig()
-01ffc9a7: supportsInterface(bytes4)
-9d76ea58: tokenAddress()
-34a0f881: totalStakedWei()
-6f0a812e: trustedPolicies(address)
-ee2a68eb: updateTemplates(address,address,address,address)
-3659cfe6: upgradeTo(address)
-4f1ef286: upgradeToAndCall(address,bytes)
-42169e48: voterCount()
-6a1ba88c: voterUpdate(address)
-da58c7d9: voters(uint256)
-1625aeef: votersIndex(address)
-
-Error signatures:
-231b3ae2: AccessDeniedDATATokenOnly()
-def29dac: AlreadyLive()
-f7158c49: ExchangeRatePolicyRequired()
-43506a21: InvalidOperatorContract(address)
-085c97df: NotDelegationPolicy()
-c18a867a: NotExchangeRatePolicy()
-baf13b3f: NotLive()
-6165de00: NotUndelegationPolicy()
-1609c582: OperatorAlreadyDeployed(address)
-2cc6b17b: PolicyNotTrusted()
-
-Event signatures:
-7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
-1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-f1e04d73c4304b5ff164f9d10c7473e2a1593b740674a6107975e2a7001c1e5c: NewOperator(address,address)
-8ce67518f52f7c7836ccbbfa10a4543762161480026cf287be7c7e0bb24d242a: PolicyWhitelisted(address,bool)
-bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
-2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
-f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
-22f37dbf1f1c0d5752a4bc19d8f74804e877c5be33cc9c09b5ea3fef12a6be1c: TemplateAddresses(address,address,address,address)
-bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
-190b16f47d6f4fe52425356b5df39a17e02bf9849f1637a8be52b19c442bcd42: VoterUpdate(address,bool)
-
-======= OperatorTokenomics/sol:Sponsorship =======
-Function signatures:
-a217fddf: DEFAULT_ADMIN_ROLE()
-2b308a56: addJoinPolicy(address,uint256)
-3a1c0aa8: allocationPolicy()
-fa267ddf: earningsWei()
-7e11d1c6: flag(address,string)
-7db18807: flagMetadataJson(address)
-df4bbd22: forceUnstake()
-759e30d8: forfeitedStakeWei()
-131b9c04: getEarnings(address)
-357e47fe: getFlag(address)
-da5a517b: getLeavePenalty(address)
-5499dca5: getMyStake()
-248a9ca3: getRoleAdmin(bytes32)
-2f2ff15d: grantRole(bytes32,address)
-91d14854: hasRole(bytes32,address)
-4562980f: initialize(string,string,address,address,uint256[3],address)
-7c654303: isFunded()
-2014e5d1: isRunning()
-572b6c05: isTrustedForwarder(address)
-625eb6c8: joinPolicies(uint256)
-303cbe57: joinTimeOfOperator(address)
-584cb7cf: kickPolicy()
-54a991b4: leavePolicy()
-19d164f1: lockedStakeWei(address)
-392f37e9: metadata()
-11648a4c: minHorizonSeconds()
-40947369: minOperatorCount()
-48611fcd: minimumStakeOf(address)
-a4c0ed36: onTokenTransfer(address,uint256,bytes)
-7c6f3158: operatorCount()
-38106e4d: reduceStakeTo(uint256)
-91a11303: remainingWei()
-36568abe: renounceRole(bytes32,address)
-d547741f: revokeRole(bytes32,address)
-b9efec95: setAllocationPolicy(address,uint256)
-acbeddd7: setKickPolicy(address,uint256)
-04a10591: setLeavePolicy(address,uint256)
-71b906eb: solventUntilTimestamp()
-b6cce5e2: sponsor(uint256)
-adc9772e: stake(address,uint256)
-14c948eb: stakedWei(address)
-f4408e4b: streamId()
-98833130: streamrConfig()
-01ffc9a7: supportsInterface(bytes4)
-fc0c546a: token()
-34a0f881: totalStakedWei()
-2def6620: unstake()
-a5b83ce4: voteOnFlag(address,bytes32)
-3ccfd60b: withdraw()
-
-Error signatures:
-4ca88867: AccessDenied()
-231b3ae2: AccessDeniedDATATokenOnly()
-bbef3e1a: ActiveFlag(uint256)
-aa4c0757: CannotIncreaseStakeUsingReduceStakeTo()
-4274cbe6: FlaggingNotSupported()
-078759ac: LeavePenalty(uint256)
-c27c6c34: MinOperatorCountZero()
-0be9186a: MinimumStake(uint256)
-918623b7: ModuleCallError(address,bytes)
-29801d70: ModuleGetError(bytes)
-51897574: OperatorNotStaked()
-
-Event signatures:
-7dcb8032e88752534faa495e623b33aa8a0aeeb94c02debf5d97782e5cca8734: FlagUpdate(address,uint8,uint256,uint256,address,int256)
-bfc2ea38f654c28196c9b1c7a859115b1d74103c705d851743383e2bcd8f7624: Flagged(address,address,uint256,uint256,string)
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-9d584a7e1b19f15c4a9b3fc12662146f10b5739603ce9aaab30d80bab7d8ea2a: InsolvencyEnded(uint256,uint256,uint256)
-6b84b3854e3868de91705a7163cc5cc88f64366b8912900fa377af1f40d6fc1f: InsolvencyStarted(uint256)
-a2ab3900cad3f350c9333a5814b4c581dee01f3ca964bbf8cd96e061a00da0d2: OperatorJoined(address)
-85f399dce17fd584cfb835af46f245bced9a3bc29310ff3a4beb5f8a51d2ac08: OperatorKicked(address)
-14a9c4ce3dc5694e8873bfea05304d57d64ba56ee7ad9ad5fe40b3d8e4e4d3f0: OperatorLeft(address,uint256)
-a005d3b8f5c8149659f2afc06ed99732d5891377a370a723669418ca1ca29ced: OperatorSlashed(address,uint256)
-bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
-2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
-f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
-e3e06f75e3a1529da79c083b1d8dd06fd928c2e268b3e2aaffa6103a14bcbd99: SponsorshipReceived(address,uint256)
-38a9ab06ef5f5ea75fd622f984e03b2393343b6039c656e874e3fa9e3ddcd7b2: SponsorshipUpdate(uint256,uint256,uint256,bool)
-7785543bdf6fdde3b8486c62fa277837a6032d5819acf53e664ef0c45332fcb2: StakeLockUpdate(address,uint256,uint256)
-5d179bbeed3396160151c93c13d38566dc1643f25a316cca998cd25f45a8bd3f: StakeUpdate(address,uint256,uint256)
-
-======= OperatorTokenomics/sol:SponsorshipFactory =======
-Function signatures:
-75b238fc: ADMIN_ROLE()
-a217fddf: DEFAULT_ADMIN_ROLE()
-b3a79c8d: addTrustedPolicies(address[])
-a0cdb9d2: addTrustedPolicy(address)
-145246e9: deploySponsorship(uint256,string,string,address[],uint256[])
-4703e001: deploymentTimestamp(address)
-248a9ca3: getRoleAdmin(bytes32)
-2f2ff15d: grantRole(bytes32,address)
-91d14854: hasRole(bytes32,address)
-c0c53b8b: initialize(address,address,address)
-572b6c05: isTrustedForwarder(address)
-1a8eab7e: isTrustedPolicy(address)
-a4c0ed36: onTokenTransfer(address,uint256,bytes)
-52d1902d: proxiableUUID()
-d8bd0de4: removeTrustedPolicy(address)
-36568abe: renounceRole(bytes32,address)
-d547741f: revokeRole(bytes32,address)
-3cffce93: sponsorshipContractTemplate()
-98833130: streamrConfig()
-01ffc9a7: supportsInterface(bytes4)
-9d76ea58: tokenAddress()
-6f0a812e: trustedPolicies(address)
-fbc1f718: updateTemplate(address)
-3659cfe6: upgradeTo(address)
-4f1ef286: upgradeToAndCall(address,bytes)
-
-Error signatures:
-231b3ae2: AccessDeniedDATATokenOnly()
-6d75c207: AllocationPolicyRequired()
-1739bb9a: BadArguments()
-2cc6b17b: PolicyNotTrusted()
-13c872ee: StreamNotFound()
-
-Event signatures:
-7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
-1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-2f6aee5d8c249b83c278dc774b8923a70ea8df009e1d61e4210856b155dfee53: NewSponsorship(address,string,string,address[],uint256[],address)
-8ce67518f52f7c7836ccbbfa10a4543762161480026cf287be7c7e0bb24d242a: PolicyWhitelisted(address,bool)
-bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
-2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
-f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
-524bbf4293dcf708f5094aac50dee1ac60c1d058ee12a61c4a0eba8031e2c4cc: TemplateAddress(address)
-bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
-
-======= OperatorTokenomics/sol:StorageSlotUpgradeable =======
-Function signatures:
-
-======= OperatorTokenomics/sol:StreamrConfig =======
-Function signatures:
-75b238fc: ADMIN_ROLE()
-d853015e: CONFIGURATOR_ROLE()
-a217fddf: DEFAULT_ADMIN_ROLE()
-f72c0d8b: UPGRADER_ROLE()
-6aac44e9: earlyLeaverPenaltyWei()
-6c29b3b7: fishermanRewardFraction()
-6abd9e41: flagProtectionSeconds()
-9ce68dc3: flagReviewerCount()
-bca31560: flagReviewerRewardWei()
-d2d5028c: flagReviewerSelectionIterations()
-e2811d67: flagStakeWei()
-dad5ca32: flaggerRewardWei()
-248a9ca3: getRoleAdmin(bytes32)
-2f2ff15d: grantRole(bytes32,address)
-91d14854: hasRole(bytes32,address)
-8129fc1c: initialize()
-aeca7c78: maxAllowedEarningsFraction()
-78e72833: maxPenaltyPeriodSeconds()
-e2e8bcd8: maxQueueSeconds()
-3a2a9a50: minEligibleVoterAge()
-a8d045d9: minEligibleVoterFractionOfAllStake()
-afbd6c6c: minimumDelegationWei()
-7b94dead: minimumSelfDelegationFraction()
-66316372: minimumStakeWei()
-887f44fe: operatorContractOnlyJoinPolicy()
-5290c248: operatorFactory()
-ceb80df2: protocolFeeBeneficiary()
-3a0298eb: protocolFeeFraction()
-52d1902d: proxiableUUID()
-a224c198: randomOracle()
-36568abe: renounceRole(bytes32,address)
-b18dccc2: reviewPeriodSeconds()
-d547741f: revokeRole(bytes32,address)
-ae5a9afe: setEarlyLeaverPenaltyWei(uint256)
-bbb23c3f: setFishermanRewardFraction(uint256)
-4022fd5c: setFlagProtectionSeconds(uint256)
-66ba24f3: setFlagReviewerCount(uint256)
-c2146f66: setFlagReviewerRewardWei(uint256)
-269594a8: setFlagReviewerSelectionIterations(uint256)
-246e62d9: setFlagStakeWei(uint256)
-19770c57: setFlaggerRewardWei(uint256)
-ffb6e4da: setMaxAllowedEarningsFraction(uint256)
-7e8d889a: setMaxPenaltyPeriodSeconds(uint256)
-9739b08c: setMaxQueueSeconds(uint256)
-ce4f5636: setMinEligibleVoterAge(uint256)
-9482e795: setMinEligibleVoterFractionOfAllStake(uint256)
-4d836fd2: setMinimumDelegationWei(uint256)
-62250c67: setMinimumSelfDelegationFraction(uint256)
-a810edd7: setOperatorContractOnlyJoinPolicy(address)
-f94ca551: setOperatorFactory(address)
-9585b0be: setProtocolFeeBeneficiary(address)
-274a38f3: setProtocolFeeFraction(uint256)
-f9b2f3c9: setRandomOracle(address)
-81929a6f: setReviewPeriodSeconds(uint256)
-af424c8e: setSlashingFraction(uint256)
-4b3fb81b: setSponsorshipFactory(address)
-055d7109: setStreamRegistryAddress(address)
-da742228: setTrustedForwarder(address)
-1cedd51e: setVotingPeriodSeconds(uint256)
-fc1e490f: slashingFraction()
-5efca0a9: sponsorshipFactory()
-7b0c2842: streamRegistryAddress()
-01ffc9a7: supportsInterface(bytes4)
-7da0a877: trustedForwarder()
-3659cfe6: upgradeTo(address)
-4f1ef286: upgradeToAndCall(address,bytes)
-be60040e: voterRegistry()
-cb85fe35: votingPeriodSeconds()
-
-Error signatures:
-b2a4c036: TooHigh(uint256,uint256)
-7e4b4593: TooLow(uint256,uint256)
-
-Event signatures:
-7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
-1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
-0378fef41f6809e49c98b88328d92d19c96e56c48a18f31dd74e3a20fa7148d6: ConfigChanged(string,uint256,address)
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-bd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff: RoleAdminChanged(bytes32,bytes32,bytes32)
-2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d: RoleGranted(bytes32,address,address)
-f6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b: RoleRevoked(bytes32,address,address)
-bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
-
-======= OperatorTokenomics/sol:StringsUpgradeable =======
-Function signatures:
-
-======= OperatorTokenomics/sol:UUPSUpgradeable =======
-Function signatures:
-52d1902d: proxiableUUID()
-3659cfe6: upgradeTo(address)
-4f1ef286: upgradeToAndCall(address,bytes)
-
-Event signatures:
-7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f: AdminChanged(address,address)
-1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e: BeaconUpgraded(address)
-7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498: Initialized(uint8)
-bc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b: Upgraded(address)
+# AcceptEverythingPaymaster functions
+0x5c5e3db1 CALLDATA_SIZE_LIMIT()
+0xb90b41cf FORWARDER_HUB_OVERHEAD()
+0xdf463a66 PAYMASTER_ACCEPTANCE_BUDGET()
+0xbbdaa3c9 POST_RELAYED_CALL_GAS_LIMIT()
+0xf9c002f7 PRE_RELAYED_CALL_GAS_LIMIT()
+0x80041f27 _verifyForwarder()
+0xb039a88f getGasAndDataLimits()
+0x74e861d6 getHubAddr()
+0x2afe31c1 getRelayHubDeposit()
+0x8da5cb5b owner()
+0x47211e48 postRelayedCall()
+0xa95347ad preRelayedCall()
+0x715018a6 renounceOwnership()
+0x7bb05264 setRelayHub()
+0xda742228 setTrustedForwarder()
+0xf2fde38b transferOwnership()
+0x7da0a877 trustedForwarder()
+0x921276ea versionPaymaster()
+0x2d14c4b7 withdrawRelayHubDepositTo()
+
+# AcceptEverythingPaymaster events
+0x8be0079c OwnershipTransferred
+
+
+
+# WhitelistPaymaster functions
+0x5c5e3db1 CALLDATA_SIZE_LIMIT()
+0xb90b41cf FORWARDER_HUB_OVERHEAD()
+0xdf463a66 PAYMASTER_ACCEPTANCE_BUDGET()
+0xbbdaa3c9 POST_RELAYED_CALL_GAS_LIMIT()
+0xf9c002f7 PRE_RELAYED_CALL_GAS_LIMIT()
+0x80041f27 _verifyForwarder()
+0xb039a88f getGasAndDataLimits()
+0x74e861d6 getHubAddr()
+0x2afe31c1 getRelayHubDeposit()
+0x8da5cb5b owner()
+0x47211e48 postRelayedCall()
+0xa95347ad preRelayedCall()
+0x715018a6 renounceOwnership()
+0x8222f07d senderWhitelist()
+0x7bb05264 setRelayHub()
+0xda742228 setTrustedForwarder()
+0x858437b0 targetWhitelist()
+0xf2fde38b transferOwnership()
+0x7da0a877 trustedForwarder()
+0xdd1bcaa1 useSenderWhitelist()
+0x4f28bfb9 useTargetWhitelist()
+0x921276ea versionPaymaster()
+0x2f10a6c6 whitelistSender()
+0x1cfda9fa whitelistTarget()
+0x2d14c4b7 withdrawRelayHubDepositTo()
+
+# WhitelistPaymaster events
+0x8be0079c OwnershipTransferred
+
+
+
+# IInterchainGasPaymaster functions
+0x11bf2c18 payForGas()
+0xa6929793 quoteGasPayment()
+
+
+
+# IInterchainQueryRouter functions
+0xc1e48034 query()
+
+
+
+# IMailbox functions
+0xfa31de01 dispatch()
+
+
+
+# IMarketplace functions
+0x0ddeb632 buy()
+0x03987512 buyFor()
+0x0a09de8b createProduct()
+0x3a20e9df getProduct()
+0x5f28cb74 getSubscription()
+0xb14f8432 hasValidSubscription()
+0xbe677946 ownerCreateProduct()
+
+# IMarketplace events
+0x1ee9080f Halted
+0x9c3ab7e8 NewSubscription
+0xae17f1f0 ProductCreated
+0xafbbddab ProductDeleted
+0x70e6de35 ProductImported
+0x00af2729 ProductOwnershipChanged
+0x62160e4a ProductOwnershipOffered
+0x418bfa6a ProductRedeployed
+0x56854384 ProductUpdated
+0x62451d45 Resumed
+0xe22e8c2d Subscribed
+0x602ca7f1 SubscriptionExtended
+0x9a2546e5 SubscriptionImported
+0x748c12d8 SubscriptionTransferred
+0x3115e922 TxFeeChanged
+0x391da9ec WhitelistApproved
+0xd8eb01de WhitelistDisabled
+0x50784714 WhitelistEnabled
+0x71195ce6 WhitelistRejected
+0xd07377df WhitelistRequested
+
+
+
+# IMarketplaceV4 functions
+0x0676d52f addRemoteMarketplace()
+0x0ddeb632 buy()
+0x03987512 buyFor()
+0x5b1a2106 getPurchaseInfo()
+0x940083f6 getSubscriptionInfo()
+0xa4c0ed36 onTokenTransfer()
+
+# IMarketplaceV4 events
+0x1ee9080f Halted
+0xa7be1aeb ProjectPurchased
+0x62451d45 Resumed
+0x3115e922 TxFeeChanged
+
+
+
+# IMessageRecipient functions
+0x56d5d475 handle()
+
+
+
+# IPurchaseListener functions
+0x4a439cc0 onPurchase()
+
+
+
+# IRemoteMarketplaceV1 functions
+0xf8f60eec addRecipient()
+0x0ddeb632 buy()
+0x03987512 buyFor()
+0x8d1014fd handlePurchaseInfo()
+0xe1489d53 handleSubscriptionState()
+0x2e1a7d4d withdraw()
+
+# IRemoteMarketplaceV1 events
+0x2d625828 ProjectPurchasedFromRemote
+
+
+
+# MarketplaceV3 functions
+0x0ddeb632 buy()
+0x03987512 buyFor()
+0x4e71e0c8 claimOwnership()
+0x1a464fa1 claimProductOwnership()
+0x0a09de8b createProduct()
+0xde3deeee createProductWithWhitelist()
+0x94727b41 deleteProduct()
+0x3a20e9df getProduct()
+0x5f28cb74 getSubscription()
+0x53f81ef8 getSubscriptionTo()
+0x57fa3db7 getWhitelistState()
+0x1f4e09af grantSubscription()
+0x5ed7ca5b halt()
+0xb9b8af0b halted()
+0xb14f8432 hasValidSubscription()
+0x8129fc1c initialize()
+0x96002aef offerProductOwnership()
+0xa4c0ed36 onTokenTransfer()
+0x8da5cb5b owner()
+0xbe677946 ownerCreateProduct()
+0xe30c3978 pendingOwner()
+0x79054391 products()
+0x52d1902d proxiableUUID()
+0x58f816bf redeployProduct()
+0x715018a6 renounceOwnership()
+0x046f7da2 resume()
+0xde227324 setRequiresWhitelist()
+0xf05d16f7 setTxFee()
+0xf2fde38b transferOwnership()
+0xcf820461 txFee()
+0x83f04fc9 updateProduct()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+0x25cc3a20 whitelistApprove()
+0x4d8a9499 whitelistReject()
+0xe0d5b9e1 whitelistRequest()
+
+# MarketplaceV3 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x1ee9080f Halted
+0x7f26b83f Initialized
+0x9c3ab7e8 NewSubscription
+0x8be0079c OwnershipTransferred
+0xae17f1f0 ProductCreated
+0xafbbddab ProductDeleted
+0x70e6de35 ProductImported
+0x00af2729 ProductOwnershipChanged
+0x62160e4a ProductOwnershipOffered
+0x418bfa6a ProductRedeployed
+0x56854384 ProductUpdated
+0x62451d45 Resumed
+0xe22e8c2d Subscribed
+0x602ca7f1 SubscriptionExtended
+0x9a2546e5 SubscriptionImported
+0x748c12d8 SubscriptionTransferred
+0x3115e922 TxFeeChanged
+0xbc7cd75a Upgraded
+0x391da9ec WhitelistApproved
+0xd8eb01de WhitelistDisabled
+0x50784714 WhitelistEnabled
+0x71195ce6 WhitelistRejected
+0xd07377df WhitelistRequested
+
+
+
+# IProjectRegistryV1 functions
+0x0e142937 canBuyProject()
+0x2affa464 getPaymentDetailsByChain()
+0x5f28cb74 getSubscription()
+0x1f4e09af grantSubscription()
+0x572b6c05 isTrustedForwarder()
+
+
+
+# MarketplaceV4 functions
+0x2eb62c8a addMailbox()
+0x0676d52f addRemoteMarketplace()
+0x0ddeb632 buy()
+0x03987512 buyFor()
+0x9a8a0592 chainId()
+0x4e71e0c8 claimOwnership()
+0x5b1a2106 getPurchaseInfo()
+0x940083f6 getSubscriptionInfo()
+0x5ed7ca5b halt()
+0xb9b8af0b halted()
+0x56d5d475 handle()
+0xc5e4c9f9 initialize()
+0x572b6c05 isTrustedForwarder()
+0xd5438eae mailbox()
+0xa4c0ed36 onTokenTransfer()
+0x8da5cb5b owner()
+0xe30c3978 pendingOwner()
+0x5a33d8dc projectRegistry()
+0x52d1902d proxiableUUID()
+0x60d68d4e remoteMarketplaces()
+0x715018a6 renounceOwnership()
+0x046f7da2 resume()
+0xf05d16f7 setTxFee()
+0xf2fde38b transferOwnership()
+0xcf820461 txFee()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# MarketplaceV4 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x1ee9080f Halted
+0x7f26b83f Initialized
+0x8be0079c OwnershipTransferred
+0xa7be1aeb ProjectPurchased
+0x62451d45 Resumed
+0x3115e922 TxFeeChanged
+0xbc7cd75a Upgraded
+
+
+
+# RemoteMarketplaceV1 functions
+0xf8f60eec addRecipient()
+0x0ddeb632 buy()
+0x03987512 buyFor()
+0xbe0d61ed destinationDomainId()
+0x805ef6e8 gasPaymaster()
+0x8d1014fd handlePurchaseInfo()
+0xe1489d53 handleSubscriptionState()
+0xfb6bf74c initialize()
+0xd5438eae mailbox()
+0xc1c16a6d originDomainId()
+0x8da5cb5b owner()
+0x52d1902d proxiableUUID()
+0x2b85ed9c purchaseCount()
+0x8392fe31 purchases()
+0xebda2bd8 queryRouter()
+0x5aff5999 recipientAddress()
+0x715018a6 renounceOwnership()
+0xf2fde38b transferOwnership()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+0x2e1a7d4d withdraw()
+
+# RemoteMarketplaceV1 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x7f26b83f Initialized
+0x8be0079c OwnershipTransferred
+0x2d625828 ProjectPurchasedFromRemote
+0xbc7cd75a Upgraded
+
+
+
+# Uniswap2Adapter functions
+0x9030d0f7 buyWithERC20()
+0x1b04c957 buyWithETH()
+0x43cd8f7e liquidityToken()
+0xabc8c7af marketplace()
+0xa4c0ed36 onTokenTransfer()
+0x735de9f7 uniswapRouter()
+
+
+
+# IProjectRegistryV1 functions
+0x38a699a4 exists()
+0xa3d8713e getProject()
+0x572b6c05 isTrustedForwarder()
+
+
+
+# Uniswap2AdapterV4 functions
+0x9030d0f7 buyWithERC20()
+0x1b04c957 buyWithETH()
+0x56a5dd3c domainIds()
+0x572b6c05 isTrustedForwarder()
+0x43cd8f7e liquidityToken()
+0xabc8c7af marketplace()
+0xa4c0ed36 onTokenTransfer()
+0x5a33d8dc projectRegistry()
+0x735de9f7 uniswapRouter()
+
+
+
+# IProjectRegistryV1 functions
+0xf5e0e0fb addStream()
+0x0e142937 canBuyProject()
+0x3a3e837f createProject()
+0xd0a18958 deleteProject()
+0x18b0edf6 enablePermissionType()
+0x38a699a4 exists()
+0x12f46561 getAddressKey()
+0xef8514b3 getOwnSubscription()
+0x60d6c7cf getPermission()
+0xa3d8713e getProject()
+0x5f28cb74 getSubscription()
+0x353f8500 getTrustedRole()
+0x1f4e09af grantSubscription()
+0x2a3d9910 hasPermissionType()
+0xb14f8432 hasValidSubscription()
+0xff00bef6 isStreamAdded()
+0x8459c68d removeStream()
+0x78d34a4e revokeAllPermissionsForUser()
+0x58006646 revokePermissionType()
+0x00cf76a5 setPermissionBooleans()
+0x494392fa setPermissionsForMultipleProjects()
+0x7544d469 setPermissionsForMultipleUsers()
+0x501b6bde transferAllPermissionsToUser()
+0x51cfeb9d transferPermissionType()
+0xa1785221 trustedCreateProject()
+0xec5379c8 trustedSetPermissions()
+0x0321d858 trustedSetPermissionsForMultipleProjects()
+0xc16a44c3 updateProject()
+
+# IProjectRegistryV1 events
+0x9c3ab7e8 NewSubscription
+0x53b13732 PaymentDetailsByChainUpdated
+0x9aceeb9d PermissionUpdated
+0xb0f407bc ProjectCreated
+0x9ab5c00c ProjectDeleted
+0xf19978bf ProjectUpdated
+0x369d8264 StreamAdded
+0x57371a8f StreamRemoved
+0xe22e8c2d Subscribed
+0x602ca7f1 SubscriptionExtended
+
+
+
+# IStreamRegistry functions
+0xe8f3828e getPermissionsForUser()
+0x88b21038 hasPermission()
+0xb6a91597 trustedSetPermissionsForUser()
+
+
+
+# ProjectRegistryV1 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x00cba943 TRUSTED_FORWARDER_ROLE()
+0x5901692e TRUSTED_ROLE()
+0xf5e0e0fb addStream()
+0x9018998d addStreams()
+0x0e142937 canBuyProject()
+0x3a3e837f createProject()
+0xd0a18958 deleteProject()
+0x18b0edf6 enablePermissionType()
+0x38a699a4 exists()
+0x12f46561 getAddressKey()
+0xef8514b3 getOwnSubscription()
+0x2affa464 getPaymentDetailsByChain()
+0x60d6c7cf getPermission()
+0xa3d8713e getProject()
+0x248a9ca3 getRoleAdmin()
+0x5f28cb74 getSubscription()
+0x353f8500 getTrustedRole()
+0x2f2ff15d grantRole()
+0x1f4e09af grantSubscription()
+0x2a3d9910 hasPermissionType()
+0x91d14854 hasRole()
+0xb14f8432 hasValidSubscription()
+0xc4d66de8 initialize()
+0x67823325 isDeleted()
+0xff00bef6 isStreamAdded()
+0x572b6c05 isTrustedForwarder()
+0xb96ea12d projects()
+0x52d1902d proxiableUUID()
+0x8459c68d removeStream()
+0x36568abe renounceRole()
+0x78d34a4e revokeAllPermissionsForUser()
+0x58006646 revokePermissionType()
+0xd547741f revokeRole()
+0x00cf76a5 setPermissionBooleans()
+0x494392fa setPermissionsForMultipleProjects()
+0x7544d469 setPermissionsForMultipleUsers()
+0x49993c4b setStreams()
+0xe3642153 streamRegistry()
+0x01ffc9a7 supportsInterface()
+0x501b6bde transferAllPermissionsToUser()
+0x51cfeb9d transferPermissionType()
+0xa1785221 trustedCreateProject()
+0xec5379c8 trustedSetPermissions()
+0x0321d858 trustedSetPermissionsForMultipleProjects()
+0x6ed84c14 updatePaymentDetailsByChain()
+0xc16a44c3 updateProject()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# ProjectRegistryV1 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x7f26b83f Initialized
+0x9c3ab7e8 NewSubscription
+0x53b13732 PaymentDetailsByChainUpdated
+0x9aceeb9d PermissionUpdated
+0xb0f407bc ProjectCreated
+0x9ab5c00c ProjectDeleted
+0xf19978bf ProjectUpdated
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x369d8264 StreamAdded
+0x57371a8f StreamRemoved
+0xe22e8c2d Subscribed
+0x602ca7f1 SubscriptionExtended
+0xbc7cd75a Upgraded
+
+
+
+# IProjectStakingV1 functions
+0x7e591001 getProjectStake()
+0x7bc74225 getTotalStake()
+0xbbadc93a getUserStake()
+0xa4c0ed36 onTokenTransfer()
+0x8caa5230 stake()
+0x16ae261d unstake()
+
+# IProjectStakingV1 events
+0x01b9b905 Stake
+0x2bdde1c9 Stake
+0x603036e9 Unstake
+0x246e3b2e Unstake
+
+
+
+# ProjectStakingV1 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xf72c0d8b UPGRADER_ROLE()
+0x7e591001 getProjectStake()
+0x248a9ca3 getRoleAdmin()
+0x7bc74225 getTotalStake()
+0xbbadc93a getUserStake()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x485cc955 initialize()
+0xa4c0ed36 onTokenTransfer()
+0x5a33d8dc projectRegistry()
+0x52d1902d proxiableUUID()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0x8caa5230 stake()
+0x5298b869 stakingTokenAddress()
+0x01ffc9a7 supportsInterface()
+0x16ae261d unstake()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# ProjectStakingV1 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x7f26b83f Initialized
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x01b9b905 Stake
+0x2bdde1c9 Stake
+0x603036e9 Unstake
+0x246e3b2e Unstake
+0xbc7cd75a Upgraded
+
+
+
+# DATAv2 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x3644e515 DOMAIN_SEPARATOR()
+0xd5391393 MINTER_ROLE()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x42966c68 burn()
+0x79cc6790 burnFrom()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x39509351 increaseAllowance()
+0xaa271e1a isMinter()
+0x40c10f19 mint()
+0x06fdde03 name()
+0x7ecebe00 nonces()
+0xd505accf permit()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0x4eee966f setTokenInformation()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x4000aea0 transferAndCall()
+0x23b872dd transferFrom()
+
+# DATAv2 events
+0x8c5be1e5 Approval
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe19260af Transfer
+0xddf252ad Transfer
+0xd131ab1e UpdatedTokenInformation
+
+
+
+# IERC677 functions
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x4000aea0 transferAndCall()
+0x23b872dd transferFrom()
+
+# IERC677 events
+0x8c5be1e5 Approval
+0xe19260af Transfer
+0xddf252ad Transfer
+
+
+
+# IERC677Receiver functions
+0xa4c0ed36 onTokenTransfer()
+
+
+
+# NetworkParameters functions
+0x4e71e0c8 claimOwnership()
+0xaada845f minControlLayerVersion()
+0xbf5da91a minMessageLayerVersion()
+0xa1f5776d minNetworkReferenceCodeVersion()
+0x8da5cb5b owner()
+0xe30c3978 pendingOwner()
+0x65add65e setMinControlLayerVersion()
+0x15f5b91a setMinMessageLayerVersion()
+0x78ba078a setMinNetworkReferenceCodeVersion()
+0x26a4e8d2 setTokenAddress()
+0x9d76ea58 tokenAddress()
+0xf2fde38b transferOwnership()
+
+# NetworkParameters events
+0x8be0079c OwnershipTransferred
+
+
+
+# NodeDomainNameHelper functions
+0xdc6ad19e request()
+
+# NodeDomainNameHelper events
+0xf69a8813 Request
+
+
+
+# NodeRegistry functions
+0x5d8f7f2a createOrUpdateNode()
+0x99e68eea createOrUpdateNodeSelf()
+0x9d209048 getNode()
+0xae5b4961 getNodeByNumber()
+0xe29581aa getNodes()
+0x46c198f6 headNode()
+0xecf274da initialize()
+0x5668c8fb kickOut()
+0x6da49b83 nodeCount()
+0x189a5a17 nodes()
+0x8da5cb5b owner()
+0xb2b99ec9 removeNode()
+0xe670c15d removeNodeSelf()
+0x715018a6 renounceOwnership()
+0xa5ee5b41 requiresWhitelist()
+0x20a59a03 setRequiresWhitelist()
+0xbfdf0866 tailNode()
+0xf2fde38b transferOwnership()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+0x9b19251a whitelist()
+0x5888799c whitelistApproveNode()
+0x2af57580 whitelistRejectNode()
+
+# NodeRegistry events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xcfc24166 NodeRemoved
+0x7b8ea657 NodeUpdated
+0xdfe83f69 NodeWhitelistApproved
+0xbbe2a784 NodeWhitelistRejected
+0x8be0079c OwnershipTransferred
+0x7623db9c RequiresWhitelistChanged
+0xbc7cd75a Upgraded
+
+
+
+# Ownable functions
+0x4e71e0c8 claimOwnership()
+0x8da5cb5b owner()
+0xe30c3978 pendingOwner()
+0xf2fde38b transferOwnership()
+
+# Ownable events
+0x8be0079c OwnershipTransferred
+
+
+
+# TokenBalanceWeightStrategy functions
+0xac6c5251 getWeight()
+0xfc0c546a token()
+
+
+
+# TrackerRegistry functions
+0x5d8f7f2a createOrUpdateNode()
+0x99e68eea createOrUpdateNodeSelf()
+0x9d209048 getNode()
+0xae5b4961 getNodeByNumber()
+0xe29581aa getNodes()
+0x46c198f6 headNode()
+0x5668c8fb kickOut()
+0x6da49b83 nodeCount()
+0x189a5a17 nodes()
+0x8da5cb5b owner()
+0xb2b99ec9 removeNode()
+0xe670c15d removeNodeSelf()
+0x715018a6 renounceOwnership()
+0xa5ee5b41 requiresWhitelist()
+0x20a59a03 setRequiresWhitelist()
+0xbfdf0866 tailNode()
+0xf2fde38b transferOwnership()
+0x9b19251a whitelist()
+0x5888799c whitelistApproveNode()
+0x2af57580 whitelistRejectNode()
+
+# TrackerRegistry events
+0xcfc24166 NodeRemoved
+0x7b8ea657 NodeUpdated
+0xdfe83f69 NodeWhitelistApproved
+0xbbe2a784 NodeWhitelistRejected
+0x8be0079c OwnershipTransferred
+0x7623db9c RequiresWhitelistChanged
+
+
+
+# WeightStrategy functions
+0xac6c5251 getWeight()
+
+
+
+# WeightedNodeRegistry functions
+0x5d8f7f2a createOrUpdateNode()
+0x99e68eea createOrUpdateNodeSelf()
+0x9d209048 getNode()
+0xae5b4961 getNodeByNumber()
+0xe29581aa getNodes()
+0xac6c5251 getWeight()
+0x46c198f6 headNode()
+0xe7f2c309 initialize()
+0xecf274da initialize()
+0x5668c8fb kickOut()
+0x6da49b83 nodeCount()
+0x189a5a17 nodes()
+0x8da5cb5b owner()
+0xb2b99ec9 removeNode()
+0xe670c15d removeNodeSelf()
+0x715018a6 renounceOwnership()
+0xa5ee5b41 requiresWhitelist()
+0x20a59a03 setRequiresWhitelist()
+0xd6cc6e4b setWeightStrategy()
+0x059b2a10 strat()
+0xbfdf0866 tailNode()
+0xf2fde38b transferOwnership()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+0x9b19251a whitelist()
+0x5888799c whitelistApproveNode()
+0x2af57580 whitelistRejectNode()
+
+# WeightedNodeRegistry events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xcfc24166 NodeRemoved
+0x7b8ea657 NodeUpdated
+0xdfe83f69 NodeWhitelistApproved
+0xbbe2a784 NodeWhitelistRejected
+0x8be0079c OwnershipTransferred
+0x7623db9c RequiresWhitelistChanged
+0xbc7cd75a Upgraded
+
+
+
+# IERC677 functions
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x4000aea0 transferAndCall()
+0x23b872dd transferFrom()
+
+# IERC677 events
+0x8c5be1e5 Approval
+0xddf252ad Transfer
+0xce8124fd TransferAndCall
+
+
+
+# IERC677Receiver functions
+0xa4c0ed36 onTokenTransfer()
+
+
+
+# IOperator functions
+0x20fed94f onKick()
+0x7bf713b6 onSlash()
+
+
+
+# IRandomOracle functions
+0xf5b0fe54 getRandomBytes32()
+
+
+
+# IVoterRegistry functions
+0x42169e48 voterCount()
+0x6a1ba88c voterUpdate()
+0xda58c7d9 voters()
+
+# IVoterRegistry events
+0x190b16f4 VoterUpdate
+
+
+
+# Operator functions
+0x092c5b3b CONTROLLER_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xe58378bb OWNER_ROLE()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0xa63ed2c8 balanceInData()
+0x70a08231 balanceOf()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x9fa6dd35 delegate()
+0x799e2590 delegationPolicy()
+0xb72cd7a8 exchangeRatePolicy()
+0x4a178fe4 flag()
+0xa93a019f forceUnstake()
+0x2e949824 getNodeAddresses()
+0x248a9ca3 getRoleAdmin()
+0x2ebd89d1 getSponsorshipsAndEarnings()
+0xaa5703ad getStreamMetadata()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x0fd6ff49 heartbeat()
+0x39509351 increaseAllowance()
+0x58fc614a indexOfSponsorships()
+0xa99fa31a initialize()
+0x572b6c05 isTrustedForwarder()
+0x430457e1 latestDelegationTimestamp()
+0x392f37e9 metadata()
+0x06fdde03 name()
+0xd673de46 nodeIndex()
+0x63d1ecf2 nodeModule()
+0x1c53c280 nodes()
+0x20fed94f onKick()
+0x64f1abb7 onReviewRequest()
+0x7bf713b6 onSlash()
+0xa4c0ed36 onTokenTransfer()
+0x558a1568 operatorsCutFraction()
+0x8da5cb5b owner()
+0x11606010 payOutFirstInQueue()
+0x87396e3b payOutQueue()
+0xaa77fd55 queueCurrentIndex()
+0xb07f3c47 queueEntryAt()
+0x5e61bb87 queueIsEmpty()
+0x9413462c queueLastIndex()
+0xa48dca18 queueModule()
+0xd1b68611 reduceStakeTo()
+0x4b095c03 reduceStakeWithoutQueue()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xf3aea650 setDelegationPolicy()
+0xbc697ec5 setExchangeRatePolicy()
+0x25c33549 setNodeAddresses()
+0xffff59a6 setUndelegationPolicy()
+0xba2bfc0a slashedIn()
+0xa74194af sponsorships()
+0xadc9772e stake()
+0x21a76907 stakeModule()
+0x7d429385 stakedInto()
+0xf4408e4b streamId()
+0xe3642153 streamRegistry()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0xfc0c546a token()
+0x870ffde2 totalSlashedInSponsorshipsWei()
+0x04cbab8b totalStakedIntoSponsorshipsWei()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+0xf4350c24 triggerAnotherOperatorWithdraw()
+0x6c68c0e1 undelegate()
+0xbc9b30c8 undelegationPolicy()
+0x7e82fd6f undelegationQueue()
+0xf2888dbb unstake()
+0x1401f70b unstakeWithoutQueue()
+0x918b5be1 updateMetadata()
+0x14797daa updateNodeAddresses()
+0x5dff6e9f updateOperatorsCutFraction()
+0x21194bd7 updateStreamMetadata()
+0xc229918e valueWithoutEarnings()
+0x54fd4d50 version()
+0xbed6ff09 voteOnFlag()
+0xe8e658b4 withdrawEarningsFromSponsorships()
+0x50d3ba9e withdrawEarningsFromSponsorshipsWithoutQueue()
+
+# Operator errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0x9e39d8be AccessDeniedNodesOnly
+0x69d9c224 AccessDeniedOperatorOnly
+0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0x24c69407 DelegationBelowMinimum
+0xb1c5c787 DidNotReceiveReward
+0xec6c87a6 FirstEmptyQueueThenStake
+0xf37a3008 InvalidOperatorsCut
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x4ee7a8de NoEarnings
+0x25b10de0 NotMyStakedSponsorship
+0xc89199b3 SelfDelegationTooLow
+0x81cf7f80 StakedInSponsorships
+0xc0a6104c ZeroUndelegation
+
+# Operator events
+0x8c5be1e5 Approval
+0x861514f6 BalanceUpdate
+0x83b3f5ce Delegated
+0x7432bbcd Heartbeat
+0x7f26b83f Initialized
+0xb65b2e08 Loss
+0x4e51a007 MetadataUpdated
+0xfa7fb836 NodesSet
+0xf22a8c26 OperatorSlashed
+0x41c23f1b OperatorValueUpdate
+0x604b365b Profit
+0x3aba5f85 QueueUpdated
+0x8a228768 QueuedDataPayout
+0xe89a7bfa ReviewRequest
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x89dbe872 StakeUpdate
+0x77338642 Staked
+0xddf252ad Transfer
+0x4ae68879 Undelegated
+0x908e667f Unstaked
+
+
+
+# OperatorFactory functions
+0x75b238fc ADMIN_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xb3a79c8d addTrustedPolicies()
+0xa0cdb9d2 addTrustedPolicy()
+0x1dac77c3 deployOperator()
+0x4703e001 deploymentTimestamp()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0xcc2a9a5b initialize()
+0x572b6c05 isTrustedForwarder()
+0x1a8eab7e isTrustedPolicy()
+0x658de4e5 nodeModuleTemplate()
+0xa4c0ed36 onTokenTransfer()
+0xb190f493 operatorTemplate()
+0x13e7c9d8 operators()
+0xcb16c11e predictAddress()
+0x52d1902d proxiableUUID()
+0x869e3884 queueModuleTemplate()
+0xd8bd0de4 removeTrustedPolicy()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0x5b8f0c58 stakeModuleTemplate()
+0x14c948eb stakedWei()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x9d76ea58 tokenAddress()
+0x34a0f881 totalStakedWei()
+0x6f0a812e trustedPolicies()
+0xee2a68eb updateTemplates()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+0x42169e48 voterCount()
+0x6a1ba88c voterUpdate()
+0xda58c7d9 voters()
+0x1625aeef votersIndex()
+
+# OperatorFactory errors
+0x231b3ae2 AccessDeniedDATATokenOnly
+0xdef29dac AlreadyLive
+0xf7158c49 ExchangeRatePolicyRequired
+0x43506a21 InvalidOperatorContract
+0x085c97df NotDelegationPolicy
+0xc18a867a NotExchangeRatePolicy
+0xbaf13b3f NotLive
+0x6165de00 NotUndelegationPolicy
+0x1609c582 OperatorAlreadyDeployed
+0x2cc6b17b PolicyNotTrusted
+
+# OperatorFactory events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x7f26b83f Initialized
+0xf1e04d73 NewOperator
+0x8ce67518 PolicyWhitelisted
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x22f37dbf TemplateAddresses
+0xbc7cd75a Upgraded
+0x190b16f4 VoterUpdate
+
+
+
+# DefaultDelegationPolicy functions
+0x092c5b3b CONTROLLER_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xe58378bb OWNER_ROLE()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0xa63ed2c8 balanceInData()
+0x70a08231 balanceOf()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x9fa6dd35 delegate()
+0x799e2590 delegationPolicy()
+0xb72cd7a8 exchangeRatePolicy()
+0x4a178fe4 flag()
+0xa93a019f forceUnstake()
+0x2e949824 getNodeAddresses()
+0x248a9ca3 getRoleAdmin()
+0x2ebd89d1 getSponsorshipsAndEarnings()
+0xaa5703ad getStreamMetadata()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x0fd6ff49 heartbeat()
+0x39509351 increaseAllowance()
+0x58fc614a indexOfSponsorships()
+0xa99fa31a initialize()
+0x572b6c05 isTrustedForwarder()
+0x430457e1 latestDelegationTimestamp()
+0x392f37e9 metadata()
+0x06fdde03 name()
+0xd673de46 nodeIndex()
+0x63d1ecf2 nodeModule()
+0x1c53c280 nodes()
+0x217fb33b onDelegate()
+0x20fed94f onKick()
+0x64f1abb7 onReviewRequest()
+0x7bf713b6 onSlash()
+0xa4c0ed36 onTokenTransfer()
+0x558a1568 operatorsCutFraction()
+0x8da5cb5b owner()
+0x11606010 payOutFirstInQueue()
+0x87396e3b payOutQueue()
+0xaa77fd55 queueCurrentIndex()
+0xb07f3c47 queueEntryAt()
+0x5e61bb87 queueIsEmpty()
+0x9413462c queueLastIndex()
+0xa48dca18 queueModule()
+0xd1b68611 reduceStakeTo()
+0x4b095c03 reduceStakeWithoutQueue()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xf3aea650 setDelegationPolicy()
+0xbc697ec5 setExchangeRatePolicy()
+0x25c33549 setNodeAddresses()
+0x4a45d2e6 setParam()
+0xffff59a6 setUndelegationPolicy()
+0xba2bfc0a slashedIn()
+0xa74194af sponsorships()
+0xadc9772e stake()
+0x21a76907 stakeModule()
+0x7d429385 stakedInto()
+0xf4408e4b streamId()
+0xe3642153 streamRegistry()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0xfc0c546a token()
+0x870ffde2 totalSlashedInSponsorshipsWei()
+0x04cbab8b totalStakedIntoSponsorshipsWei()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+0xf4350c24 triggerAnotherOperatorWithdraw()
+0x6c68c0e1 undelegate()
+0xbc9b30c8 undelegationPolicy()
+0x7e82fd6f undelegationQueue()
+0xf2888dbb unstake()
+0x1401f70b unstakeWithoutQueue()
+0x918b5be1 updateMetadata()
+0x14797daa updateNodeAddresses()
+0x5dff6e9f updateOperatorsCutFraction()
+0x21194bd7 updateStreamMetadata()
+0xc229918e valueWithoutEarnings()
+0x54fd4d50 version()
+0xbed6ff09 voteOnFlag()
+0xe8e658b4 withdrawEarningsFromSponsorships()
+0x50d3ba9e withdrawEarningsFromSponsorshipsWithoutQueue()
+
+# DefaultDelegationPolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0x9e39d8be AccessDeniedNodesOnly
+0x69d9c224 AccessDeniedOperatorOnly
+0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0x24c69407 DelegationBelowMinimum
+0xb1c5c787 DidNotReceiveReward
+0xec6c87a6 FirstEmptyQueueThenStake
+0xf37a3008 InvalidOperatorsCut
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x4ee7a8de NoEarnings
+0x25b10de0 NotMyStakedSponsorship
+0xc89199b3 SelfDelegationTooLow
+0x81cf7f80 StakedInSponsorships
+0xc0a6104c ZeroUndelegation
+
+# DefaultDelegationPolicy events
+0x8c5be1e5 Approval
+0x861514f6 BalanceUpdate
+0x83b3f5ce Delegated
+0x7432bbcd Heartbeat
+0x7f26b83f Initialized
+0xb65b2e08 Loss
+0x4e51a007 MetadataUpdated
+0xfa7fb836 NodesSet
+0xf22a8c26 OperatorSlashed
+0x41c23f1b OperatorValueUpdate
+0x604b365b Profit
+0x3aba5f85 QueueUpdated
+0x8a228768 QueuedDataPayout
+0xe89a7bfa ReviewRequest
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x89dbe872 StakeUpdate
+0x77338642 Staked
+0xddf252ad Transfer
+0x4ae68879 Undelegated
+0x908e667f Unstaked
+
+
+
+# DefaultExchangeRatePolicy functions
+0x092c5b3b CONTROLLER_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xe58378bb OWNER_ROLE()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0xa63ed2c8 balanceInData()
+0x70a08231 balanceOf()
+0xe926d55c dataToOperatorToken()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x9fa6dd35 delegate()
+0x799e2590 delegationPolicy()
+0xb72cd7a8 exchangeRatePolicy()
+0x4a178fe4 flag()
+0xa93a019f forceUnstake()
+0x2e949824 getNodeAddresses()
+0x248a9ca3 getRoleAdmin()
+0x2ebd89d1 getSponsorshipsAndEarnings()
+0xaa5703ad getStreamMetadata()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x0fd6ff49 heartbeat()
+0x39509351 increaseAllowance()
+0x58fc614a indexOfSponsorships()
+0xa99fa31a initialize()
+0x572b6c05 isTrustedForwarder()
+0x430457e1 latestDelegationTimestamp()
+0x392f37e9 metadata()
+0x06fdde03 name()
+0xd673de46 nodeIndex()
+0x63d1ecf2 nodeModule()
+0x1c53c280 nodes()
+0x20fed94f onKick()
+0x64f1abb7 onReviewRequest()
+0x7bf713b6 onSlash()
+0xa4c0ed36 onTokenTransfer()
+0x6f398f98 operatorTokenToData()
+0xae447024 operatorTokenToDataInverse()
+0x558a1568 operatorsCutFraction()
+0x8da5cb5b owner()
+0x11606010 payOutFirstInQueue()
+0x87396e3b payOutQueue()
+0xaa77fd55 queueCurrentIndex()
+0xb07f3c47 queueEntryAt()
+0x5e61bb87 queueIsEmpty()
+0x9413462c queueLastIndex()
+0xa48dca18 queueModule()
+0xd1b68611 reduceStakeTo()
+0x4b095c03 reduceStakeWithoutQueue()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xf3aea650 setDelegationPolicy()
+0xbc697ec5 setExchangeRatePolicy()
+0x25c33549 setNodeAddresses()
+0x4a45d2e6 setParam()
+0xffff59a6 setUndelegationPolicy()
+0xba2bfc0a slashedIn()
+0xa74194af sponsorships()
+0xadc9772e stake()
+0x21a76907 stakeModule()
+0x7d429385 stakedInto()
+0xf4408e4b streamId()
+0xe3642153 streamRegistry()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0xfc0c546a token()
+0x870ffde2 totalSlashedInSponsorshipsWei()
+0x04cbab8b totalStakedIntoSponsorshipsWei()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+0xf4350c24 triggerAnotherOperatorWithdraw()
+0x6c68c0e1 undelegate()
+0xbc9b30c8 undelegationPolicy()
+0x7e82fd6f undelegationQueue()
+0xf2888dbb unstake()
+0x1401f70b unstakeWithoutQueue()
+0x918b5be1 updateMetadata()
+0x14797daa updateNodeAddresses()
+0x5dff6e9f updateOperatorsCutFraction()
+0x21194bd7 updateStreamMetadata()
+0xc229918e valueWithoutEarnings()
+0x54fd4d50 version()
+0xbed6ff09 voteOnFlag()
+0xe8e658b4 withdrawEarningsFromSponsorships()
+0x50d3ba9e withdrawEarningsFromSponsorshipsWithoutQueue()
+
+# DefaultExchangeRatePolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0x9e39d8be AccessDeniedNodesOnly
+0x69d9c224 AccessDeniedOperatorOnly
+0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0x24c69407 DelegationBelowMinimum
+0xb1c5c787 DidNotReceiveReward
+0xec6c87a6 FirstEmptyQueueThenStake
+0xf37a3008 InvalidOperatorsCut
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x4ee7a8de NoEarnings
+0x25b10de0 NotMyStakedSponsorship
+0xc89199b3 SelfDelegationTooLow
+0x81cf7f80 StakedInSponsorships
+0xc0a6104c ZeroUndelegation
+
+# DefaultExchangeRatePolicy events
+0x8c5be1e5 Approval
+0x861514f6 BalanceUpdate
+0x83b3f5ce Delegated
+0x7432bbcd Heartbeat
+0x7f26b83f Initialized
+0xb65b2e08 Loss
+0x4e51a007 MetadataUpdated
+0xfa7fb836 NodesSet
+0xf22a8c26 OperatorSlashed
+0x41c23f1b OperatorValueUpdate
+0x604b365b Profit
+0x3aba5f85 QueueUpdated
+0x8a228768 QueuedDataPayout
+0xe89a7bfa ReviewRequest
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x89dbe872 StakeUpdate
+0x77338642 Staked
+0xddf252ad Transfer
+0x4ae68879 Undelegated
+0x908e667f Unstaked
+
+
+
+# DefaultUndelegationPolicy functions
+0x092c5b3b CONTROLLER_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xe58378bb OWNER_ROLE()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0xa63ed2c8 balanceInData()
+0x70a08231 balanceOf()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x9fa6dd35 delegate()
+0x799e2590 delegationPolicy()
+0xb72cd7a8 exchangeRatePolicy()
+0x4a178fe4 flag()
+0xa93a019f forceUnstake()
+0x2e949824 getNodeAddresses()
+0x248a9ca3 getRoleAdmin()
+0x2ebd89d1 getSponsorshipsAndEarnings()
+0xaa5703ad getStreamMetadata()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x0fd6ff49 heartbeat()
+0x39509351 increaseAllowance()
+0x58fc614a indexOfSponsorships()
+0xa99fa31a initialize()
+0x572b6c05 isTrustedForwarder()
+0x430457e1 latestDelegationTimestamp()
+0x392f37e9 metadata()
+0x06fdde03 name()
+0xd673de46 nodeIndex()
+0x63d1ecf2 nodeModule()
+0x1c53c280 nodes()
+0x20fed94f onKick()
+0x64f1abb7 onReviewRequest()
+0x7bf713b6 onSlash()
+0xa4c0ed36 onTokenTransfer()
+0xd82264d4 onUndelegate()
+0x558a1568 operatorsCutFraction()
+0x8da5cb5b owner()
+0x11606010 payOutFirstInQueue()
+0x87396e3b payOutQueue()
+0xaa77fd55 queueCurrentIndex()
+0xb07f3c47 queueEntryAt()
+0x5e61bb87 queueIsEmpty()
+0x9413462c queueLastIndex()
+0xa48dca18 queueModule()
+0xd1b68611 reduceStakeTo()
+0x4b095c03 reduceStakeWithoutQueue()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xf3aea650 setDelegationPolicy()
+0xbc697ec5 setExchangeRatePolicy()
+0x25c33549 setNodeAddresses()
+0x4a45d2e6 setParam()
+0xffff59a6 setUndelegationPolicy()
+0xba2bfc0a slashedIn()
+0xa74194af sponsorships()
+0xadc9772e stake()
+0x21a76907 stakeModule()
+0x7d429385 stakedInto()
+0xf4408e4b streamId()
+0xe3642153 streamRegistry()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0xfc0c546a token()
+0x870ffde2 totalSlashedInSponsorshipsWei()
+0x04cbab8b totalStakedIntoSponsorshipsWei()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+0xf4350c24 triggerAnotherOperatorWithdraw()
+0x6c68c0e1 undelegate()
+0xbc9b30c8 undelegationPolicy()
+0x7e82fd6f undelegationQueue()
+0xf2888dbb unstake()
+0x1401f70b unstakeWithoutQueue()
+0x918b5be1 updateMetadata()
+0x14797daa updateNodeAddresses()
+0x5dff6e9f updateOperatorsCutFraction()
+0x21194bd7 updateStreamMetadata()
+0xc229918e valueWithoutEarnings()
+0x54fd4d50 version()
+0xbed6ff09 voteOnFlag()
+0xe8e658b4 withdrawEarningsFromSponsorships()
+0x50d3ba9e withdrawEarningsFromSponsorshipsWithoutQueue()
+
+# DefaultUndelegationPolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0x9e39d8be AccessDeniedNodesOnly
+0x69d9c224 AccessDeniedOperatorOnly
+0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0x24c69407 DelegationBelowMinimum
+0xb1c5c787 DidNotReceiveReward
+0xec6c87a6 FirstEmptyQueueThenStake
+0xf37a3008 InvalidOperatorsCut
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x4ee7a8de NoEarnings
+0x25b10de0 NotMyStakedSponsorship
+0xc89199b3 SelfDelegationTooLow
+0x81cf7f80 StakedInSponsorships
+0xc0a6104c ZeroUndelegation
+
+# DefaultUndelegationPolicy events
+0x8c5be1e5 Approval
+0x861514f6 BalanceUpdate
+0x83b3f5ce Delegated
+0x7432bbcd Heartbeat
+0x7f26b83f Initialized
+0xb65b2e08 Loss
+0x4e51a007 MetadataUpdated
+0xfa7fb836 NodesSet
+0xf22a8c26 OperatorSlashed
+0x41c23f1b OperatorValueUpdate
+0x604b365b Profit
+0x3aba5f85 QueueUpdated
+0x8a228768 QueuedDataPayout
+0xe89a7bfa ReviewRequest
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x89dbe872 StakeUpdate
+0x77338642 Staked
+0xddf252ad Transfer
+0x4ae68879 Undelegated
+0x908e667f Unstaked
+
+
+
+# IDelegationPolicy functions
+0x217fb33b onDelegate()
+0x4a45d2e6 setParam()
+
+
+
+# IExchangeRatePolicy functions
+0xe926d55c dataToOperatorToken()
+0x6f398f98 operatorTokenToData()
+0xae447024 operatorTokenToDataInverse()
+0x4a45d2e6 setParam()
+
+
+
+# INodeModule functions
+0x2c23c940 _setNodeAddresses()
+0xbc59647e _updateNodeAddresses()
+0x377f1ecb createCoordinationStream()
+
+
+
+# IQueueModule functions
+0xe4d10986 _payOutFirstInQueue()
+0x84733344 _payOutQueue()
+0x7a227c9f _triggerAnotherOperatorWithdraw()
+0x1d104c8c _undelegate()
+
+
+
+# IStakeModule functions
+0x3d16f42d _forceUnstake()
+0xd572a9cd _reduceStakeTo()
+0xb2279c28 _removeSponsorship()
+0xaa0d97b3 _stake()
+0xaf9ee81d _unstake()
+0x1b155aa0 _withdrawEarnings()
+
+
+
+# IUndelegationPolicy functions
+0xd82264d4 onUndelegate()
+0x4a45d2e6 setParam()
+
+
+
+# NodeModule functions
+0x092c5b3b CONTROLLER_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xe58378bb OWNER_ROLE()
+0x2c23c940 _setNodeAddresses()
+0xbc59647e _updateNodeAddresses()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0xa63ed2c8 balanceInData()
+0x70a08231 balanceOf()
+0x377f1ecb createCoordinationStream()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x9fa6dd35 delegate()
+0x799e2590 delegationPolicy()
+0xb72cd7a8 exchangeRatePolicy()
+0x4a178fe4 flag()
+0xa93a019f forceUnstake()
+0x2e949824 getNodeAddresses()
+0x248a9ca3 getRoleAdmin()
+0x2ebd89d1 getSponsorshipsAndEarnings()
+0xaa5703ad getStreamMetadata()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x0fd6ff49 heartbeat()
+0x39509351 increaseAllowance()
+0x58fc614a indexOfSponsorships()
+0xa99fa31a initialize()
+0x572b6c05 isTrustedForwarder()
+0x430457e1 latestDelegationTimestamp()
+0x392f37e9 metadata()
+0x06fdde03 name()
+0xd673de46 nodeIndex()
+0x63d1ecf2 nodeModule()
+0x1c53c280 nodes()
+0x20fed94f onKick()
+0x64f1abb7 onReviewRequest()
+0x7bf713b6 onSlash()
+0xa4c0ed36 onTokenTransfer()
+0x558a1568 operatorsCutFraction()
+0x8da5cb5b owner()
+0x11606010 payOutFirstInQueue()
+0x87396e3b payOutQueue()
+0xaa77fd55 queueCurrentIndex()
+0xb07f3c47 queueEntryAt()
+0x5e61bb87 queueIsEmpty()
+0x9413462c queueLastIndex()
+0xa48dca18 queueModule()
+0xd1b68611 reduceStakeTo()
+0x4b095c03 reduceStakeWithoutQueue()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xf3aea650 setDelegationPolicy()
+0xbc697ec5 setExchangeRatePolicy()
+0x25c33549 setNodeAddresses()
+0xffff59a6 setUndelegationPolicy()
+0xba2bfc0a slashedIn()
+0xa74194af sponsorships()
+0xadc9772e stake()
+0x21a76907 stakeModule()
+0x7d429385 stakedInto()
+0xf4408e4b streamId()
+0xe3642153 streamRegistry()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0xfc0c546a token()
+0x870ffde2 totalSlashedInSponsorshipsWei()
+0x04cbab8b totalStakedIntoSponsorshipsWei()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+0xf4350c24 triggerAnotherOperatorWithdraw()
+0x6c68c0e1 undelegate()
+0xbc9b30c8 undelegationPolicy()
+0x7e82fd6f undelegationQueue()
+0xf2888dbb unstake()
+0x1401f70b unstakeWithoutQueue()
+0x918b5be1 updateMetadata()
+0x14797daa updateNodeAddresses()
+0x5dff6e9f updateOperatorsCutFraction()
+0x21194bd7 updateStreamMetadata()
+0xc229918e valueWithoutEarnings()
+0x54fd4d50 version()
+0xbed6ff09 voteOnFlag()
+0xe8e658b4 withdrawEarningsFromSponsorships()
+0x50d3ba9e withdrawEarningsFromSponsorshipsWithoutQueue()
+
+# NodeModule errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0x9e39d8be AccessDeniedNodesOnly
+0x69d9c224 AccessDeniedOperatorOnly
+0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0x24c69407 DelegationBelowMinimum
+0xb1c5c787 DidNotReceiveReward
+0xec6c87a6 FirstEmptyQueueThenStake
+0xf37a3008 InvalidOperatorsCut
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x4ee7a8de NoEarnings
+0x25b10de0 NotMyStakedSponsorship
+0xc89199b3 SelfDelegationTooLow
+0x81cf7f80 StakedInSponsorships
+0xc0a6104c ZeroUndelegation
+
+# NodeModule events
+0x8c5be1e5 Approval
+0x861514f6 BalanceUpdate
+0x83b3f5ce Delegated
+0x7432bbcd Heartbeat
+0x7f26b83f Initialized
+0xb65b2e08 Loss
+0x4e51a007 MetadataUpdated
+0xfa7fb836 NodesSet
+0xf22a8c26 OperatorSlashed
+0x41c23f1b OperatorValueUpdate
+0x604b365b Profit
+0x3aba5f85 QueueUpdated
+0x8a228768 QueuedDataPayout
+0xe89a7bfa ReviewRequest
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x89dbe872 StakeUpdate
+0x77338642 Staked
+0xddf252ad Transfer
+0x4ae68879 Undelegated
+0x908e667f Unstaked
+
+
+
+# QueueModule functions
+0x092c5b3b CONTROLLER_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xe58378bb OWNER_ROLE()
+0xe4d10986 _payOutFirstInQueue()
+0x84733344 _payOutQueue()
+0x7a227c9f _triggerAnotherOperatorWithdraw()
+0x1d104c8c _undelegate()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0xa63ed2c8 balanceInData()
+0x70a08231 balanceOf()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x9fa6dd35 delegate()
+0x799e2590 delegationPolicy()
+0xb72cd7a8 exchangeRatePolicy()
+0x4a178fe4 flag()
+0xa93a019f forceUnstake()
+0x2e949824 getNodeAddresses()
+0x248a9ca3 getRoleAdmin()
+0x2ebd89d1 getSponsorshipsAndEarnings()
+0xaa5703ad getStreamMetadata()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x0fd6ff49 heartbeat()
+0x39509351 increaseAllowance()
+0x58fc614a indexOfSponsorships()
+0xa99fa31a initialize()
+0x572b6c05 isTrustedForwarder()
+0x430457e1 latestDelegationTimestamp()
+0x392f37e9 metadata()
+0x06fdde03 name()
+0xd673de46 nodeIndex()
+0x63d1ecf2 nodeModule()
+0x1c53c280 nodes()
+0x20fed94f onKick()
+0x64f1abb7 onReviewRequest()
+0x7bf713b6 onSlash()
+0xa4c0ed36 onTokenTransfer()
+0x558a1568 operatorsCutFraction()
+0x8da5cb5b owner()
+0x11606010 payOutFirstInQueue()
+0x87396e3b payOutQueue()
+0xaa77fd55 queueCurrentIndex()
+0xb07f3c47 queueEntryAt()
+0x5e61bb87 queueIsEmpty()
+0x9413462c queueLastIndex()
+0xa48dca18 queueModule()
+0xd1b68611 reduceStakeTo()
+0x4b095c03 reduceStakeWithoutQueue()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xf3aea650 setDelegationPolicy()
+0xbc697ec5 setExchangeRatePolicy()
+0x25c33549 setNodeAddresses()
+0xffff59a6 setUndelegationPolicy()
+0xba2bfc0a slashedIn()
+0xa74194af sponsorships()
+0xadc9772e stake()
+0x21a76907 stakeModule()
+0x7d429385 stakedInto()
+0xf4408e4b streamId()
+0xe3642153 streamRegistry()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0xfc0c546a token()
+0x870ffde2 totalSlashedInSponsorshipsWei()
+0x04cbab8b totalStakedIntoSponsorshipsWei()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+0xf4350c24 triggerAnotherOperatorWithdraw()
+0x6c68c0e1 undelegate()
+0xbc9b30c8 undelegationPolicy()
+0x7e82fd6f undelegationQueue()
+0xf2888dbb unstake()
+0x1401f70b unstakeWithoutQueue()
+0x918b5be1 updateMetadata()
+0x14797daa updateNodeAddresses()
+0x5dff6e9f updateOperatorsCutFraction()
+0x21194bd7 updateStreamMetadata()
+0xc229918e valueWithoutEarnings()
+0x54fd4d50 version()
+0xbed6ff09 voteOnFlag()
+0xe8e658b4 withdrawEarningsFromSponsorships()
+0x50d3ba9e withdrawEarningsFromSponsorshipsWithoutQueue()
+
+# QueueModule errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0x9e39d8be AccessDeniedNodesOnly
+0x69d9c224 AccessDeniedOperatorOnly
+0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0x24c69407 DelegationBelowMinimum
+0xb1c5c787 DidNotReceiveReward
+0xec6c87a6 FirstEmptyQueueThenStake
+0xf37a3008 InvalidOperatorsCut
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x4ee7a8de NoEarnings
+0x25b10de0 NotMyStakedSponsorship
+0xc89199b3 SelfDelegationTooLow
+0x81cf7f80 StakedInSponsorships
+0xc0a6104c ZeroUndelegation
+
+# QueueModule events
+0x8c5be1e5 Approval
+0x861514f6 BalanceUpdate
+0x83b3f5ce Delegated
+0x7432bbcd Heartbeat
+0x7f26b83f Initialized
+0xb65b2e08 Loss
+0x4e51a007 MetadataUpdated
+0xfa7fb836 NodesSet
+0xf22a8c26 OperatorSlashed
+0x41c23f1b OperatorValueUpdate
+0x604b365b Profit
+0x3aba5f85 QueueUpdated
+0x8a228768 QueuedDataPayout
+0xe89a7bfa ReviewRequest
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x89dbe872 StakeUpdate
+0x77338642 Staked
+0xddf252ad Transfer
+0x4ae68879 Undelegated
+0x908e667f Unstaked
+
+
+
+# StakeModule functions
+0x092c5b3b CONTROLLER_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xe58378bb OWNER_ROLE()
+0x3d16f42d _forceUnstake()
+0xd572a9cd _reduceStakeTo()
+0xb2279c28 _removeSponsorship()
+0x5cef6398 _splitEarnings()
+0xaa0d97b3 _stake()
+0xaf9ee81d _unstake()
+0x1b155aa0 _withdrawEarnings()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0xa63ed2c8 balanceInData()
+0x70a08231 balanceOf()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x9fa6dd35 delegate()
+0x799e2590 delegationPolicy()
+0xb72cd7a8 exchangeRatePolicy()
+0x4a178fe4 flag()
+0xa93a019f forceUnstake()
+0x2e949824 getNodeAddresses()
+0x248a9ca3 getRoleAdmin()
+0x2ebd89d1 getSponsorshipsAndEarnings()
+0xaa5703ad getStreamMetadata()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x0fd6ff49 heartbeat()
+0x39509351 increaseAllowance()
+0x58fc614a indexOfSponsorships()
+0xa99fa31a initialize()
+0x572b6c05 isTrustedForwarder()
+0x430457e1 latestDelegationTimestamp()
+0x392f37e9 metadata()
+0x06fdde03 name()
+0xd673de46 nodeIndex()
+0x63d1ecf2 nodeModule()
+0x1c53c280 nodes()
+0x20fed94f onKick()
+0x64f1abb7 onReviewRequest()
+0x7bf713b6 onSlash()
+0xa4c0ed36 onTokenTransfer()
+0x558a1568 operatorsCutFraction()
+0x8da5cb5b owner()
+0x11606010 payOutFirstInQueue()
+0x87396e3b payOutQueue()
+0xaa77fd55 queueCurrentIndex()
+0xb07f3c47 queueEntryAt()
+0x5e61bb87 queueIsEmpty()
+0x9413462c queueLastIndex()
+0xa48dca18 queueModule()
+0xd1b68611 reduceStakeTo()
+0x4b095c03 reduceStakeWithoutQueue()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xf3aea650 setDelegationPolicy()
+0xbc697ec5 setExchangeRatePolicy()
+0x25c33549 setNodeAddresses()
+0xffff59a6 setUndelegationPolicy()
+0xba2bfc0a slashedIn()
+0xa74194af sponsorships()
+0xadc9772e stake()
+0x21a76907 stakeModule()
+0x7d429385 stakedInto()
+0xf4408e4b streamId()
+0xe3642153 streamRegistry()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0xfc0c546a token()
+0x870ffde2 totalSlashedInSponsorshipsWei()
+0x04cbab8b totalStakedIntoSponsorshipsWei()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+0xf4350c24 triggerAnotherOperatorWithdraw()
+0x6c68c0e1 undelegate()
+0xbc9b30c8 undelegationPolicy()
+0x7e82fd6f undelegationQueue()
+0xf2888dbb unstake()
+0x1401f70b unstakeWithoutQueue()
+0x918b5be1 updateMetadata()
+0x14797daa updateNodeAddresses()
+0x5dff6e9f updateOperatorsCutFraction()
+0x21194bd7 updateStreamMetadata()
+0xc229918e valueWithoutEarnings()
+0x54fd4d50 version()
+0xbed6ff09 voteOnFlag()
+0xe8e658b4 withdrawEarningsFromSponsorships()
+0x50d3ba9e withdrawEarningsFromSponsorshipsWithoutQueue()
+
+# StakeModule errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0x9e39d8be AccessDeniedNodesOnly
+0x69d9c224 AccessDeniedOperatorOnly
+0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0x24c69407 DelegationBelowMinimum
+0xb1c5c787 DidNotReceiveReward
+0xec6c87a6 FirstEmptyQueueThenStake
+0xf37a3008 InvalidOperatorsCut
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x4ee7a8de NoEarnings
+0x25b10de0 NotMyStakedSponsorship
+0xc89199b3 SelfDelegationTooLow
+0x81cf7f80 StakedInSponsorships
+0xc0a6104c ZeroUndelegation
+
+# StakeModule events
+0x8c5be1e5 Approval
+0x861514f6 BalanceUpdate
+0x83b3f5ce Delegated
+0x7432bbcd Heartbeat
+0x7f26b83f Initialized
+0xb65b2e08 Loss
+0x4e51a007 MetadataUpdated
+0xfa7fb836 NodesSet
+0xf22a8c26 OperatorSlashed
+0x41c23f1b OperatorValueUpdate
+0x604b365b Profit
+0x3aba5f85 QueueUpdated
+0x8a228768 QueuedDataPayout
+0xe89a7bfa ReviewRequest
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x89dbe872 StakeUpdate
+0x77338642 Staked
+0xddf252ad Transfer
+0x4ae68879 Undelegated
+0x908e667f Unstaked
+
+
+
+# Sponsorship functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x2b308a56 addJoinPolicy()
+0x3a1c0aa8 allocationPolicy()
+0xfa267ddf earningsWei()
+0x7e11d1c6 flag()
+0x7db18807 flagMetadataJson()
+0xdf4bbd22 forceUnstake()
+0x759e30d8 forfeitedStakeWei()
+0x131b9c04 getEarnings()
+0x357e47fe getFlag()
+0xda5a517b getLeavePenalty()
+0x5499dca5 getMyStake()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x4562980f initialize()
+0x7c654303 isFunded()
+0x2014e5d1 isRunning()
+0x572b6c05 isTrustedForwarder()
+0x625eb6c8 joinPolicies()
+0x303cbe57 joinTimeOfOperator()
+0x584cb7cf kickPolicy()
+0x54a991b4 leavePolicy()
+0x19d164f1 lockedStakeWei()
+0x392f37e9 metadata()
+0x11648a4c minHorizonSeconds()
+0x40947369 minOperatorCount()
+0x48611fcd minimumStakeOf()
+0xa4c0ed36 onTokenTransfer()
+0x7c6f3158 operatorCount()
+0x38106e4d reduceStakeTo()
+0x91a11303 remainingWei()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xb9efec95 setAllocationPolicy()
+0xacbeddd7 setKickPolicy()
+0x04a10591 setLeavePolicy()
+0x71b906eb solventUntilTimestamp()
+0xb6cce5e2 sponsor()
+0xadc9772e stake()
+0x14c948eb stakedWei()
+0xf4408e4b streamId()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0xfc0c546a token()
+0x34a0f881 totalStakedWei()
+0x2def6620 unstake()
+0xa5b83ce4 voteOnFlag()
+0x3ccfd60b withdraw()
+
+# Sponsorship errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0xbbef3e1a ActiveFlag
+0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0x4274cbe6 FlaggingNotSupported
+0x078759ac LeavePenalty
+0xc27c6c34 MinOperatorCountZero
+0x0be9186a MinimumStake
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x51897574 OperatorNotStaked
+
+# Sponsorship events
+0x7dcb8032 FlagUpdate
+0xbfc2ea38 Flagged
+0x7f26b83f Initialized
+0x9d584a7e InsolvencyEnded
+0x6b84b385 InsolvencyStarted
+0xa2ab3900 OperatorJoined
+0x85f399dc OperatorKicked
+0x14a9c4ce OperatorLeft
+0xa005d3b8 OperatorSlashed
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe3e06f75 SponsorshipReceived
+0x38a9ab06 SponsorshipUpdate
+0x7785543b StakeLockUpdate
+0x5d179bbe StakeUpdate
+
+
+
+# SponsorshipFactory functions
+0x75b238fc ADMIN_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xb3a79c8d addTrustedPolicies()
+0xa0cdb9d2 addTrustedPolicy()
+0x145246e9 deploySponsorship()
+0x4703e001 deploymentTimestamp()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0xc0c53b8b initialize()
+0x572b6c05 isTrustedForwarder()
+0x1a8eab7e isTrustedPolicy()
+0xa4c0ed36 onTokenTransfer()
+0x52d1902d proxiableUUID()
+0xd8bd0de4 removeTrustedPolicy()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0x3cffce93 sponsorshipContractTemplate()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0x9d76ea58 tokenAddress()
+0x6f0a812e trustedPolicies()
+0xfbc1f718 updateTemplate()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# SponsorshipFactory errors
+0x231b3ae2 AccessDeniedDATATokenOnly
+0x6d75c207 AllocationPolicyRequired
+0x1739bb9a BadArguments
+0x2cc6b17b PolicyNotTrusted
+0x13c872ee StreamNotFound
+
+# SponsorshipFactory events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x7f26b83f Initialized
+0x2f6aee5d NewSponsorship
+0x8ce67518 PolicyWhitelisted
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x524bbf42 TemplateAddress
+0xbc7cd75a Upgraded
+
+
+
+# AdminKickPolicy functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x2b308a56 addJoinPolicy()
+0x3a1c0aa8 allocationPolicy()
+0xfa267ddf earningsWei()
+0x7e11d1c6 flag()
+0x7db18807 flagMetadataJson()
+0xdf4bbd22 forceUnstake()
+0x759e30d8 forfeitedStakeWei()
+0x131b9c04 getEarnings()
+0x357e47fe getFlag()
+0xc0275535 getFlagData()
+0xda5a517b getLeavePenalty()
+0x09f359be getMinimumStakeOf()
+0x5499dca5 getMyStake()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x4562980f initialize()
+0x7c654303 isFunded()
+0x2014e5d1 isRunning()
+0x572b6c05 isTrustedForwarder()
+0x625eb6c8 joinPolicies()
+0x303cbe57 joinTimeOfOperator()
+0x584cb7cf kickPolicy()
+0x54a991b4 leavePolicy()
+0x19d164f1 lockedStakeWei()
+0x392f37e9 metadata()
+0x11648a4c minHorizonSeconds()
+0x40947369 minOperatorCount()
+0x48611fcd minimumStakeOf()
+0xd11d8fc4 onFlag()
+0xa4c0ed36 onTokenTransfer()
+0xfbbabed9 onVote()
+0x7c6f3158 operatorCount()
+0x38106e4d reduceStakeTo()
+0x91a11303 remainingWei()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xb9efec95 setAllocationPolicy()
+0xacbeddd7 setKickPolicy()
+0x04a10591 setLeavePolicy()
+0x4a45d2e6 setParam()
+0x71b906eb solventUntilTimestamp()
+0xb6cce5e2 sponsor()
+0xadc9772e stake()
+0x14c948eb stakedWei()
+0xf4408e4b streamId()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0xfc0c546a token()
+0x34a0f881 totalStakedWei()
+0x2def6620 unstake()
+0xa5b83ce4 voteOnFlag()
+0x3ccfd60b withdraw()
+
+# AdminKickPolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0xbbef3e1a ActiveFlag
+0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0x4274cbe6 FlaggingNotSupported
+0x078759ac LeavePenalty
+0xc27c6c34 MinOperatorCountZero
+0x0be9186a MinimumStake
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x51897574 OperatorNotStaked
+
+# AdminKickPolicy events
+0x7dcb8032 FlagUpdate
+0xbfc2ea38 Flagged
+0x7f26b83f Initialized
+0x9d584a7e InsolvencyEnded
+0x6b84b385 InsolvencyStarted
+0xa2ab3900 OperatorJoined
+0x85f399dc OperatorKicked
+0x14a9c4ce OperatorLeft
+0xa005d3b8 OperatorSlashed
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe3e06f75 SponsorshipReceived
+0x38a9ab06 SponsorshipUpdate
+0x7785543b StakeLockUpdate
+0x5d179bbe StakeUpdate
+
+
+
+# DefaultLeavePolicy functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x2b308a56 addJoinPolicy()
+0x3a1c0aa8 allocationPolicy()
+0xfa267ddf earningsWei()
+0x7e11d1c6 flag()
+0x7db18807 flagMetadataJson()
+0xdf4bbd22 forceUnstake()
+0x759e30d8 forfeitedStakeWei()
+0x131b9c04 getEarnings()
+0x357e47fe getFlag()
+0xda5a517b getLeavePenalty()
+0x18820b1b getLeavePenaltyWei()
+0x5499dca5 getMyStake()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x4562980f initialize()
+0x7c654303 isFunded()
+0x2014e5d1 isRunning()
+0x572b6c05 isTrustedForwarder()
+0x625eb6c8 joinPolicies()
+0x303cbe57 joinTimeOfOperator()
+0x584cb7cf kickPolicy()
+0x54a991b4 leavePolicy()
+0x19d164f1 lockedStakeWei()
+0x392f37e9 metadata()
+0x11648a4c minHorizonSeconds()
+0x40947369 minOperatorCount()
+0x48611fcd minimumStakeOf()
+0xa4c0ed36 onTokenTransfer()
+0x7c6f3158 operatorCount()
+0x59559eda penaltyPeriodSeconds()
+0x38106e4d reduceStakeTo()
+0x91a11303 remainingWei()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xb9efec95 setAllocationPolicy()
+0xacbeddd7 setKickPolicy()
+0x04a10591 setLeavePolicy()
+0x4a45d2e6 setParam()
+0x71b906eb solventUntilTimestamp()
+0xb6cce5e2 sponsor()
+0xadc9772e stake()
+0x14c948eb stakedWei()
+0xf4408e4b streamId()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0xfc0c546a token()
+0x34a0f881 totalStakedWei()
+0x2def6620 unstake()
+0xa5b83ce4 voteOnFlag()
+0x3ccfd60b withdraw()
+
+# DefaultLeavePolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0xbbef3e1a ActiveFlag
+0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0x4274cbe6 FlaggingNotSupported
+0x078759ac LeavePenalty
+0xc27c6c34 MinOperatorCountZero
+0x0be9186a MinimumStake
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x51897574 OperatorNotStaked
+
+# DefaultLeavePolicy events
+0x7dcb8032 FlagUpdate
+0xbfc2ea38 Flagged
+0x7f26b83f Initialized
+0x9d584a7e InsolvencyEnded
+0x6b84b385 InsolvencyStarted
+0xa2ab3900 OperatorJoined
+0x85f399dc OperatorKicked
+0x14a9c4ce OperatorLeft
+0xa005d3b8 OperatorSlashed
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe3e06f75 SponsorshipReceived
+0x38a9ab06 SponsorshipUpdate
+0x7785543b StakeLockUpdate
+0x5d179bbe StakeUpdate
+
+
+
+# IAllocationPolicy functions
+0x6e9bb3f7 getEarningsWei()
+0xde44bb88 getInsolvencyTimestamp()
+0x624ca99c onJoin()
+0x19153386 onLeave()
+0x6fff860d onSponsor()
+0xe178d930 onStakeChange()
+0x3a82b50d onWithdraw()
+0x4a45d2e6 setParam()
+
+
+
+# IJoinPolicy functions
+0x07b88ea5 onJoin()
+0x4a45d2e6 setParam()
+
+
+
+# IKickPolicy functions
+0xc0275535 getFlagData()
+0x09f359be getMinimumStakeOf()
+0xd11d8fc4 onFlag()
+0xfbbabed9 onVote()
+0x4a45d2e6 setParam()
+
+
+
+# ILeavePolicy functions
+0x18820b1b getLeavePenaltyWei()
+0x4a45d2e6 setParam()
+
+
+
+# MaxOperatorsJoinPolicy functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x2b308a56 addJoinPolicy()
+0x3a1c0aa8 allocationPolicy()
+0xfa267ddf earningsWei()
+0x7e11d1c6 flag()
+0x7db18807 flagMetadataJson()
+0xdf4bbd22 forceUnstake()
+0x759e30d8 forfeitedStakeWei()
+0x131b9c04 getEarnings()
+0x357e47fe getFlag()
+0xda5a517b getLeavePenalty()
+0x5499dca5 getMyStake()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x4562980f initialize()
+0x7c654303 isFunded()
+0x2014e5d1 isRunning()
+0x572b6c05 isTrustedForwarder()
+0x625eb6c8 joinPolicies()
+0x303cbe57 joinTimeOfOperator()
+0x584cb7cf kickPolicy()
+0x54a991b4 leavePolicy()
+0x19d164f1 lockedStakeWei()
+0x392f37e9 metadata()
+0x11648a4c minHorizonSeconds()
+0x40947369 minOperatorCount()
+0x48611fcd minimumStakeOf()
+0x07b88ea5 onJoin()
+0xa4c0ed36 onTokenTransfer()
+0x7c6f3158 operatorCount()
+0x38106e4d reduceStakeTo()
+0x91a11303 remainingWei()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xb9efec95 setAllocationPolicy()
+0xacbeddd7 setKickPolicy()
+0x04a10591 setLeavePolicy()
+0x4a45d2e6 setParam()
+0x71b906eb solventUntilTimestamp()
+0xb6cce5e2 sponsor()
+0xadc9772e stake()
+0x14c948eb stakedWei()
+0xf4408e4b streamId()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0xfc0c546a token()
+0x34a0f881 totalStakedWei()
+0x2def6620 unstake()
+0xa5b83ce4 voteOnFlag()
+0x3ccfd60b withdraw()
+
+# MaxOperatorsJoinPolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0xbbef3e1a ActiveFlag
+0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0x4274cbe6 FlaggingNotSupported
+0x078759ac LeavePenalty
+0xc27c6c34 MinOperatorCountZero
+0x0be9186a MinimumStake
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x51897574 OperatorNotStaked
+
+# MaxOperatorsJoinPolicy events
+0x7dcb8032 FlagUpdate
+0xbfc2ea38 Flagged
+0x7f26b83f Initialized
+0x9d584a7e InsolvencyEnded
+0x6b84b385 InsolvencyStarted
+0xa2ab3900 OperatorJoined
+0x85f399dc OperatorKicked
+0x14a9c4ce OperatorLeft
+0xa005d3b8 OperatorSlashed
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe3e06f75 SponsorshipReceived
+0x38a9ab06 SponsorshipUpdate
+0x7785543b StakeLockUpdate
+0x5d179bbe StakeUpdate
+
+
+
+# IFactory functions
+0x4703e001 deploymentTimestamp()
+
+
+
+# OperatorContractOnlyJoinPolicy functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x2b308a56 addJoinPolicy()
+0x3a1c0aa8 allocationPolicy()
+0xfa267ddf earningsWei()
+0x7e11d1c6 flag()
+0x7db18807 flagMetadataJson()
+0xdf4bbd22 forceUnstake()
+0x759e30d8 forfeitedStakeWei()
+0x131b9c04 getEarnings()
+0x357e47fe getFlag()
+0xda5a517b getLeavePenalty()
+0x5499dca5 getMyStake()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x4562980f initialize()
+0x7c654303 isFunded()
+0x2014e5d1 isRunning()
+0x572b6c05 isTrustedForwarder()
+0x625eb6c8 joinPolicies()
+0x303cbe57 joinTimeOfOperator()
+0x584cb7cf kickPolicy()
+0x54a991b4 leavePolicy()
+0x19d164f1 lockedStakeWei()
+0x392f37e9 metadata()
+0x11648a4c minHorizonSeconds()
+0x40947369 minOperatorCount()
+0x48611fcd minimumStakeOf()
+0x07b88ea5 onJoin()
+0xa4c0ed36 onTokenTransfer()
+0x7c6f3158 operatorCount()
+0x38106e4d reduceStakeTo()
+0x91a11303 remainingWei()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xb9efec95 setAllocationPolicy()
+0xacbeddd7 setKickPolicy()
+0x04a10591 setLeavePolicy()
+0x4a45d2e6 setParam()
+0x71b906eb solventUntilTimestamp()
+0xb6cce5e2 sponsor()
+0xadc9772e stake()
+0x14c948eb stakedWei()
+0xf4408e4b streamId()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0xfc0c546a token()
+0x34a0f881 totalStakedWei()
+0x2def6620 unstake()
+0xa5b83ce4 voteOnFlag()
+0x3ccfd60b withdraw()
+
+# OperatorContractOnlyJoinPolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0xbbef3e1a ActiveFlag
+0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0x4274cbe6 FlaggingNotSupported
+0x078759ac LeavePenalty
+0xc27c6c34 MinOperatorCountZero
+0x0be9186a MinimumStake
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x51897574 OperatorNotStaked
+
+# OperatorContractOnlyJoinPolicy events
+0x7dcb8032 FlagUpdate
+0xbfc2ea38 Flagged
+0x7f26b83f Initialized
+0x9d584a7e InsolvencyEnded
+0x6b84b385 InsolvencyStarted
+0xa2ab3900 OperatorJoined
+0x85f399dc OperatorKicked
+0x14a9c4ce OperatorLeft
+0xa005d3b8 OperatorSlashed
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe3e06f75 SponsorshipReceived
+0x38a9ab06 SponsorshipUpdate
+0x7785543b StakeLockUpdate
+0x5d179bbe StakeUpdate
+
+
+
+# StakeWeightedAllocationPolicy functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x2b308a56 addJoinPolicy()
+0x3a1c0aa8 allocationPolicy()
+0xfa267ddf earningsWei()
+0x7e11d1c6 flag()
+0x7db18807 flagMetadataJson()
+0xdf4bbd22 forceUnstake()
+0x759e30d8 forfeitedStakeWei()
+0x131b9c04 getEarnings()
+0x6e9bb3f7 getEarningsWei()
+0x357e47fe getFlag()
+0xde44bb88 getInsolvencyTimestamp()
+0xda5a517b getLeavePenalty()
+0x5499dca5 getMyStake()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x4562980f initialize()
+0x7c654303 isFunded()
+0x2014e5d1 isRunning()
+0x572b6c05 isTrustedForwarder()
+0x625eb6c8 joinPolicies()
+0x303cbe57 joinTimeOfOperator()
+0x584cb7cf kickPolicy()
+0x54a991b4 leavePolicy()
+0x19d164f1 lockedStakeWei()
+0x392f37e9 metadata()
+0x11648a4c minHorizonSeconds()
+0x40947369 minOperatorCount()
+0x48611fcd minimumStakeOf()
+0x624ca99c onJoin()
+0x19153386 onLeave()
+0x6fff860d onSponsor()
+0xe178d930 onStakeChange()
+0xa4c0ed36 onTokenTransfer()
+0x3a82b50d onWithdraw()
+0x7c6f3158 operatorCount()
+0x38106e4d reduceStakeTo()
+0x91a11303 remainingWei()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xb9efec95 setAllocationPolicy()
+0xacbeddd7 setKickPolicy()
+0x04a10591 setLeavePolicy()
+0x4a45d2e6 setParam()
+0x71b906eb solventUntilTimestamp()
+0xb6cce5e2 sponsor()
+0xadc9772e stake()
+0x14c948eb stakedWei()
+0xf4408e4b streamId()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0xfc0c546a token()
+0x34a0f881 totalStakedWei()
+0x2def6620 unstake()
+0xa5b83ce4 voteOnFlag()
+0x3ccfd60b withdraw()
+
+# StakeWeightedAllocationPolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0xbbef3e1a ActiveFlag
+0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0x4274cbe6 FlaggingNotSupported
+0x078759ac LeavePenalty
+0xc27c6c34 MinOperatorCountZero
+0x0be9186a MinimumStake
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x51897574 OperatorNotStaked
+
+# StakeWeightedAllocationPolicy events
+0x7dcb8032 FlagUpdate
+0xbfc2ea38 Flagged
+0x7f26b83f Initialized
+0x9d584a7e InsolvencyEnded
+0x6b84b385 InsolvencyStarted
+0xa2ab3900 OperatorJoined
+0x85f399dc OperatorKicked
+0x14a9c4ce OperatorLeft
+0xa005d3b8 OperatorSlashed
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe3e06f75 SponsorshipReceived
+0x38a9ab06 SponsorshipUpdate
+0x7785543b StakeLockUpdate
+0x5d179bbe StakeUpdate
+
+
+
+# VoteKickPolicy functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x2b308a56 addJoinPolicy()
+0x3a1c0aa8 allocationPolicy()
+0xfa267ddf earningsWei()
+0x7e11d1c6 flag()
+0x7db18807 flagMetadataJson()
+0xdf4bbd22 forceUnstake()
+0x759e30d8 forfeitedStakeWei()
+0x131b9c04 getEarnings()
+0x357e47fe getFlag()
+0xc0275535 getFlagData()
+0xda5a517b getLeavePenalty()
+0x09f359be getMinimumStakeOf()
+0x5499dca5 getMyStake()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x4562980f initialize()
+0x7c654303 isFunded()
+0x2014e5d1 isRunning()
+0x572b6c05 isTrustedForwarder()
+0x625eb6c8 joinPolicies()
+0x303cbe57 joinTimeOfOperator()
+0x584cb7cf kickPolicy()
+0x54a991b4 leavePolicy()
+0x19d164f1 lockedStakeWei()
+0x392f37e9 metadata()
+0x11648a4c minHorizonSeconds()
+0x40947369 minOperatorCount()
+0x48611fcd minimumStakeOf()
+0xd11d8fc4 onFlag()
+0xa4c0ed36 onTokenTransfer()
+0xfbbabed9 onVote()
+0x7c6f3158 operatorCount()
+0x38106e4d reduceStakeTo()
+0x91a11303 remainingWei()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0xb9efec95 setAllocationPolicy()
+0xacbeddd7 setKickPolicy()
+0x04a10591 setLeavePolicy()
+0x4a45d2e6 setParam()
+0x71b906eb solventUntilTimestamp()
+0xb6cce5e2 sponsor()
+0xadc9772e stake()
+0x14c948eb stakedWei()
+0xf4408e4b streamId()
+0x98833130 streamrConfig()
+0x01ffc9a7 supportsInterface()
+0xfc0c546a token()
+0x34a0f881 totalStakedWei()
+0x2def6620 unstake()
+0xa5b83ce4 voteOnFlag()
+0x3ccfd60b withdraw()
+
+# VoteKickPolicy errors
+0x4ca88867 AccessDenied
+0x231b3ae2 AccessDeniedDATATokenOnly
+0xbbef3e1a ActiveFlag
+0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0x4274cbe6 FlaggingNotSupported
+0x078759ac LeavePenalty
+0xc27c6c34 MinOperatorCountZero
+0x0be9186a MinimumStake
+0x918623b7 ModuleCallError
+0x29801d70 ModuleGetError
+0x51897574 OperatorNotStaked
+
+# VoteKickPolicy events
+0x7dcb8032 FlagUpdate
+0xbfc2ea38 Flagged
+0x7f26b83f Initialized
+0x9d584a7e InsolvencyEnded
+0x6b84b385 InsolvencyStarted
+0xa2ab3900 OperatorJoined
+0x85f399dc OperatorKicked
+0x14a9c4ce OperatorLeft
+0xa005d3b8 OperatorSlashed
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe3e06f75 SponsorshipReceived
+0x38a9ab06 SponsorshipUpdate
+0x7785543b StakeLockUpdate
+0x5d179bbe StakeUpdate
+
+
+
+# StreamrConfig functions
+0x75b238fc ADMIN_ROLE()
+0xd853015e CONFIGURATOR_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xf72c0d8b UPGRADER_ROLE()
+0x6aac44e9 earlyLeaverPenaltyWei()
+0x6c29b3b7 fishermanRewardFraction()
+0x6abd9e41 flagProtectionSeconds()
+0x9ce68dc3 flagReviewerCount()
+0xbca31560 flagReviewerRewardWei()
+0xd2d5028c flagReviewerSelectionIterations()
+0xe2811d67 flagStakeWei()
+0xdad5ca32 flaggerRewardWei()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x8129fc1c initialize()
+0xaeca7c78 maxAllowedEarningsFraction()
+0x78e72833 maxPenaltyPeriodSeconds()
+0xe2e8bcd8 maxQueueSeconds()
+0x3a2a9a50 minEligibleVoterAge()
+0xa8d045d9 minEligibleVoterFractionOfAllStake()
+0xafbd6c6c minimumDelegationWei()
+0x7b94dead minimumSelfDelegationFraction()
+0x66316372 minimumStakeWei()
+0x887f44fe operatorContractOnlyJoinPolicy()
+0x5290c248 operatorFactory()
+0xceb80df2 protocolFeeBeneficiary()
+0x3a0298eb protocolFeeFraction()
+0x52d1902d proxiableUUID()
+0xa224c198 randomOracle()
+0x36568abe renounceRole()
+0xb18dccc2 reviewPeriodSeconds()
+0xd547741f revokeRole()
+0xae5a9afe setEarlyLeaverPenaltyWei()
+0xbbb23c3f setFishermanRewardFraction()
+0x4022fd5c setFlagProtectionSeconds()
+0x66ba24f3 setFlagReviewerCount()
+0xc2146f66 setFlagReviewerRewardWei()
+0x269594a8 setFlagReviewerSelectionIterations()
+0x246e62d9 setFlagStakeWei()
+0x19770c57 setFlaggerRewardWei()
+0xffb6e4da setMaxAllowedEarningsFraction()
+0x7e8d889a setMaxPenaltyPeriodSeconds()
+0x9739b08c setMaxQueueSeconds()
+0xce4f5636 setMinEligibleVoterAge()
+0x9482e795 setMinEligibleVoterFractionOfAllStake()
+0x4d836fd2 setMinimumDelegationWei()
+0x62250c67 setMinimumSelfDelegationFraction()
+0xa810edd7 setOperatorContractOnlyJoinPolicy()
+0xf94ca551 setOperatorFactory()
+0x9585b0be setProtocolFeeBeneficiary()
+0x274a38f3 setProtocolFeeFraction()
+0xf9b2f3c9 setRandomOracle()
+0x81929a6f setReviewPeriodSeconds()
+0xaf424c8e setSlashingFraction()
+0x4b3fb81b setSponsorshipFactory()
+0x055d7109 setStreamRegistryAddress()
+0xda742228 setTrustedForwarder()
+0x1cedd51e setVotingPeriodSeconds()
+0xfc1e490f slashingFraction()
+0x5efca0a9 sponsorshipFactory()
+0x7b0c2842 streamRegistryAddress()
+0x01ffc9a7 supportsInterface()
+0x7da0a877 trustedForwarder()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+0xbe60040e voterRegistry()
+0xcb85fe35 votingPeriodSeconds()
+
+# StreamrConfig errors
+0xb2a4c036 TooHigh
+0x7e4b4593 TooLow
+
+# StreamrConfig events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x0378fef4 ConfigChanged
+0x7f26b83f Initialized
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xbc7cd75a Upgraded
+
+
+
+# StreamrConfigV1_1 functions
+0x75b238fc ADMIN_ROLE()
+0xd853015e CONFIGURATOR_ROLE()
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xf72c0d8b UPGRADER_ROLE()
+0x6aac44e9 earlyLeaverPenaltyWei()
+0x6c29b3b7 fishermanRewardFraction()
+0x6abd9e41 flagProtectionSeconds()
+0x9ce68dc3 flagReviewerCount()
+0xbca31560 flagReviewerRewardWei()
+0xd2d5028c flagReviewerSelectionIterations()
+0xe2811d67 flagStakeWei()
+0xdad5ca32 flaggerRewardWei()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x8129fc1c initialize()
+0xaeca7c78 maxAllowedEarningsFraction()
+0x78e72833 maxPenaltyPeriodSeconds()
+0xe2e8bcd8 maxQueueSeconds()
+0x3a2a9a50 minEligibleVoterAge()
+0xa8d045d9 minEligibleVoterFractionOfAllStake()
+0x8cc9a8c4 minimumDelegationSeconds()
+0xafbd6c6c minimumDelegationWei()
+0x7b94dead minimumSelfDelegationFraction()
+0x66316372 minimumStakeWei()
+0x887f44fe operatorContractOnlyJoinPolicy()
+0x5290c248 operatorFactory()
+0xceb80df2 protocolFeeBeneficiary()
+0x3a0298eb protocolFeeFraction()
+0x52d1902d proxiableUUID()
+0xa224c198 randomOracle()
+0x36568abe renounceRole()
+0xb18dccc2 reviewPeriodSeconds()
+0xd547741f revokeRole()
+0xae5a9afe setEarlyLeaverPenaltyWei()
+0xbbb23c3f setFishermanRewardFraction()
+0x4022fd5c setFlagProtectionSeconds()
+0x66ba24f3 setFlagReviewerCount()
+0xc2146f66 setFlagReviewerRewardWei()
+0x269594a8 setFlagReviewerSelectionIterations()
+0x246e62d9 setFlagStakeWei()
+0x19770c57 setFlaggerRewardWei()
+0xffb6e4da setMaxAllowedEarningsFraction()
+0x7e8d889a setMaxPenaltyPeriodSeconds()
+0x9739b08c setMaxQueueSeconds()
+0xce4f5636 setMinEligibleVoterAge()
+0x9482e795 setMinEligibleVoterFractionOfAllStake()
+0xef207846 setMinimumDelegationSeconds()
+0x4d836fd2 setMinimumDelegationWei()
+0x62250c67 setMinimumSelfDelegationFraction()
+0xa810edd7 setOperatorContractOnlyJoinPolicy()
+0xf94ca551 setOperatorFactory()
+0x9585b0be setProtocolFeeBeneficiary()
+0x274a38f3 setProtocolFeeFraction()
+0xf9b2f3c9 setRandomOracle()
+0x81929a6f setReviewPeriodSeconds()
+0xaf424c8e setSlashingFraction()
+0x4b3fb81b setSponsorshipFactory()
+0x055d7109 setStreamRegistryAddress()
+0xda742228 setTrustedForwarder()
+0x1cedd51e setVotingPeriodSeconds()
+0xfc1e490f slashingFraction()
+0x5efca0a9 sponsorshipFactory()
+0x7b0c2842 streamRegistryAddress()
+0x01ffc9a7 supportsInterface()
+0x7da0a877 trustedForwarder()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+0xbe60040e voterRegistry()
+0xcb85fe35 votingPeriodSeconds()
+
+# StreamrConfigV1_1 errors
+0xb2a4c036 TooHigh
+0x7e4b4593 TooLow
+
+# StreamrConfigV1_1 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x0378fef4 ConfigChanged
+0x7f26b83f Initialized
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xbc7cd75a Upgraded
+
+
+
+# ERC2771ContextUpgradeable functions
+0x572b6c05 isTrustedForwarder()
+
+
+
+# IStreamRegistryV4 functions
+0x5e57966d addressToString()
+0x0ef8cdc7 createStream()
+0x261a323e exists()
+0x6394fbd2 getStreamMetadata()
+0x997e8aaa grantPermission()
+0x466f878e grantPublicPermission()
+0x3e397aea revokePermission()
+0x42617fe7 updateStreamMetadata()
+
+
+
+# StreamRegistry functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xdbfc1d87 ENScreateStreamCallback()
+0x098d3228 MAX_INT()
+0x5901692e TRUSTED_ROLE()
+0x5e57966d addressToString()
+0x0ef8cdc7 createStream()
+0x78800c76 createStreamWithENS()
+0x6453cbd7 deleteStream()
+0x261a323e exists()
+0x0843564a getAddressKey()
+0xa020aa97 getDirectPermissionsForUser()
+0xe8f3828e getPermissionsForUser()
+0x248a9ca3 getRoleAdmin()
+0x6394fbd2 getStreamMetadata()
+0x353f8500 getTrustedRole()
+0x997e8aaa grantPermission()
+0x466f878e grantPublicPermission()
+0x2f2ff15d grantRole()
+0xf7f5078c hasDirectPermission()
+0x88b21038 hasPermission()
+0xfb5642a0 hasPublicPermission()
+0x91d14854 hasRole()
+0x485cc955 initialize()
+0x572b6c05 isTrustedForwarder()
+0x36568abe renounceRole()
+0x50b5422b revokeAllPermissionsForUser()
+0x3e397aea revokePermission()
+0x272cc993 revokePublicPermission()
+0xd547741f revokeRole()
+0x79afefcd setEnsCache()
+0x7b3681b5 setExpirationTime()
+0x470fd671 setPermissions()
+0xd2d78c3e setPermissionsForUser()
+0xa8989d3f setPublicPermission()
+0x86902fe9 streamIdToMetadata()
+0xf36d4849 streamIdToPermissions()
+0x01ffc9a7 supportsInterface()
+0x6beff96d transferAllPermissionsToUser()
+0x8a043af8 transferPermissionToUser()
+0xb6a91597 trustedSetPermissionsForUser()
+0x09a7e6ef trustedSetStreamMetadata()
+0x237e03da trustedSetStreamWithPermission()
+0x302d3f33 trustedSetStreams()
+0x42617fe7 updateStreamMetadata()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# StreamRegistry events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xd22d5803 PermissionUpdated
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x0db02788 StreamCreated
+0x74b7395f StreamDeleted
+0xa60b7935 StreamUpdated
+0xbc7cd75a Upgraded
+
+
+
+# StreamRegistryV2 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xdbfc1d87 ENScreateStreamCallback()
+0x098d3228 MAX_INT()
+0x5901692e TRUSTED_ROLE()
+0x5e57966d addressToString()
+0x0ef8cdc7 createStream()
+0x78800c76 createStreamWithENS()
+0x6453cbd7 deleteStream()
+0x261a323e exists()
+0x0843564a getAddressKey()
+0xa020aa97 getDirectPermissionsForUser()
+0xe8f3828e getPermissionsForUser()
+0x248a9ca3 getRoleAdmin()
+0x6394fbd2 getStreamMetadata()
+0x353f8500 getTrustedRole()
+0x997e8aaa grantPermission()
+0x466f878e grantPublicPermission()
+0x2f2ff15d grantRole()
+0xf7f5078c hasDirectPermission()
+0x88b21038 hasPermission()
+0xfb5642a0 hasPublicPermission()
+0x91d14854 hasRole()
+0x485cc955 initialize()
+0x572b6c05 isTrustedForwarder()
+0x36568abe renounceRole()
+0x50b5422b revokeAllPermissionsForUser()
+0x3e397aea revokePermission()
+0x272cc993 revokePublicPermission()
+0xd547741f revokeRole()
+0x79afefcd setEnsCache()
+0x7b3681b5 setExpirationTime()
+0x470fd671 setPermissions()
+0xd2d78c3e setPermissionsForUser()
+0xa8989d3f setPublicPermission()
+0x86902fe9 streamIdToMetadata()
+0xf36d4849 streamIdToPermissions()
+0x01ffc9a7 supportsInterface()
+0x6beff96d transferAllPermissionsToUser()
+0x8a043af8 transferPermissionToUser()
+0xb6a91597 trustedSetPermissionsForUser()
+0x09a7e6ef trustedSetStreamMetadata()
+0x237e03da trustedSetStreamWithPermission()
+0x302d3f33 trustedSetStreams()
+0x42617fe7 updateStreamMetadata()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# StreamRegistryV2 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xd22d5803 PermissionUpdated
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x0db02788 StreamCreated
+0x74b7395f StreamDeleted
+0xa60b7935 StreamUpdated
+0xbc7cd75a Upgraded
+
+
+
+# StreamRegistryV3 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xdbfc1d87 ENScreateStreamCallback()
+0x098d3228 MAX_INT()
+0x5901692e TRUSTED_ROLE()
+0x5e57966d addressToString()
+0x0ef8cdc7 createStream()
+0x78800c76 createStreamWithENS()
+0x6453cbd7 deleteStream()
+0x261a323e exists()
+0x0843564a getAddressKey()
+0xa020aa97 getDirectPermissionsForUser()
+0xe8f3828e getPermissionsForUser()
+0x248a9ca3 getRoleAdmin()
+0x6394fbd2 getStreamMetadata()
+0x353f8500 getTrustedRole()
+0x997e8aaa grantPermission()
+0x466f878e grantPublicPermission()
+0x2f2ff15d grantRole()
+0xf7f5078c hasDirectPermission()
+0x88b21038 hasPermission()
+0xfb5642a0 hasPublicPermission()
+0x91d14854 hasRole()
+0x485cc955 initialize()
+0x572b6c05 isTrustedForwarder()
+0x36568abe renounceRole()
+0x50b5422b revokeAllPermissionsForUser()
+0x3e397aea revokePermission()
+0x272cc993 revokePublicPermission()
+0xd547741f revokeRole()
+0x79afefcd setEnsCache()
+0x7b3681b5 setExpirationTime()
+0x470fd671 setPermissions()
+0xd2d78c3e setPermissionsForUser()
+0x8362f85d setPermissionsMultipleStreans()
+0xa8989d3f setPublicPermission()
+0x86902fe9 streamIdToMetadata()
+0xf36d4849 streamIdToPermissions()
+0x01ffc9a7 supportsInterface()
+0x6beff96d transferAllPermissionsToUser()
+0x8a043af8 transferPermissionToUser()
+0xc7fbd2ec trustedCreateStreams()
+0xae1fec82 trustedSetPermissions()
+0xb6a91597 trustedSetPermissionsForUser()
+0x09a7e6ef trustedSetStreamMetadata()
+0x237e03da trustedSetStreamWithPermission()
+0x302d3f33 trustedSetStreams()
+0x42617fe7 updateStreamMetadata()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# StreamRegistryV3 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xd22d5803 PermissionUpdated
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x0db02788 StreamCreated
+0x74b7395f StreamDeleted
+0xa60b7935 StreamUpdated
+0xbc7cd75a Upgraded
+
+
+
+# StreamRegistryV4 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xdbfc1d87 ENScreateStreamCallback()
+0x098d3228 MAX_INT()
+0x5901692e TRUSTED_ROLE()
+0x5e57966d addressToString()
+0x158c9b93 createMultipleStreamsWithPermissions()
+0x0ef8cdc7 createStream()
+0x78800c76 createStreamWithENS()
+0xbdca2948 createStreamWithPermissions()
+0x6453cbd7 deleteStream()
+0x261a323e exists()
+0x0843564a getAddressKey()
+0xa020aa97 getDirectPermissionsForUser()
+0xe8f3828e getPermissionsForUser()
+0x248a9ca3 getRoleAdmin()
+0x6394fbd2 getStreamMetadata()
+0x353f8500 getTrustedRole()
+0x997e8aaa grantPermission()
+0x466f878e grantPublicPermission()
+0x2f2ff15d grantRole()
+0xf7f5078c hasDirectPermission()
+0x88b21038 hasPermission()
+0xfb5642a0 hasPublicPermission()
+0x91d14854 hasRole()
+0x485cc955 initialize()
+0x572b6c05 isTrustedForwarder()
+0x36568abe renounceRole()
+0x50b5422b revokeAllPermissionsForUser()
+0x3e397aea revokePermission()
+0x272cc993 revokePublicPermission()
+0xd547741f revokeRole()
+0x79afefcd setEnsCache()
+0x7b3681b5 setExpirationTime()
+0x470fd671 setPermissions()
+0xd2d78c3e setPermissionsForUser()
+0x72c9f695 setPermissionsMultipleStreams()
+0x8362f85d setPermissionsMultipleStreans()
+0xa8989d3f setPublicPermission()
+0xda742228 setTrustedForwarder()
+0x86902fe9 streamIdToMetadata()
+0xf36d4849 streamIdToPermissions()
+0x01ffc9a7 supportsInterface()
+0x6beff96d transferAllPermissionsToUser()
+0x8a043af8 transferPermissionToUser()
+0xc7fbd2ec trustedCreateStreams()
+0xae1fec82 trustedSetPermissions()
+0xb6a91597 trustedSetPermissionsForUser()
+0x09a7e6ef trustedSetStreamMetadata()
+0x237e03da trustedSetStreamWithPermission()
+0x302d3f33 trustedSetStreams()
+0x42617fe7 updateStreamMetadata()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# StreamRegistryV4 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xd22d5803 PermissionUpdated
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x0db02788 StreamCreated
+0x74b7395f StreamDeleted
+0xa60b7935 StreamUpdated
+0xbc7cd75a Upgraded
+
+
+
+# StreamRegistryV4_1 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xdbfc1d87 ENScreateStreamCallback()
+0x098d3228 MAX_INT()
+0x5901692e TRUSTED_ROLE()
+0x5e57966d addressToString()
+0x158c9b93 createMultipleStreamsWithPermissions()
+0x0ef8cdc7 createStream()
+0x78800c76 createStreamWithENS()
+0xbdca2948 createStreamWithPermissions()
+0x6453cbd7 deleteStream()
+0x261a323e exists()
+0x0843564a getAddressKey()
+0xa020aa97 getDirectPermissionsForUser()
+0xe8f3828e getPermissionsForUser()
+0x248a9ca3 getRoleAdmin()
+0x6394fbd2 getStreamMetadata()
+0x353f8500 getTrustedRole()
+0x997e8aaa grantPermission()
+0x466f878e grantPublicPermission()
+0x2f2ff15d grantRole()
+0xf7f5078c hasDirectPermission()
+0x88b21038 hasPermission()
+0xfb5642a0 hasPublicPermission()
+0x91d14854 hasRole()
+0x485cc955 initialize()
+0x572b6c05 isTrustedForwarder()
+0x36568abe renounceRole()
+0x50b5422b revokeAllPermissionsForUser()
+0x3e397aea revokePermission()
+0x272cc993 revokePublicPermission()
+0xd547741f revokeRole()
+0x79afefcd setEnsCache()
+0x7b3681b5 setExpirationTime()
+0x470fd671 setPermissions()
+0xd2d78c3e setPermissionsForUser()
+0x72c9f695 setPermissionsMultipleStreams()
+0x8362f85d setPermissionsMultipleStreans()
+0xa8989d3f setPublicPermission()
+0xda742228 setTrustedForwarder()
+0x86902fe9 streamIdToMetadata()
+0xf36d4849 streamIdToPermissions()
+0x01ffc9a7 supportsInterface()
+0x6beff96d transferAllPermissionsToUser()
+0x8a043af8 transferPermissionToUser()
+0xc7fbd2ec trustedCreateStreams()
+0xae1fec82 trustedSetPermissions()
+0xb6a91597 trustedSetPermissionsForUser()
+0x09a7e6ef trustedSetStreamMetadata()
+0x237e03da trustedSetStreamWithPermission()
+0x302d3f33 trustedSetStreams()
+0x42617fe7 updateStreamMetadata()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# StreamRegistryV4_1 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xd22d5803 PermissionUpdated
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x0db02788 StreamCreated
+0x74b7395f StreamDeleted
+0xa60b7935 StreamUpdated
+0xbc7cd75a Upgraded
+
+
+
+# StreamRegistryV5 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xdbfc1d87 ENScreateStreamCallback()
+0x098d3228 MAX_INT()
+0x51ecceb7 PUBLIC_PERMISSION_USER_ID()
+0x5901692e TRUSTED_ROLE()
+0x5e57966d addressToString()
+0x158c9b93 createMultipleStreamsWithPermissions()
+0x0ef8cdc7 createStream()
+0x78800c76 createStreamWithENS()
+0xbdca2948 createStreamWithPermissions()
+0x6453cbd7 deleteStream()
+0x3c6cffa9 ensCache()
+0x261a323e exists()
+0x0843564a getAddressKey()
+0xa020aa97 getDirectPermissionsForUser()
+0x9f967a70 getDirectPermissionsForUserId()
+0xe8f3828e getPermissionsForUser()
+0x7aa31f8c getPermissionsForUserId()
+0x248a9ca3 getRoleAdmin()
+0x6394fbd2 getStreamMetadata()
+0x353f8500 getTrustedRole()
+0x931a314d getUserKeyForUserId()
+0x997e8aaa grantPermission()
+0x76052684 grantPermissionForUserId()
+0x466f878e grantPublicPermission()
+0x2f2ff15d grantRole()
+0xf7f5078c hasDirectPermission()
+0x88b21038 hasPermission()
+0xfb5642a0 hasPublicPermission()
+0x91d14854 hasRole()
+0x485cc955 initialize()
+0x572b6c05 isTrustedForwarder()
+0x36568abe renounceRole()
+0x50b5422b revokeAllPermissionsForUser()
+0xd7243b69 revokeAllPermissionsForUserId()
+0x3e397aea revokePermission()
+0xdffb8f82 revokePermissionForUserId()
+0x272cc993 revokePublicPermission()
+0xd547741f revokeRole()
+0x79afefcd setEnsCache()
+0x7b3681b5 setExpirationTime()
+0xf0b51b0e setExpirationTimeForUserId()
+0x2f55f732 setMultipleStreamPermissionsForUserIds()
+0x470fd671 setPermissions()
+0xd2d78c3e setPermissionsForUser()
+0x50050964 setPermissionsForUserIds()
+0x72c9f695 setPermissionsMultipleStreams()
+0xa8989d3f setPublicPermission()
+0xda742228 setTrustedForwarder()
+0x86902fe9 streamIdToMetadata()
+0xf36d4849 streamIdToPermissions()
+0x84e524e8 streamIdToVersion()
+0x01ffc9a7 supportsInterface()
+0xb6a91597 trustedSetPermissionsForUser()
+0x42617fe7 updateStreamMetadata()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# StreamRegistryV5 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xd22d5803 PermissionUpdated
+0xd7c1097f PermissionUpdatedForUserId
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x0db02788 StreamCreated
+0x74b7395f StreamDeleted
+0xa60b7935 StreamUpdated
+0xbc7cd75a Upgraded
+
+
+
+# StreamRegistryV5_1 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0xdbfc1d87 ENScreateStreamCallback()
+0x098d3228 MAX_INT()
+0x5901692e TRUSTED_ROLE()
+0x5e57966d addressToString()
+0x158c9b93 createMultipleStreamsWithPermissions()
+0x0ef8cdc7 createStream()
+0x78800c76 createStreamWithENS()
+0xbdca2948 createStreamWithPermissions()
+0x6453cbd7 deleteStream()
+0x3c6cffa9 ensCache()
+0x261a323e exists()
+0x0843564a getAddressKey()
+0xa020aa97 getDirectPermissionsForUser()
+0x9f967a70 getDirectPermissionsForUserId()
+0xe8f3828e getPermissionsForUser()
+0x7aa31f8c getPermissionsForUserId()
+0x248a9ca3 getRoleAdmin()
+0x6394fbd2 getStreamMetadata()
+0x353f8500 getTrustedRole()
+0x931a314d getUserKeyForUserId()
+0x997e8aaa grantPermission()
+0x76052684 grantPermissionForUserId()
+0x466f878e grantPublicPermission()
+0x2f2ff15d grantRole()
+0xf7f5078c hasDirectPermission()
+0x88b21038 hasPermission()
+0xfb5642a0 hasPublicPermission()
+0x91d14854 hasRole()
+0x485cc955 initialize()
+0x572b6c05 isTrustedForwarder()
+0x36568abe renounceRole()
+0x50b5422b revokeAllPermissionsForUser()
+0xd7243b69 revokeAllPermissionsForUserId()
+0x3e397aea revokePermission()
+0xdffb8f82 revokePermissionForUserId()
+0x272cc993 revokePublicPermission()
+0xd547741f revokeRole()
+0x79afefcd setEnsCache()
+0x7b3681b5 setExpirationTime()
+0xf0b51b0e setExpirationTimeForUserId()
+0x2f55f732 setMultipleStreamPermissionsForUserIds()
+0x470fd671 setPermissions()
+0xd2d78c3e setPermissionsForUser()
+0x50050964 setPermissionsForUserIds()
+0x72c9f695 setPermissionsMultipleStreams()
+0xa8989d3f setPublicPermission()
+0xda742228 setTrustedForwarder()
+0x86902fe9 streamIdToMetadata()
+0xf36d4849 streamIdToPermissions()
+0xf5cc35a4 streamIdToPublicPermissionUserKey()
+0x84e524e8 streamIdToVersion()
+0x01ffc9a7 supportsInterface()
+0xb6a91597 trustedSetPermissionsForUser()
+0x42617fe7 updateStreamMetadata()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+0x54fd4d50 version()
+
+# StreamRegistryV5_1 events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0xd22d5803 PermissionUpdated
+0xd7c1097f PermissionUpdatedForUserId
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0x0db02788 StreamCreated
+0x74b7395f StreamDeleted
+0xa60b7935 StreamUpdated
+0xbc7cd75a Upgraded
+
+
+
+# StreamStorageRegistry functions
+0xa1aeaf22 addAndRemoveStorageNodes()
+0x842107cd addStorageNode()
+0xc0c53b8b initialize()
+0xa030f2df isStorageNodeOf()
+0x572b6c05 isTrustedForwarder()
+0xd9b5c4a5 nodeRegistry()
+0x80e9f2ba pairs()
+0x749d18d7 removeStorageNode()
+0xe3642153 streamRegistry()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# StreamStorageRegistry events
+0xfb989cb0 Added
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x264d0523 Removed
+0xbc7cd75a Upgraded
+
+
+
+# StreamStorageRegistryV2 functions
+0xa1aeaf22 addAndRemoveStorageNodes()
+0x842107cd addStorageNode()
+0xc0c53b8b initialize()
+0xa030f2df isStorageNodeOf()
+0x572b6c05 isTrustedForwarder()
+0xd9b5c4a5 nodeRegistry()
+0x80e9f2ba pairs()
+0x749d18d7 removeStorageNode()
+0xda742228 setTrustedForwarder()
+0xe3642153 streamRegistry()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# StreamStorageRegistryV2 events
+0xfb989cb0 Added
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x264d0523 Removed
+0xbc7cd75a Upgraded
+
+
+
+# ENSCache functions
+0xec65d0f8 cancelRequest()
+0x913d9932 fulfillENSOwner()
+0x165d35e1 getChainlinkToken()
+0xc2939d97 jobId()
+0x7dc0d1d0 oracle()
+0x8da5cb5b owner()
+0x2b1fd995 owners()
+0x715018a6 renounceOwnership()
+0xd5f5729d requestENSOwner()
+0x1877e534 requestENSOwnerAndCreateStream()
+0x634172bf resetCacheForENSName()
+0x9a46768e resetCacheForMyENSName()
+0xe90f432c setChainlinkJobId()
+0x230e6d23 setChainlinkTokenAddress()
+0x4c69c00f setOracleAddress()
+0x0c3cac3b setStreamRegistry()
+0xadd14a74 tempENSnames()
+0xa74e712f tempIdPaths()
+0x413a38ed tempMetadatas()
+0x87103c5f tempRequestorAddress()
+0xf2fde38b transferOwnership()
+0x8dc654a2 withdrawLink()
+
+# ENSCache events
+0xe1fe3afa ChainlinkCancelled
+0x7cc135e0 ChainlinkFulfilled
+0xb5e6e01e ChainlinkRequested
+0x8be0079c OwnershipTransferred
+
+
+
+# IStreamRegistry functions
+0xdbfc1d87 ENScreateStreamCallback()
+
+
+
+# ENSCacheV1 functions
+0xec65d0f8 cancelRequest()
+0x913d9932 fulfillENSOwner()
+0x165d35e1 getChainlinkToken()
+0xc2939d97 jobId()
+0x7dc0d1d0 oracle()
+0x8da5cb5b owner()
+0x2b1fd995 owners()
+0x715018a6 renounceOwnership()
+0xd5f5729d requestENSOwner()
+0x1877e534 requestENSOwnerAndCreateStream()
+0xe90f432c setChainlinkJobId()
+0x230e6d23 setChainlinkTokenAddress()
+0x4c69c00f setOracleAddress()
+0x0c3cac3b setStreamRegistry()
+0xadd14a74 tempENSnames()
+0xa74e712f tempIdPaths()
+0x413a38ed tempMetadatas()
+0x87103c5f tempRequestorAddress()
+0xf2fde38b transferOwnership()
+0x8dc654a2 withdrawLink()
+
+# ENSCacheV1 events
+0xe1fe3afa ChainlinkCancelled
+0x7cc135e0 ChainlinkFulfilled
+0xb5e6e01e ChainlinkRequested
+0x8be0079c OwnershipTransferred
+
+
+
+# IStreamRegistry functions
+0xdbfc1d87 ENScreateStreamCallback()
+
+
+
+# ENSCacheV2Streamr functions
+0x5f4a21d8 fulfillENSOwner()
+0xc0c53b8b initialize()
+0x8da5cb5b owner()
+0x2b1fd995 owners()
+0x52d1902d proxiableUUID()
+0x715018a6 renounceOwnership()
+0x1877e534 requestENSOwnerAndCreateStream()
+0x25119d79 setENSCacheV1()
+0x0c3cac3b setStreamRegistry()
+0xf11a120b setStreamrScript()
+0xf2fde38b transferOwnership()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# ENSCacheV2Streamr events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x7f26b83f Initialized
+0x8be0079c OwnershipTransferred
+0x6dca0be1 RequestENSOwnerAndCreateStream
+0xbc7cd75a Upgraded
+
+
+
+# ERC20Mintable functions
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x39509351 increaseAllowance()
+0x40c10f19 mint()
+0x06fdde03 name()
+0x95d89b41 symbol()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x23b872dd transferFrom()
+
+# ERC20Mintable events
+0x8c5be1e5 Approval
+0xddf252ad Transfer
+
+
+
+# MockMarketplaceBeneficiary functions
+0x4a439cc0 onPurchase()
+0xa4c0ed36 onTokenTransfer()
+
+# MockMarketplaceBeneficiary events
+0x9ad21c4b OnPurchaseCalled
+0xecc977eb OnTokenTransferCalled

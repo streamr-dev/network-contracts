@@ -1,14 +1,9 @@
 /* eslint-disable no-console */
-import { StreamrEnvDeployer } from "@streamr/network-contracts"
-import { HubEnvDeployer } from "@streamr/hub-contracts"
-
 import { JsonRpcProvider } from "@ethersproject/providers"
 import { Wallet } from "@ethersproject/wallet"
-import { parseEther } from "@ethersproject/units"
-
-import { deployDataUnionContracts, deployDataUnion } from "./deployDataUnionContracts"
-
+import { HubEnvDeployer } from "./HubEnvDeployer"
 import { projects } from "./projects"
+import { StreamrEnvDeployer } from "./StreamrEnvDeployer"
 
 // hardhat node mockchain (first private key from testrpc mnemonic)
 const key = "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0"
@@ -48,8 +43,6 @@ async function deploy() {
 
     await streamrEnvDeployer.deployToken()
 
-    const { dataUnionFactory, dataUnionTemplate } = await deployDataUnionContracts(streamrEnvDeployer.addresses.DATA, deployerWallet)
-
     await streamrEnvDeployer.deployEnvironment({ deployToken: false })
     await streamrEnvDeployer.createFundStakeSponsorshipAndOperator()
     await streamrEnvDeployer.registerEnsName("streamrtest", new Wallet(key))
@@ -57,13 +50,6 @@ async function deploy() {
     console.log("Deploying Hub contracts...")
     const hubDeployer = new HubEnvDeployer(key, url, streamrEnvDeployer.addresses.StreamRegistry, 1337)
     await hubDeployer.deployCoreContracts(streamrEnvDeployer.addresses.DATA)
-
-    // deploy a data union to populate the subgraph
-    const dataUnion = await deployDataUnion(deployerWallet, dataUnionFactory)
-    await (await dataUnion.addMembersWithWeights(
-        [ "0x01BE23585060835E02B77ef475b0Cc51aA1e0709", "0xd2D23b73A67208a90CBfEE1381415329954f54E2" ],
-        [ parseEther("1"), parseEther("2") ],
-    ))
 
     console.log("\n\n")
     console.log(`Admin wallet: address: ${deployerWallet.address} (private key: ${deployerWallet.privateKey})`)
@@ -94,9 +80,7 @@ async function deploy() {
 
     const contractAddresses = {
         ...streamrEnvDeployer.addresses,
-        ...hubDeployer.addresses,
-        DataUnionFactory: dataUnionFactory.address,
-        DataUnionTemplate: dataUnionTemplate.address,
+        ...hubDeployer.addresses
     }
     const addressesJson = JSON.stringify(contractAddresses, null, 4)
 

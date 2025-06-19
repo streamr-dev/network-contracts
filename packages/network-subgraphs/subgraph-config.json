@@ -1,0 +1,200 @@
+{
+    "dev2": {
+        "networkId": "dev2",
+        "hubContracts": true,
+        "contracts": {
+            "StreamRegistry": {
+                "address": "0x18E0937099660B82464475Ea2B7e6Af4f2BFE5F0",
+                "startBlock": 0
+            },
+            "StorageNodeRegistry": {
+                "address": "0x338090C5492C5c5E41a4458f5FC4b205cbc54A24",
+                "startBlock": 0
+            },
+            "StreamStorageRegistry": {
+                "address": "0xB73189CeBCc870bE6f9aa16764bbB3665e4B49B6",
+                "startBlock": 0
+            },
+            "ProjectRegistryV1": {
+                "address": "0xA9166376706611110f814D1333b8E80FEc5d8f10",
+                "startBlock": 0
+            },
+            "MarketplaceV4": {
+                "address": "0xb8678223183d560280a7BEF68daAbB0E3daBd97D",
+                "startBlock": 0
+            },
+            "ProjectStakingV1": {
+                "address": "0x73a9310C43621B853C508902bb8c1DA8f1240EaE",
+                "startBlock": 0
+            },
+            "StreamrConfig": {
+                "address": "0x00E680d549FE53a627a3db86a6F88fA2471CFfAa",
+                "startBlock": 0
+            },
+            "SponsorshipFactory": {
+                "address": "0x699B4bE95614f017Bb622e427d3232837Cc814E6",
+                "startBlock": 0
+            },
+            "OperatorFactory": {
+                "address": "0xD13D34d37e2c94cb35EA8D5DE7498Cb7830d26e0",
+                "startBlock": 0
+            }
+        }
+    },
+    "polygon": {
+        "networkId": "matic",
+        "hubContracts": true,
+        "contracts": {
+            "StreamRegistry": {
+                "address": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
+                "startBlock": 23586971
+            },
+            "StorageNodeRegistry": {
+                "address": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
+                "startBlock": 23562861
+            },
+            "StreamStorageRegistry": {
+                "address": "0xe8e2660CeDf2a59C917a5ED05B72df4146b58399",
+                "startBlock": 23586998
+            },
+            "ProjectRegistryV1": {
+                "address": "0x496a6154da5aA6a021a3bd0DCd337DA80F48a6e1",
+                "startBlock": 38700928
+            },
+            "MarketplaceV4": {
+                "address": "0xdF8b74D735197dCD5C94bE933db080E69A958de6",
+                "startBlock": 39591313
+            },
+            "ProjectStakingV1": {
+                "address": "0xAA7a4BdBE91F143F3103206e48A8AfF21101B6DE",
+                "startBlock": 38701364
+            },
+            "StreamrConfig": {
+                "address": "0x869e88dB146ECAF20dDf199a12684cD80c263c8f",
+                "startBlock": 50045923
+            },
+            "SponsorshipFactory": {
+                "address": "0x820b2f9a15ed45F9802c59d0CC77C22C81755e45",
+                "startBlock": 50046404
+            },
+            "OperatorFactory": {
+                "address": "0x935734e66729b69260543Cf6e5EfeB42AC962183",
+                "startBlock": 50046356
+            }
+        }
+    },
+    "polygonAmoy": {
+        "networkId": "polygon-amoy",
+        "hubContracts": true,
+        "contracts": {
+            "StreamRegistry": {
+                "address": "0xE9C98bdE63248e58E9137Db8270D9675B9E34b93",
+                "startBlock": 6550000
+            },
+            "StorageNodeRegistry": {
+                "address": "0x02fdF917f4e6Ae8F7F1bBDd28179d819E2b76820",
+                "startBlock": 6550000
+            },
+            "StreamStorageRegistry": {
+                "address": "0x0f3671A9A92416E1aD32750faCf2AD4FA1b66f78",
+                "startBlock": 6550000
+            },
+            "ProjectRegistryV1": {
+                "address": "0xc5e1434d35c0c7291c7032Fd9C4096b4876C6823",
+                "startBlock": 6550000
+            },
+            "MarketplaceV4": {
+                "address": "0x6C8eaA8e0bF605469c15b6F9106387B4cEC99976",
+                "startBlock": 6550000
+            },
+            "ProjectStakingV1": {
+                "address": "0x3A27A16770477EbcFb4B81cE462F4f12591767A0",
+                "startBlock": 6550000
+            },
+            "StreamrConfig": {
+                "address": "0x835bC97D2a61bbF5d05932C5105Ca34e1b815F94",
+                "startBlock": 6550000
+            },
+            "SponsorshipFactory": {
+                "address": "0xb194a68b166f2e3074B551393fA61490D19c69f8",
+                "startBlock": 6550000
+            },
+            "OperatorFactory": {
+                "address": "0xE02E8E9fF5ea6a58F34D00C0e4B091e066B9fA81",
+                "startBlock": 6550000
+            }
+        }
+    },
+    "peaq": {
+        "networkId": "peaq",
+        "hubContracts": true,
+        "contracts": {
+            "StreamRegistry": {
+                "address": "0xD0C720e99Bd39311614f292d8B0B4e351Bde157c",
+                "startBlock": 900000
+            },
+            "StorageNodeRegistry": {
+                "address": "0xaCF9e8134047eDc671162D9404BF63a587435bAa",
+                "startBlock": 900000
+            },
+            "StreamStorageRegistry": {
+                "address": "0xB36CF8ee4219a3Ac9FBC3865C35E9a99353c26db",
+                "startBlock": 900000
+            },
+            "ProjectRegistryV1": {
+                "address": "0xB14205AE3D7672B937B972EBdf2b986fB0B8CfaA",
+                "startBlock": 900000
+            },
+            "MarketplaceV4": {
+                "address": "0x959684926448296ea72BD4B05593426A3cD3F0dF",
+                "startBlock": 900000
+            },
+            "ProjectStakingV1": {
+                "address": "0xd1cBD6b1Be710C41c01A9613802209843407b8b9",
+                "startBlock": 900000
+            },
+            "StreamrConfig": {
+                "address": "0xc81Fa3Cc3E81dF24D21bfc608f8FB06262Da4F8c",
+                "startBlock": 900000
+            },
+            "SponsorshipFactory": {
+                "address": "0xdaF0905e19C45b9Fea7E60D232061edF78E9F570",
+                "startBlock": 900000
+            },
+            "OperatorFactory": {
+                "address": "0x6d201374D7c28EF1c3cc1b6FA300f06110B597A3",
+                "startBlock": 900000
+            }
+        }
+    },
+    "iotex": {
+        "networkId": "iotex",
+        "hubContracts": false,
+        "contracts": {
+            "StreamRegistry": {
+                "address": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
+                "startBlock": 33510000
+            },
+            "StorageNodeRegistry": {
+                "address": "0xb9e70Bd9833dd091f06edc8073aa86a76EdeF46D",
+                "startBlock": 33510000
+            },
+            "StreamStorageRegistry": {
+                "address": "0xF79c40Fbc432f1f8B8B017441B644e0ac7bccea2",
+                "startBlock": 33510000
+            },
+            "StreamrConfig": {
+                "address": "0x23Dd2D1f39AD0f9d517ce56Ca490eF19B50e6f1A",
+                "startBlock": 33510000
+            },
+            "SponsorshipFactory": {
+                "address": "0xe4Ae8e6c5b6E85914738803ad73c111eF2618621",
+                "startBlock": 33510000
+            },
+            "OperatorFactory": {
+                "address": "0xbC1cC84912d54fCf7316A6dA2e7A884731a87935",
+                "startBlock": 33510000
+            }
+        }
+    }
+}

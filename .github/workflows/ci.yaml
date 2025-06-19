@@ -7,14 +7,14 @@ on:
       - '*'
   push:
     branches:
-      - master
+      - main
 
 jobs:
   lint-and-unit-test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -45,7 +45,7 @@ jobs:
     needs:
       - lint-and-unit-test
     steps:
-      - uses: actions/checkout@v3.0.2
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
@@ -71,13 +71,12 @@ jobs:
       - name: Start docker stack
         uses: streamr-dev/streamr-docker-dev-action@v1.0.1
         with:
-          services-to-start: 'deploy-network-subgraphs-fastchain graph-deploy-dataunion-subgraph-fastchain'
-          # services-to-start: 'ens-sync-script-fastchain deploy-network-subgraphs-fastchain graph-deploy-dataunion-subgraph-fastchain'
-      - name: Integration Test (with locally built images)
+          services-to-start: 'deploy-network-subgraphs-fastchain'
+      - name: Smoke Test (with locally built images)
         env:
           TEST_TIMEOUT: '600000'
           DEBUG: "*,-mocha:*"
-        run: npm run integration-test
+        run: npm run smoke-test -w packages/network-subgraphs
 
       # - name: Build & Push
       #   uses: docker/build-push-action@v4.1.1
