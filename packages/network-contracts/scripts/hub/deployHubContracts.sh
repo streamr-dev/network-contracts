@@ -8,7 +8,13 @@ else
     export KEY="$KEY"
 fi
 
-export CHAIN=iotex
+if declare -p CHAIN >/dev/null 2>&1; then
+    echo "Using chain from environment variable CHAIN"
+else
+    read -p "Enter chain: " CHAIN
+    export CHAIN="$CHAIN"
+fi
+
 export OUTPUT_FILE=address.txt
 npx hardhat run --network $CHAIN scripts/deployProjectRegistry.ts
 export PROJECT_REGISTRY_ADDRESS=$(cat address.txt)
