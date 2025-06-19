@@ -17,7 +17,7 @@
         "reason-string": [
             "error",
             {
-                "maxLength": 32
+                "maxLength": 50
             }
         ],
         "no-global-import": "off",
