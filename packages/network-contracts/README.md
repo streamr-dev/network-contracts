@@ -33,7 +33,7 @@ contract.on("Staked", async (sponsorship: string) => {
 })
 ```
 
-The functions that end with `ForUserId` take an arbitrary `bytes` argument for the user ID. Addresses can also be given to these functions but they need to be padded to 32 bytes first, e.g.: `ethers.utils.hexZeroPad("0x1234567890123456789012345678901234567890", 32)` => `0x0000000000000000000000001234567890123456789012345678901234567890`.
+The functions that end with `ForUserId` take an arbitrary `bytes` argument for the user ID. Addresses can also be given to these functions, and they will work the same way as the older functions that only accept addresses.
 
 ## Developer notes
 
