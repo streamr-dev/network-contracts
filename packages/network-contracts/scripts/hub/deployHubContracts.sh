@@ -10,8 +10,8 @@ fi
 
 export CHAIN=iotex
 export OUTPUT_FILE=address.txt
-npm run deploy-registry
+npx hardhat run --network $CHAIN scripts/deployProjectRegistry.ts
 export PROJECT_REGISTRY_ADDRESS=$(cat address.txt)
-npm run deploy-staking
-npm run deploy-marketplace
+npx hardhat run --network $CHAIN scripts/deployProjectStakingV1.ts
+npx hardhat run --network $CHAIN scripts/deployMarketplaceV4.ts
 rm address.txt
