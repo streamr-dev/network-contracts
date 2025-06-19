@@ -1,0 +1,887 @@
+$ ./scripts/hub/deployHubContracts.sh
++ declare -p KEY
++ echo 'Using deployer private key from environment variable KEY'
+Using deployer private key from environment variable KEY
++ declare -p CHAIN
++ read -p 'Enter chain: ' CHAIN
+Enter chain: iotex
++ export CHAIN=iotex
++ CHAIN=iotex
++ OUTPUT_FILE=project-registry-address.txt
++ npx hardhat run --network iotex scripts/hub/deployProjectRegistry.ts
+WARNING: You are using a version of Node.js that is not supported, and it may work incorrectly, or not work at all. See https://hardhat.org/nodejs-versions
+
+
+Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing "SPDX-License-Identifier: <SPDX-License>" to each source file. Use "SPDX-License-Identifier: UNLICENSED" for non-open-source code. Please see https://spdx.org for more information.
+--> @ensdomains/ens-contracts/contracts/registry/ENS.sol
+
+
+Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing "SPDX-License-Identifier: <SPDX-License>" to each source file. Use "SPDX-License-Identifier: UNLICENSED" for non-open-source code. Please see https://spdx.org for more information.
+--> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol
+
+
+Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing "SPDX-License-Identifier: <SPDX-License>" to each source file. Use "SPDX-License-Identifier: UNLICENSED" for non-open-source code. Please see https://spdx.org for more information.
+--> @ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol
+
+
+Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing "SPDX-License-Identifier: <SPDX-License>" to each source file. Use "SPDX-License-Identifier: UNLICENSED" for non-open-source code. Please see https://spdx.org for more information.
+--> @uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol
+
+
+Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing "SPDX-License-Identifier: <SPDX-License>" to each source file. Use "SPDX-License-Identifier: UNLICENSED" for non-open-source code. Please see https://spdx.org for more information.
+--> @uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:20:9:
+   |
+20 |         address owner = records[node].owner;
+   |         ^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:143:5:
+    |
+143 |     function owner(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:41:9:
+   |
+41 |         address owner,
+   |         ^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:143:5:
+    |
+143 |     function owner(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:42:9:
+   |
+42 |         address resolver,
+   |         ^^^^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:159:5:
+    |
+159 |     function resolver(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:43:9:
+   |
+43 |         uint64 ttl
+   |         ^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:170:5:
+    |
+170 |     function ttl(bytes32 node) public view virtual override returns (uint64) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:60:9:
+   |
+60 |         address owner,
+   |         ^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:143:5:
+    |
+143 |     function owner(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:61:9:
+   |
+61 |         address resolver,
+   |         ^^^^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:159:5:
+    |
+159 |     function resolver(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:62:9:
+   |
+62 |         uint64 ttl
+   |         ^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:170:5:
+    |
+170 |     function ttl(bytes32 node) public view virtual override returns (uint64) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:75:9:
+   |
+75 |         address owner
+   |         ^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:143:5:
+    |
+143 |     function owner(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:90:9:
+   |
+90 |         address owner
+   |         ^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:143:5:
+    |
+143 |     function owner(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:105:9:
+    |
+105 |         address resolver
+    |         ^^^^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:159:5:
+    |
+159 |     function resolver(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:118:9:
+    |
+118 |         uint64 ttl
+    |         ^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:170:5:
+    |
+170 |     function ttl(bytes32 node) public view virtual override returns (uint64) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:192:9:
+    |
+192 |         address owner,
+    |         ^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:143:5:
+    |
+143 |     function owner(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:198:38:
+    |
+198 |     function _setOwner(bytes32 node, address owner) internal virtual {
+    |                                      ^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:143:5:
+    |
+143 |     function owner(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:204:9:
+    |
+204 |         address resolver,
+    |         ^^^^^^^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:159:5:
+    |
+159 |     function resolver(
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: This declaration shadows an existing declaration.
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:205:9:
+    |
+205 |         uint64 ttl
+    |         ^^^^^^^^^^
+Note: The shadowed declaration is here:
+   --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:170:5:
+    |
+170 |     function ttl(bytes32 node) public view virtual override returns (uint64) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Visibility for constructor is ignored. If you want the contract to be non-deployable, making it "abstract" is sufficient.
+  --> @ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol:28:5:
+   |
+28 |     constructor() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Visibility for constructor is ignored. If you want the contract to be non-deployable, making it "abstract" is sufficient.
+  --> @ensdomains/ens-contracts/contracts/registry/FIFSRegistrar.sol:25:5:
+   |
+25 |     constructor(ENS ensAddr, bytes32 node) public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Unnamed return variable can remain unassigned. Add an explicit return with value to all non-reverting code paths or name the variable.
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy.sol:15:63:
+   |
+15 |     function operatorTokenToData(uint) external view returns (uint) {
+   |                                                               ^^^^
+
+
+Warning: Unnamed return variable can remain unassigned. Add an explicit return with value to all non-reverting code paths or name the variable.
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy2.sol:15:63:
+   |
+15 |     function operatorTokenToData(uint) external view returns (uint) {
+   |                                                               ^^^^
+
+
+Warning: Unnamed return variable can remain unassigned. Add an explicit return with value to all non-reverting code paths or name the variable.
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy3.sol:21:69:
+   |
+21 |     function dataToOperatorToken(uint, uint) external view returns (uint) {
+   |                                                                     ^^^^
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy.sol:15:5:
+   |
+15 |     function operatorTokenToData(uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy.sol:22:5:
+   |
+22 |     function dataToOperatorToken(uint dataWei, uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy2.sol:15:5:
+   |
+15 |     function operatorTokenToData(uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy2.sol:21:5:
+   |
+21 |     function dataToOperatorToken(uint dataWei, uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy3.sol:15:5:
+   |
+15 |     function operatorTokenToData(uint tokenWei) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Warning: Function state mutability can be restricted to pure
+  --> contracts/OperatorTokenomics/testcontracts/TestExchangeRatePolicy3.sol:21:5:
+   |
+21 |     function dataToOperatorToken(uint, uint) external view returns (uint) {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Compiled 212 Solidity files successfully
+ ·----------------------------------|--------------------------------|--------------------------------·
+ |  Solc version: 0.8.13            ·  Optimizer enabled: true       ·  Runs: 100                     │
+ ···································|································|·································
+ |  Contract Name                   ·  Deployed size (KiB) (change)  ·  Initcode size (KiB) (change)  │
+ ···································|································|·································
+ |  AcceptEverythingPaymaster       ·                 3.571 (0.000)  ·                 3.694 (0.000)  │
+ ···································|································|·································
+ |  AddressUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  AddressUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  AdminKickPolicy                 ·                11.931 (0.000)  ·                11.976 (0.000)  │
+ ···································|································|·································
+ |  BasicToken                      ·                      0.497 ()  ·                      0.528 ()  │
+ ···································|································|·································
+ |  BufferChainlink                 ·                      0.084 ()  ·                      0.138 ()  │
+ ···································|································|·································
+ |  CBORChainlink                   ·                      0.084 ()  ·                      0.138 ()  │
+ ···································|································|·································
+ |  Chainlink                       ·                      0.084 ()  ·                      0.138 ()  │
+ ···································|································|·································
+ |  ClonesUpgradeable               ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  Counters                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  DATAv2                          ·                 7.632 (0.000)  ·                 8.664 (0.000)  │
+ ···································|································|·································
+ |  DefaultDelegationPolicy         ·                18.962 (0.000)  ·                19.007 (0.000)  │
+ ···································|································|·································
+ |  DefaultExchangeRatePolicy       ·                18.966 (0.000)  ·                19.011 (0.000)  │
+ ···································|································|·································
+ |  DefaultLeavePolicy              ·                11.669 (0.000)  ·                11.714 (0.000)  │
+ ···································|································|·································
+ |  DefaultUndelegationPolicy       ·                19.318 (0.000)  ·                19.363 (0.000)  │
+ ···································|································|·································
+ |  ECDSA                           ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ECDSAUpgradeable                ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ENSCache                        ·                      7.256 ()  ·                      7.967 ()  │
+ ···································|································|·································
+ |  ENSCacheV1                      ·                      6.815 ()  ·                      7.526 ()  │
+ ···································|································|·································
+ |  ENSCacheV2Streamr               ·                      5.178 ()  ·                      5.252 ()  │
+ ···································|································|·································
+ |  ENSRegistry                     ·                 2.417 (0.000)  ·                 2.504 (0.000)  │
+ ···································|································|·································
+ |  ERC20                           ·                 2.190 (0.000)  ·                 2.832 (0.000)  │
+ ···································|································|·································
+ |  ERC20Mintable                   ·                 2.525 (0.000)  ·                 3.192 (0.000)  │
+ ···································|································|·································
+ |  ERC20Upgradeable                ·                 2.097 (0.000)  ·                 2.128 (0.000)  │
+ ···································|································|·································
+ |  FIFSRegistrar                   ·                 0.574 (0.000)  ·                 0.731 (0.000)  │
+ ···································|································|·································
+ |  Forwarder                       ·                 4.759 (0.000)  ·                 5.229 (0.000)  │
+ ···································|································|·································
+ |  GsnEip712Library                ·                 1.294 (0.000)  ·                 1.351 (0.000)  │
+ ···································|································|·································
+ |  GsnUtils                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  LinkToken                       ·                      2.676 ()  ·                      2.736 ()  │
+ ···································|································|·································
+ |  MarketplaceV3                   ·                13.912 (0.000)  ·                13.986 (0.000)  │
+ ···································|································|·································
+ |  MarketplaceV4                   ·                 9.425 (0.000)  ·                 9.499 (0.000)  │
+ ···································|································|·································
+ |  MathUpgradeable                 ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  MaxOperatorsJoinPolicy          ·                11.454 (0.000)  ·                11.499 (0.000)  │
+ ···································|································|·································
+ |  MinimalForwarder                ·                 2.813 (0.000)  ·                 3.156 (0.000)  │
+ ···································|································|·································
+ |  MinimalForwarderUpgradeable     ·                 2.394 (0.000)  ·                 2.425 (0.000)  │
+ ···································|································|·································
+ |  MinLibBytes                     ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  MockMarketplaceBeneficiary      ·                 0.660 (0.000)  ·                 0.691 (0.000)  │
+ ···································|································|·································
+ |  MockRandomOracle                ·                 0.734 (0.000)  ·                 0.921 (0.000)  │
+ ···································|································|·································
+ |  NetworkParameters               ·                 1.621 (0.000)  ·                 2.296 (0.000)  │
+ ···································|································|·································
+ |  NodeDomainNameHelper            ·                 0.452 (0.000)  ·                 0.483 (0.000)  │
+ ···································|································|·································
+ |  NodeModule                      ·                20.818 (0.000)  ·                20.863 (0.000)  │
+ ···································|································|·································
+ |  NodeRegistry                    ·                 8.724 (0.000)  ·                 8.791 (0.000)  │
+ ···································|································|·································
+ |  Operator                        ·                18.695 (0.000)  ·                18.740 (0.000)  │
+ ···································|································|·································
+ |  OperatorContractOnlyJoinPolicy  ·                11.516 (0.000)  ·                11.561 (0.000)  │
+ ···································|································|·································
+ |  OperatorFactory                 ·                11.744 (0.000)  ·                11.830 (0.000)  │
+ ···································|································|·································
+ |  Oracle                          ·                      4.589 ()  ·                      4.763 ()  │
+ ···································|································|·································
+ |  Ownable                         ·                 0.551 (0.000)  ·                 0.694 (0.000)  │
+ ···································|································|·································
+ |  ProjectRegistryV1               ·                21.323 (0.000)  ·                21.409 (0.000)  │
+ ···································|································|·································
+ |  ProjectStakingV1                ·                 6.637 (0.000)  ·                 6.711 (0.000)  │
+ ···································|································|·································
+ |  QueueModule                     ·                21.135 (0.000)  ·                21.180 (0.000)  │
+ ···································|································|·································
+ |  RemoteMarketplaceV1             ·                 9.350 (0.000)  ·                 9.424 (0.000)  │
+ ···································|································|·································
+ |  SafeMath                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  SafeMathChainlink               ·                      0.084 ()  ·                      0.118 ()  │
+ ···································|································|·································
+ |  SafeMathChainlink               ·                      0.074 ()  ·                      0.117 ()  │
+ ···································|································|·································
+ |  Sponsorship                     ·                11.184 (0.000)  ·                11.229 (0.000)  │
+ ···································|································|·································
+ |  SponsorshipFactory              ·                10.454 (0.000)  ·                10.540 (0.000)  │
+ ···································|································|·································
+ |  StakeModule                     ·                23.106 (0.000)  ·                23.152 (0.000)  │
+ ···································|································|·································
+ |  StakeWeightedAllocationPolicy   ·                13.097 (0.000)  ·                13.142 (0.000)  │
+ ···································|································|·································
+ |  StandardToken                   ·                      1.501 ()  ·                      1.532 ()  │
+ ···································|································|·································
+ |  StorageSlotUpgradeable          ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StorageSlotUpgradeable          ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StreamrConfig                   ·                10.344 (0.000)  ·                10.418 (0.000)  │
+ ···································|································|·································
+ |  StreamrConfigV1_1               ·                10.505 (0.000)  ·                10.579 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistry                  ·                20.528 (0.000)  ·                20.596 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV2                ·                20.520 (0.000)  ·                20.587 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV3                ·                22.183 (0.000)  ·                22.251 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV4                ·                23.188 (0.000)  ·                23.257 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV4_1              ·                23.265 (0.000)  ·                23.333 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV5                ·                23.490 (0.000)  ·                23.559 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV5_1              ·                23.567 (0.000)  ·                23.636 (0.000)  │
+ ···································|································|·································
+ |  StreamStorageRegistry           ·                 7.505 (0.000)  ·                 7.572 (0.000)  │
+ ···································|································|·································
+ |  StreamStorageRegistryV2         ·                 7.833 (0.000)  ·                 7.900 (0.000)  │
+ ···································|································|·································
+ |  Strings                         ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StringsUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StringsUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  TestAllocationPolicy            ·                12.381 (0.000)  ·                12.426 (0.000)  │
+ ···································|································|·································
+ |  TestBadOperator                 ·                 2.888 (0.000)  ·                 2.953 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy          ·                 0.397 (0.000)  ·                 0.429 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy2         ·                 0.464 (0.000)  ·                 0.495 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy3         ·                 0.392 (0.000)  ·                 0.423 (0.000)  │
+ ···································|································|·································
+ |  TestJoinPolicy                  ·                11.453 (0.000)  ·                11.498 (0.000)  │
+ ···································|································|·································
+ |  TestKickPolicy                  ·                11.760 (0.000)  ·                11.805 (0.000)  │
+ ···································|································|·································
+ |  TestToken                       ·                 2.818 (0.000)  ·                 3.466 (0.000)  │
+ ···································|································|·································
+ |  TokenBalanceWeightStrategy      ·                 0.390 (0.000)  ·                 0.533 (0.000)  │
+ ···································|································|·································
+ |  TrackerRegistry                 ·                 5.609 (0.000)  ·                 8.042 (0.000)  │
+ ···································|································|·································
+ |  Uniswap2Adapter                 ·                 5.086 (0.000)  ·                 5.271 (0.000)  │
+ ···································|································|·································
+ |  Uniswap2AdapterV4               ·                 6.424 (0.000)  ·                 6.779 (0.000)  │
+ ···································|································|·································
+ |  VoteKickPolicy                  ·                19.976 (0.000)  ·                20.021 (0.000)  │
+ ···································|································|·································
+ |  WeightedNodeRegistry            ·                 9.456 (0.000)  ·                 9.523 (0.000)  │
+ ···································|································|·································
+ |  WhitelistPaymaster              ·                 4.631 (0.000)  ·                 4.754 (0.000)  │
+ ·----------------------------------|--------------------------------|--------------------------------·
+StreamRegistry address: 0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6
+Deploying ProjectRegistryV1 to "iotex" chain:
+ProjectRegistryV1 deployed at: 0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692
+ProjectRegistryV1 address written to project-registry-address.txt
+++ cat project-registry-address.txt
++ export PROJECT_REGISTRY_ADDRESS=0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692
++ PROJECT_REGISTRY_ADDRESS=0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692
++ OUTPUT_FILE=project-staking-address.txt
++ npx hardhat run --network iotex scripts/hub/deployProjectStakingV1.ts
+WARNING: You are using a version of Node.js that is not supported, and it may work incorrectly, or not work at all. See https://hardhat.org/nodejs-versions
+
+
+ ·----------------------------------|--------------------------------|--------------------------------·
+ |  Solc version: 0.8.13            ·  Optimizer enabled: true       ·  Runs: 100                     │
+ ···································|································|·································
+ |  Contract Name                   ·  Deployed size (KiB) (change)  ·  Initcode size (KiB) (change)  │
+ ···································|································|·································
+ |  AcceptEverythingPaymaster       ·                 3.571 (0.000)  ·                 3.694 (0.000)  │
+ ···································|································|·································
+ |  AddressUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  AddressUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  AdminKickPolicy                 ·                11.931 (0.000)  ·                11.976 (0.000)  │
+ ···································|································|·································
+ |  BasicToken                      ·                 0.497 (0.000)  ·                 0.528 (0.000)  │
+ ···································|································|·································
+ |  BufferChainlink                 ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  CBORChainlink                   ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  Chainlink                       ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ClonesUpgradeable               ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  Counters                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  DATAv2                          ·                 7.632 (0.000)  ·                 8.664 (0.000)  │
+ ···································|································|·································
+ |  DefaultDelegationPolicy         ·                18.962 (0.000)  ·                19.007 (0.000)  │
+ ···································|································|·································
+ |  DefaultExchangeRatePolicy       ·                18.966 (0.000)  ·                19.011 (0.000)  │
+ ···································|································|·································
+ |  DefaultLeavePolicy              ·                11.669 (0.000)  ·                11.714 (0.000)  │
+ ···································|································|·································
+ |  DefaultUndelegationPolicy       ·                19.318 (0.000)  ·                19.363 (0.000)  │
+ ···································|································|·································
+ |  ECDSA                           ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ECDSAUpgradeable                ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ENSCache                        ·                 7.256 (0.000)  ·                 7.967 (0.000)  │
+ ···································|································|·································
+ |  ENSCacheV1                      ·                 6.815 (0.000)  ·                 7.526 (0.000)  │
+ ···································|································|·································
+ |  ENSCacheV2Streamr               ·                 5.178 (0.000)  ·                 5.252 (0.000)  │
+ ···································|································|·································
+ |  ENSRegistry                     ·                 2.417 (0.000)  ·                 2.504 (0.000)  │
+ ···································|································|·································
+ |  ERC20                           ·                 2.190 (0.000)  ·                 2.832 (0.000)  │
+ ···································|································|·································
+ |  ERC20Mintable                   ·                 2.525 (0.000)  ·                 3.192 (0.000)  │
+ ···································|································|·································
+ |  ERC20Upgradeable                ·                 2.097 (0.000)  ·                 2.128 (0.000)  │
+ ···································|································|·································
+ |  FIFSRegistrar                   ·                 0.574 (0.000)  ·                 0.731 (0.000)  │
+ ···································|································|·································
+ |  Forwarder                       ·                 4.759 (0.000)  ·                 5.229 (0.000)  │
+ ···································|································|·································
+ |  GsnEip712Library                ·                 1.294 (0.000)  ·                 1.351 (0.000)  │
+ ···································|································|·································
+ |  GsnUtils                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  LinkToken                       ·                 2.676 (0.000)  ·                 2.736 (0.000)  │
+ ···································|································|·································
+ |  MarketplaceV3                   ·                13.912 (0.000)  ·                13.986 (0.000)  │
+ ···································|································|·································
+ |  MarketplaceV4                   ·                 9.425 (0.000)  ·                 9.499 (0.000)  │
+ ···································|································|·································
+ |  MathUpgradeable                 ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  MaxOperatorsJoinPolicy          ·                11.454 (0.000)  ·                11.499 (0.000)  │
+ ···································|································|·································
+ |  MinimalForwarder                ·                 2.813 (0.000)  ·                 3.156 (0.000)  │
+ ···································|································|·································
+ |  MinimalForwarderUpgradeable     ·                 2.394 (0.000)  ·                 2.425 (0.000)  │
+ ···································|································|·································
+ |  MinLibBytes                     ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  MockMarketplaceBeneficiary      ·                 0.660 (0.000)  ·                 0.691 (0.000)  │
+ ···································|································|·································
+ |  MockRandomOracle                ·                 0.734 (0.000)  ·                 0.921 (0.000)  │
+ ···································|································|·································
+ |  NetworkParameters               ·                 1.621 (0.000)  ·                 2.296 (0.000)  │
+ ···································|································|·································
+ |  NodeDomainNameHelper            ·                 0.452 (0.000)  ·                 0.483 (0.000)  │
+ ···································|································|·································
+ |  NodeModule                      ·                20.818 (0.000)  ·                20.863 (0.000)  │
+ ···································|································|·································
+ |  NodeRegistry                    ·                 8.724 (0.000)  ·                 8.791 (0.000)  │
+ ···································|································|·································
+ |  Operator                        ·                18.695 (0.000)  ·                18.740 (0.000)  │
+ ···································|································|·································
+ |  OperatorContractOnlyJoinPolicy  ·                11.516 (0.000)  ·                11.561 (0.000)  │
+ ···································|································|·································
+ |  OperatorFactory                 ·                11.744 (0.000)  ·                11.830 (0.000)  │
+ ···································|································|·································
+ |  Oracle                          ·                 4.589 (0.000)  ·                 4.763 (0.000)  │
+ ···································|································|·································
+ |  Ownable                         ·                 0.551 (0.000)  ·                 0.694 (0.000)  │
+ ···································|································|·································
+ |  ProjectRegistryV1               ·                21.323 (0.000)  ·                21.409 (0.000)  │
+ ···································|································|·································
+ |  ProjectStakingV1                ·                 6.637 (0.000)  ·                 6.711 (0.000)  │
+ ···································|································|·································
+ |  QueueModule                     ·                21.135 (0.000)  ·                21.180 (0.000)  │
+ ···································|································|·································
+ |  RemoteMarketplaceV1             ·                 9.350 (0.000)  ·                 9.424 (0.000)  │
+ ···································|································|·································
+ |  SafeMath                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  SafeMathChainlink               ·                 0.084 (0.000)  ·                 0.118 (0.000)  │
+ ···································|································|·································
+ |  SafeMathChainlink               ·                 0.074 (0.000)  ·                 0.117 (0.000)  │
+ ···································|································|·································
+ |  Sponsorship                     ·                11.184 (0.000)  ·                11.229 (0.000)  │
+ ···································|································|·································
+ |  SponsorshipFactory              ·                10.454 (0.000)  ·                10.540 (0.000)  │
+ ···································|································|·································
+ |  StakeModule                     ·                23.106 (0.000)  ·                23.152 (0.000)  │
+ ···································|································|·································
+ |  StakeWeightedAllocationPolicy   ·                13.097 (0.000)  ·                13.142 (0.000)  │
+ ···································|································|·································
+ |  StandardToken                   ·                 1.501 (0.000)  ·                 1.532 (0.000)  │
+ ···································|································|·································
+ |  StorageSlotUpgradeable          ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StorageSlotUpgradeable          ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StreamrConfig                   ·                10.344 (0.000)  ·                10.418 (0.000)  │
+ ···································|································|·································
+ |  StreamrConfigV1_1               ·                10.505 (0.000)  ·                10.579 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistry                  ·                20.528 (0.000)  ·                20.596 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV2                ·                20.520 (0.000)  ·                20.587 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV3                ·                22.183 (0.000)  ·                22.251 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV4                ·                23.188 (0.000)  ·                23.257 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV4_1              ·                23.265 (0.000)  ·                23.333 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV5                ·                23.490 (0.000)  ·                23.559 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV5_1              ·                23.567 (0.000)  ·                23.636 (0.000)  │
+ ···································|································|·································
+ |  StreamStorageRegistry           ·                 7.505 (0.000)  ·                 7.572 (0.000)  │
+ ···································|································|·································
+ |  StreamStorageRegistryV2         ·                 7.833 (0.000)  ·                 7.900 (0.000)  │
+ ···································|································|·································
+ |  Strings                         ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StringsUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StringsUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  TestAllocationPolicy            ·                12.381 (0.000)  ·                12.426 (0.000)  │
+ ···································|································|·································
+ |  TestBadOperator                 ·                 2.888 (0.000)  ·                 2.953 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy          ·                 0.397 (0.000)  ·                 0.429 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy2         ·                 0.464 (0.000)  ·                 0.495 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy3         ·                 0.392 (0.000)  ·                 0.423 (0.000)  │
+ ···································|································|·································
+ |  TestJoinPolicy                  ·                11.453 (0.000)  ·                11.498 (0.000)  │
+ ···································|································|·································
+ |  TestKickPolicy                  ·                11.760 (0.000)  ·                11.805 (0.000)  │
+ ···································|································|·································
+ |  TestToken                       ·                 2.818 (0.000)  ·                 3.466 (0.000)  │
+ ···································|································|·································
+ |  TokenBalanceWeightStrategy      ·                 0.390 (0.000)  ·                 0.533 (0.000)  │
+ ···································|································|·································
+ |  TrackerRegistry                 ·                 5.609 (0.000)  ·                 8.042 (0.000)  │
+ ···································|································|·································
+ |  Uniswap2Adapter                 ·                 5.086 (0.000)  ·                 5.271 (0.000)  │
+ ···································|································|·································
+ |  Uniswap2AdapterV4               ·                 6.424 (0.000)  ·                 6.779 (0.000)  │
+ ···································|································|·································
+ |  VoteKickPolicy                  ·                19.976 (0.000)  ·                20.021 (0.000)  │
+ ···································|································|·································
+ |  WeightedNodeRegistry            ·                 9.456 (0.000)  ·                 9.523 (0.000)  │
+ ···································|································|·································
+ |  WhitelistPaymaster              ·                 4.631 (0.000)  ·                 4.754 (0.000)  │
+ ·----------------------------------|--------------------------------|--------------------------------·
+ProjectRegistryV1 address: 0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692
+Staking token address: 0xD94be6fd546d4cE502CB1E870A58330Cc8869e9B
+Deploying ProjectStakingV1 to "iotex" chain:
+Duplicate definition of Stake (Stake(bytes32,address,uint256), Stake(bytes32,address,uint256,uint256))
+Duplicate definition of Unstake (Unstake(bytes32,address,uint256), Unstake(bytes32,address,uint256,uint256))
+Duplicate definition of Stake (Stake(bytes32,address,uint256), Stake(bytes32,address,uint256,uint256))
+Duplicate definition of Unstake (Unstake(bytes32,address,uint256), Unstake(bytes32,address,uint256,uint256))
+ProjectStakingV1 deployed at: 0x0F91Edc1760e64e434Fb9CaF93a76b262E7015b3
+ProjectStakingV1 address written to project-staking-address.txt
++ OUTPUT_FILE=marketplace-address.txt
++ npx hardhat run --network iotex scripts/hub/deployMarketplaceV4.ts
+WARNING: You are using a version of Node.js that is not supported, and it may work incorrectly, or not work at all. See https://hardhat.org/nodejs-versions
+
+
+ ·----------------------------------|--------------------------------|--------------------------------·
+ |  Solc version: 0.8.13            ·  Optimizer enabled: true       ·  Runs: 100                     │
+ ···································|································|·································
+ |  Contract Name                   ·  Deployed size (KiB) (change)  ·  Initcode size (KiB) (change)  │
+ ···································|································|·································
+ |  AcceptEverythingPaymaster       ·                 3.571 (0.000)  ·                 3.694 (0.000)  │
+ ···································|································|·································
+ |  AddressUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  AddressUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  AdminKickPolicy                 ·                11.931 (0.000)  ·                11.976 (0.000)  │
+ ···································|································|·································
+ |  BasicToken                      ·                 0.497 (0.000)  ·                 0.528 (0.000)  │
+ ···································|································|·································
+ |  BufferChainlink                 ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  CBORChainlink                   ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  Chainlink                       ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ClonesUpgradeable               ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  Counters                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  DATAv2                          ·                 7.632 (0.000)  ·                 8.664 (0.000)  │
+ ···································|································|·································
+ |  DefaultDelegationPolicy         ·                18.962 (0.000)  ·                19.007 (0.000)  │
+ ···································|································|·································
+ |  DefaultExchangeRatePolicy       ·                18.966 (0.000)  ·                19.011 (0.000)  │
+ ···································|································|·································
+ |  DefaultLeavePolicy              ·                11.669 (0.000)  ·                11.714 (0.000)  │
+ ···································|································|·································
+ |  DefaultUndelegationPolicy       ·                19.318 (0.000)  ·                19.363 (0.000)  │
+ ···································|································|·································
+ |  ECDSA                           ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ECDSAUpgradeable                ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  ENSCache                        ·                 7.256 (0.000)  ·                 7.967 (0.000)  │
+ ···································|································|·································
+ |  ENSCacheV1                      ·                 6.815 (0.000)  ·                 7.526 (0.000)  │
+ ···································|································|·································
+ |  ENSCacheV2Streamr               ·                 5.178 (0.000)  ·                 5.252 (0.000)  │
+ ···································|································|·································
+ |  ENSRegistry                     ·                 2.417 (0.000)  ·                 2.504 (0.000)  │
+ ···································|································|·································
+ |  ERC20                           ·                 2.190 (0.000)  ·                 2.832 (0.000)  │
+ ···································|································|·································
+ |  ERC20Mintable                   ·                 2.525 (0.000)  ·                 3.192 (0.000)  │
+ ···································|································|·································
+ |  ERC20Upgradeable                ·                 2.097 (0.000)  ·                 2.128 (0.000)  │
+ ···································|································|·································
+ |  FIFSRegistrar                   ·                 0.574 (0.000)  ·                 0.731 (0.000)  │
+ ···································|································|·································
+ |  Forwarder                       ·                 4.759 (0.000)  ·                 5.229 (0.000)  │
+ ···································|································|·································
+ |  GsnEip712Library                ·                 1.294 (0.000)  ·                 1.351 (0.000)  │
+ ···································|································|·································
+ |  GsnUtils                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  LinkToken                       ·                 2.676 (0.000)  ·                 2.736 (0.000)  │
+ ···································|································|·································
+ |  MarketplaceV3                   ·                13.912 (0.000)  ·                13.986 (0.000)  │
+ ···································|································|·································
+ |  MarketplaceV4                   ·                 9.425 (0.000)  ·                 9.499 (0.000)  │
+ ···································|································|·································
+ |  MathUpgradeable                 ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  MaxOperatorsJoinPolicy          ·                11.454 (0.000)  ·                11.499 (0.000)  │
+ ···································|································|·································
+ |  MinimalForwarder                ·                 2.813 (0.000)  ·                 3.156 (0.000)  │
+ ···································|································|·································
+ |  MinimalForwarderUpgradeable     ·                 2.394 (0.000)  ·                 2.425 (0.000)  │
+ ···································|································|·································
+ |  MinLibBytes                     ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  MockMarketplaceBeneficiary      ·                 0.660 (0.000)  ·                 0.691 (0.000)  │
+ ···································|································|·································
+ |  MockRandomOracle                ·                 0.734 (0.000)  ·                 0.921 (0.000)  │
+ ···································|································|·································
+ |  NetworkParameters               ·                 1.621 (0.000)  ·                 2.296 (0.000)  │
+ ···································|································|·································
+ |  NodeDomainNameHelper            ·                 0.452 (0.000)  ·                 0.483 (0.000)  │
+ ···································|································|·································
+ |  NodeModule                      ·                20.818 (0.000)  ·                20.863 (0.000)  │
+ ···································|································|·································
+ |  NodeRegistry                    ·                 8.724 (0.000)  ·                 8.791 (0.000)  │
+ ···································|································|·································
+ |  Operator                        ·                18.695 (0.000)  ·                18.740 (0.000)  │
+ ···································|································|·································
+ |  OperatorContractOnlyJoinPolicy  ·                11.516 (0.000)  ·                11.561 (0.000)  │
+ ···································|································|·································
+ |  OperatorFactory                 ·                11.744 (0.000)  ·                11.830 (0.000)  │
+ ···································|································|·································
+ |  Oracle                          ·                 4.589 (0.000)  ·                 4.763 (0.000)  │
+ ···································|································|·································
+ |  Ownable                         ·                 0.551 (0.000)  ·                 0.694 (0.000)  │
+ ···································|································|·································
+ |  ProjectRegistryV1               ·                21.323 (0.000)  ·                21.409 (0.000)  │
+ ···································|································|·································
+ |  ProjectStakingV1                ·                 6.637 (0.000)  ·                 6.711 (0.000)  │
+ ···································|································|·································
+ |  QueueModule                     ·                21.135 (0.000)  ·                21.180 (0.000)  │
+ ···································|································|·································
+ |  RemoteMarketplaceV1             ·                 9.350 (0.000)  ·                 9.424 (0.000)  │
+ ···································|································|·································
+ |  SafeMath                        ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  SafeMathChainlink               ·                 0.084 (0.000)  ·                 0.118 (0.000)  │
+ ···································|································|·································
+ |  SafeMathChainlink               ·                 0.074 (0.000)  ·                 0.117 (0.000)  │
+ ···································|································|·································
+ |  Sponsorship                     ·                11.184 (0.000)  ·                11.229 (0.000)  │
+ ···································|································|·································
+ |  SponsorshipFactory              ·                10.454 (0.000)  ·                10.540 (0.000)  │
+ ···································|································|·································
+ |  StakeModule                     ·                23.106 (0.000)  ·                23.152 (0.000)  │
+ ···································|································|·································
+ |  StakeWeightedAllocationPolicy   ·                13.097 (0.000)  ·                13.142 (0.000)  │
+ ···································|································|·································
+ |  StandardToken                   ·                 1.501 (0.000)  ·                 1.532 (0.000)  │
+ ···································|································|·································
+ |  StorageSlotUpgradeable          ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StorageSlotUpgradeable          ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StreamrConfig                   ·                10.344 (0.000)  ·                10.418 (0.000)  │
+ ···································|································|·································
+ |  StreamrConfigV1_1               ·                10.505 (0.000)  ·                10.579 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistry                  ·                20.528 (0.000)  ·                20.596 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV2                ·                20.520 (0.000)  ·                20.587 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV3                ·                22.183 (0.000)  ·                22.251 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV4                ·                23.188 (0.000)  ·                23.257 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV4_1              ·                23.265 (0.000)  ·                23.333 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV5                ·                23.490 (0.000)  ·                23.559 (0.000)  │
+ ···································|································|·································
+ |  StreamRegistryV5_1              ·                23.567 (0.000)  ·                23.636 (0.000)  │
+ ···································|································|·································
+ |  StreamStorageRegistry           ·                 7.505 (0.000)  ·                 7.572 (0.000)  │
+ ···································|································|·································
+ |  StreamStorageRegistryV2         ·                 7.833 (0.000)  ·                 7.900 (0.000)  │
+ ···································|································|·································
+ |  Strings                         ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StringsUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  StringsUpgradeable              ·                 0.084 (0.000)  ·                 0.138 (0.000)  │
+ ···································|································|·································
+ |  TestAllocationPolicy            ·                12.381 (0.000)  ·                12.426 (0.000)  │
+ ···································|································|·································
+ |  TestBadOperator                 ·                 2.888 (0.000)  ·                 2.953 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy          ·                 0.397 (0.000)  ·                 0.429 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy2         ·                 0.464 (0.000)  ·                 0.495 (0.000)  │
+ ···································|································|·································
+ |  TestExchangeRatePolicy3         ·                 0.392 (0.000)  ·                 0.423 (0.000)  │
+ ···································|································|·································
+ |  TestJoinPolicy                  ·                11.453 (0.000)  ·                11.498 (0.000)  │
+ ···································|································|·································
+ |  TestKickPolicy                  ·                11.760 (0.000)  ·                11.805 (0.000)  │
+ ···································|································|·································
+ |  TestToken                       ·                 2.818 (0.000)  ·                 3.466 (0.000)  │
+ ···································|································|·································
+ |  TokenBalanceWeightStrategy      ·                 0.390 (0.000)  ·                 0.533 (0.000)  │
+ ···································|································|·································
+ |  TrackerRegistry                 ·                 5.609 (0.000)  ·                 8.042 (0.000)  │
+ ···································|································|·································
+ |  Uniswap2Adapter                 ·                 5.086 (0.000)  ·                 5.271 (0.000)  │
+ ···································|································|·································
+ |  Uniswap2AdapterV4               ·                 6.424 (0.000)  ·                 6.779 (0.000)  │
+ ···································|································|·································
+ |  VoteKickPolicy                  ·                19.976 (0.000)  ·                20.021 (0.000)  │
+ ···································|································|·································
+ |  WeightedNodeRegistry            ·                 9.456 (0.000)  ·                 9.523 (0.000)  │
+ ···································|································|·································
+ |  WhitelistPaymaster              ·                 4.631 (0.000)  ·                 4.754 (0.000)  │
+ ·----------------------------------|--------------------------------|--------------------------------·
+Deploying MarketplaceV4 to iotex:
+   - project registry address: 0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692
+ProjectRegistryV1 attached at:  0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692
+Deploying MarketplaceV4 to iotex:
+MarketplaceV4 deployed on iotex at: 0xe3F6750a5f9a6315cB11adc5CE980F7356C927C4
+MarketplaceV4 added interchain mailbox: 0x35231d4c2D8B8ADcB5617A638A0c4548684c7C70
+ProjectRegistry granted trusted role to MarketplaceV4.
+MarketplaceV4 address written to marketplace-address.txt
++ set +x
+{
+  "ProjectRegistryV1": "0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692",
+  "MarketplaceV4": "0xe3F6750a5f9a6315cB11adc5CE980F7356C927C4",
+  "ProjectStakingV1": "0x0F91Edc1760e64e434Fb9CaF93a76b262E7015b3"
+}

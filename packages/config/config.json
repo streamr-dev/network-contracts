@@ -481,7 +481,10 @@
       "OperatorDefaultDelegationPolicy": "0x5E0F361EC38cBE990baCB0D3008B5582DA4eAa2a",
       "OperatorDefaultExchangeRatePolicy": "0x75e26741538825263954AC2a1Ad9d6eAb695FD47",
       "OperatorDefaultUndelegationPolicy": "0x6D48ee54898e9B1f5FBe468ab85eA542dd82Ae6c",
-      "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1"
+      "OperatorFactory": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1",
+      "ProjectRegistryV1": "0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692",
+      "MarketplaceV4": "0xe3F6750a5f9a6315cB11adc5CE980F7356C927C4",
+      "ProjectStakingV1": "0x0F91Edc1760e64e434Fb9CaF93a76b262E7015b3"
     },
     "blockExplorerUrl": "https://iotexscan.io",
     "theGraphUrl": "https://gateway.thegraph.com/api/4bddc6e1e1fe65a49bf8091785478835/subgraphs/id/CvGQcfBwWH1SvyxJDGjRRMa4YXQpxmpt369orMirZ3RH",
