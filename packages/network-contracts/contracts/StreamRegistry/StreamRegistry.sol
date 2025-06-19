@@ -11,9 +11,9 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-upgradeable-4.4.2/metatx/ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/UUPSUpgradeable.sol";
-import "../ENS/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
+import "../ENS/ENSCacheV2Streamr.sol";
 
 contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgradeable, AccessControlUpgradeable {
 
@@ -38,7 +38,7 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
     // streamid -> keccak256(version, useraddress) -> permission struct above
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
     mapping (string => string) public streamIdToMetadata;
-    ENSCache private ensCache;
+    ENSCacheV2Streamr private ensCache;
 
     // incremented when stream is (re-)created, so that users from old streams with same don't re-appear in the new stream (if they have permissions)
     mapping (string => uint32) private streamIdToVersion;
@@ -72,7 +72,7 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
     // Constructor can't be used with upgradeable contracts, so use initialize instead
     //    this will not be called upon each upgrade, only once during first deployment
     function initialize(address ensCacheAddr, address trustedForwarderAddress) public initializer {
-        ensCache = ENSCache(ensCacheAddr);
+        ensCache = ENSCacheV2Streamr(ensCacheAddr);
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
@@ -89,7 +89,7 @@ contract StreamRegistry is Initializable, UUPSUpgradeable, ERC2771ContextUpgrade
     }
 
     function setEnsCache(address ensCacheAddr) public isTrusted() {
-        ensCache = ENSCache(ensCacheAddr);
+        ensCache = ENSCacheV2Streamr(ensCacheAddr);
     }
 
     function createStream(string calldata streamIdPath, string calldata metadataJsonString) public {

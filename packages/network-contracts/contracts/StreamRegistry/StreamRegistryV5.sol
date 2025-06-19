@@ -18,11 +18,11 @@
 pragma solidity 0.8.9;
 /* solhint-disable not-rely-on-time */
 
-import "./ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/UUPSUpgradeable.sol";
-import "../ENS/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
+import "../ENS/ENSCacheV2Streamr.sol";
+import "./ERC2771ContextUpgradeable.sol";
 
 /**
  * @title StreamRegistry
@@ -60,7 +60,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     //  and bytes for functions that use `getUserKeyForUserId`
     mapping (string => mapping(bytes32 => Permission)) public streamIdToPermissions;
     mapping (string => string) public streamIdToMetadata;
-    ENSCache public ensCache;
+    ENSCacheV2Streamr public ensCache;
 
     // incremented when stream is (re-)created, so that users from old streams with same don't re-appear in the new stream (if they have permissions)
     mapping (string => uint32) public streamIdToVersion;
@@ -101,7 +101,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     // Constructor can't be used with upgradeable contracts, so use initialize instead
     //    this will not be called upon each upgrade, only once during first deployment
     function initialize(address ensCacheAddr, address trustedForwarderAddress) public initializer {
-        ensCache = ENSCache(ensCacheAddr);
+        ensCache = ENSCacheV2Streamr(ensCacheAddr);
         __AccessControl_init();
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         ERC2771ContextUpgradeable.__ERC2771Context_init(trustedForwarderAddress);
@@ -455,7 +455,7 @@ contract StreamRegistryV5 is Initializable, UUPSUpgradeable, ERC2771ContextUpgra
     function _authorizeUpgrade(address) internal override isTrusted() {}
 
     function setEnsCache(address ensCacheAddr) public isTrusted() {
-        ensCache = ENSCache(ensCacheAddr);
+        ensCache = ENSCacheV2Streamr(ensCacheAddr);
     }
 
     function setTrustedForwarder(address forwarder) public isTrusted() {

@@ -1,7 +1,7 @@
 import "@nomicfoundation/hardhat-toolbox"
 import "@nomicfoundation/hardhat-chai-matchers"
 import "@openzeppelin/hardhat-upgrades"
-import "hardhat-ignore-warnings"
+// import "hardhat-ignore-warnings"
 import "solidity-coverage"
 import "hardhat-dependency-compiler"
 import "@nomiclabs/hardhat-etherscan"
@@ -114,8 +114,6 @@ const config: HardhatUserConfig = {
     dependencyCompiler: {
         paths: [
             "@openzeppelin/contracts/metatx/MinimalForwarder.sol",
-            "@chainlink/contracts/src/v0.4/LinkToken.sol",
-            "@chainlink/contracts/src/v0.6/Oracle.sol",
             "@opengsn/contracts/src/forwarder/Forwarder.sol",
             "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol",
             "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol",
@@ -183,11 +181,6 @@ const config: HardhatUserConfig = {
     // gasReporter: {
     //     enabled: true,
     // },
-    warnings: {
-        "@chainlink/contracts/src/v0.4/**/*": {
-            default: "off",
-        },
-    },
     typechain: {
         outDir: "./typechain",
         target: "ethers-v5",
