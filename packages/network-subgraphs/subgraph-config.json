@@ -169,7 +169,7 @@
     },
     "iotex": {
         "networkId": "iotex",
-        "hubContracts": false,
+        "hubContracts": true,
         "contracts": {
             "StreamRegistry": {
                 "address": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",
@@ -183,17 +183,29 @@
                 "address": "0xF79c40Fbc432f1f8B8B017441B644e0ac7bccea2",
                 "startBlock": 33510000
             },
+            "ProjectRegistryV1": {
+                "address": "0xbb2a2CF40Ca86378983cfcACB7Aac1568237a692",
+                "startBlock": 36905992
+            },
+            "MarketplaceV4": {
+                "address": "0xe3F6750a5f9a6315cB11adc5CE980F7356C927C4",
+                "startBlock": 36905992
+            },
+            "ProjectStakingV1": {
+                "address": "0x0F91Edc1760e64e434Fb9CaF93a76b262E7015b3",
+                "startBlock": 36905992
+            },
             "StreamrConfig": {
-                "address": "0x23Dd2D1f39AD0f9d517ce56Ca490eF19B50e6f1A",
-                "startBlock": 33510000
+                "address": "0x176B108E72ee49A01Bea1eDb32f7f296d2bb3db8",
+                "startBlock": 36298428
             },
             "SponsorshipFactory": {
-                "address": "0xe4Ae8e6c5b6E85914738803ad73c111eF2618621",
-                "startBlock": 33510000
+                "address": "0x7ac03730374E995E366F2a466be6aCC14E1DB1C4",
+                "startBlock": 36298474
             },
             "OperatorFactory": {
-                "address": "0xbC1cC84912d54fCf7316A6dA2e7A884731a87935",
-                "startBlock": 33510000
+                "address": "0xD1Bc2A37405F88d4904844B7BF1BEadA7c0851c1",
+                "startBlock": 36298454
             }
         }
     }
