@@ -1,4 +1,5 @@
 /* eslint-disable quotes */
+import { writeFileSync } from "fs"
 import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { config } from "@streamr/config"
 import { utils } from "ethers"
@@ -11,6 +12,7 @@ const { log } = console
 const {
     CHAIN = 'dev1',
     PROJECT_REGISTRY_ADDRESS,
+    OUTPUT_FILE,
 } = process.env
 
 const {
@@ -54,6 +56,11 @@ async function main() {
     }
     await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplace.address)
     log(`ProjectRegistry granted trusted role to MarketplaceV4.`)
+
+    if (OUTPUT_FILE) {
+        writeFileSync(OUTPUT_FILE, marketplace.address)
+        log(`MarketplaceV4 address written to ${OUTPUT_FILE}`)
+    }
 }
 
 main().catch((error) => {

@@ -1,5 +1,6 @@
 /* eslint-disable quotes */
 import { writeFileSync } from "fs"
+
 import { ethers as hhEthers, upgrades } from "hardhat"
 import { config } from "@streamr/config"
 
