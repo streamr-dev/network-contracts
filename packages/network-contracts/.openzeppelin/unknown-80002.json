@@ -402,7 +402,7 @@
             "slot": "201",
             "type": "t_mapping(t_string_memory_ptr,t_address)",
             "contract": "ENSCacheV2Streamr",
-            "src": "contracts/chainlinkClient/ENSCacheV2Streamr.sol:17"
+            "src": "contracts/ENS/ENSCacheV2Streamr.sol:17"
           },
           {
             "label": "streamrScript",
@@ -410,7 +410,7 @@
             "slot": "202",
             "type": "t_address",
             "contract": "ENSCacheV2Streamr",
-            "src": "contracts/chainlinkClient/ENSCacheV2Streamr.sol:18"
+            "src": "contracts/ENS/ENSCacheV2Streamr.sol:18"
           },
           {
             "label": "streamRegistry",
@@ -418,7 +418,7 @@
             "slot": "203",
             "type": "t_contract(IStreamRegistry)19523",
             "contract": "ENSCacheV2Streamr",
-            "src": "contracts/chainlinkClient/ENSCacheV2Streamr.sol:19"
+            "src": "contracts/ENS/ENSCacheV2Streamr.sol:19"
           },
           {
             "label": "ensCacheV1",
@@ -426,7 +426,7 @@
             "slot": "204",
             "type": "t_contract(ENSCacheV1)19881",
             "contract": "ENSCacheV2Streamr",
-            "src": "contracts/chainlinkClient/ENSCacheV2Streamr.sol:20"
+            "src": "contracts/ENS/ENSCacheV2Streamr.sol:20"
           }
         ],
         "types": {
