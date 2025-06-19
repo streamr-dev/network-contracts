@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 /**
  * ERC20Mintable is missing from open-zeppelin 3.0
  * See https://forum.openzeppelin.com/t/where-is-erc20mintable-sol-in-openzeppelin-contracts-3-0/2283
+ * Mostly very similar to DATAv2, TODO: use the real DATAv2 instead.
  */
 contract ERC20Mintable is ERC20 {
     address private creator;

@@ -4,8 +4,8 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "../IERC677.sol";
-import "../IERC677Receiver.sol";
+import "../../token/IERC677.sol";
+import "../../token/IERC677Receiver.sol";
 
 /**
  * Freely mintable TestToken for contract tests.

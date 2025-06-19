@@ -69,8 +69,8 @@ export { abi as operatorContractOnlyJoinPolicyABI, bytecode as operatorContractO
 export type { OperatorContractOnlyJoinPolicy }
     from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
 
-export { abi as ERC677ABI } from "../artifacts/contracts/OperatorTokenomics/IERC677.sol/IERC677.json"
-export type { IERC677 as ERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
+export { abi as ERC677ABI } from "../artifacts/contracts/token/IERC677.sol/IERC677.json"
+export type { IERC677 as ERC677 } from "../typechain/contracts/token/IERC677"
 
 export { abi as ensRegistryABI, bytecode as ensRegistryBytecode }
     from "../artifacts/@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
@@ -104,11 +104,11 @@ export type { ProjectStakingV1 } from "../typechain/contracts/Hub/ProjectStaking
 
 export { abi as marketplaceV4ABI, bytecode as marketplaceV4Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4.json"
-export type { MarketplaceV4 } from "../typechain/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4"        
+export type { MarketplaceV4 } from "../typechain/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4"
 
 export { abi as uniswap2AdapterV4ABI, bytecode as uniswap2AdapterV4Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4.json"
-export type { Uniswap2AdapterV4 } from "../typechain/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4"        
+export type { Uniswap2AdapterV4 } from "../typechain/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4"
 
 export { abi as remoteMarketplaceV1ABI, bytecode as remoteMarketplaceV1Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/RemoteMarketplaceV1.sol/RemoteMarketplaceV1.json"
