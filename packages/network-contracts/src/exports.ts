@@ -25,8 +25,8 @@ export { abi as streamStorageRegistryABI, bytecode as streamStorageRegistryBytec
 export type { StreamStorageRegistryV2 as StreamStorageRegistry } from "../typechain/contracts/StreamStorageRegistry/StreamStorageRegistryV2"
 
 export { abi as ENSCacheV2ABI, bytecode as ENSCacheV2Bytecode }
-    from "../artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
-export type { ENSCacheV2Streamr as ENSCacheV2 } from "../typechain/contracts/chainlinkClient/ENSCacheV2Streamr"
+    from "../artifacts/contracts/ENS/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
+export type { ENSCacheV2Streamr as ENSCacheV2 } from "../typechain/contracts/ENS/ENSCacheV2Streamr"
 
 export { abi as nodeRegistryABI, bytecode as nodeRegistryBytecode }
     from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
@@ -122,7 +122,7 @@ import { deployedBytecode as sponsorshipFactoryBytecode } from "../artifacts/con
 import { deployedBytecode as streamrConfigBytecode } from "../artifacts/contracts/OperatorTokenomics/StreamrConfig.sol/StreamrConfig.json"
 import { deployedBytecode as streamRegistryBytecode } from "../artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"
 import { deployedBytecode as streamStorageRegistryBytecode } from "../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json"
-import { deployedBytecode as ENSCacheV2Bytecode } from "../artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
+import { deployedBytecode as ENSCacheV2Bytecode } from "../artifacts/contracts/ENS/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
 import { deployedBytecode as nodeRegistryBytecode } from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
 import { deployedBytecode as tokenBytecode } from "../artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
 import { deployedBytecode as maxOperatorsJoinPolicyBytecode } from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/MaxOperatorsJoinPolicy.sol/MaxOperatorsJoinPolicy.json"

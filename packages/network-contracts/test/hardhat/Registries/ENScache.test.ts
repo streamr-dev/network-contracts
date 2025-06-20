@@ -2,7 +2,7 @@ import { upgrades, ethers } from "hardhat"
 import { expect } from "chai"
 import { utils, BigNumber } from "ethers"
 
-import ENSCacheJson from "../../../artifacts/contracts/chainlinkClient/ENSCache.sol/ENSCache.json"
+import ENSCacheJson from "../../../artifacts/contracts/ENS/ENSCache.sol/ENSCache.json"
 import ForwarderJson from "../../../artifacts/@openzeppelin/contracts/metatx/MinimalForwarder.sol/MinimalForwarder.json"
 import OracleJson from "../../../artifacts/@chainlink/contracts/src/v0.6/Oracle.sol/Oracle.json"
 import LinkTokenJson from "../../../artifacts/@chainlink/contracts/src/v0.4/LinkToken.sol/LinkToken.json"
