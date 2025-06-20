@@ -8,8 +8,8 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import "./IERC677.sol";
-import "./IERC677Receiver.sol";
+import "../token/IERC677.sol";
+import "../token/IERC677Receiver.sol";
 import "./IOperator.sol";
 import "./IVoterRegistry.sol";
 import "./OperatorPolicies/IDelegationPolicy.sol";

@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "./IPurchaseListener.sol";
 import "./IMarketplace.sol";
-import "../token/IERC677.sol";
+import "../../token/IERC677.sol";
 
 /**
  * @title Streamr Marketplace

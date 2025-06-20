@@ -2,7 +2,7 @@
  * Deployed on gnosis on 2023-02-22
  * https://gnosisscan.io/address/0x023eaE17d3dd65F1e7b4daa355e6478719Bd2BEf
  */
- 
+
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.13;
@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import "../token/IERC677.sol";
+import "../../token/IERC677.sol";
 import "./IPurchaseListener.sol";
 import "./IMarketplaceV4.sol";
 import "./IRemoteMarketplaceV1.sol";
@@ -105,7 +105,7 @@ contract RemoteMarketplaceV1 is Initializable, OwnableUpgradeable, UUPSUpgradeab
     }
 
     /**
-     * Recieve the purchase info from the destination chain. 
+     * Recieve the purchase info from the destination chain.
      * If the buyer has enough allowance to purchase the project, dispatch message to the destination chain and grant the subscription
      */
     function handlePurchaseInfo(
@@ -125,7 +125,7 @@ contract RemoteMarketplaceV1 is Initializable, OwnableUpgradeable, UUPSUpgradeab
 
         IERC677 pricingToken = IERC677(pricingTokenAddress);
         require(pricingToken.allowance(p.buyer, address(this)) >= price, "error_insufficientAllowance");
-        
+
         _dispatchPurchase(p.projectId, p.subscriber, p.subscriptionSeconds, streamsCount);
         _querySubscriptionState(p.projectId, p.subscriber, purchaseId);
     }
@@ -263,7 +263,7 @@ contract RemoteMarketplaceV1 is Initializable, OwnableUpgradeable, UUPSUpgradeab
     function _addressToBytes32(address addr) private pure returns (bytes32) {
         return bytes32(uint256(uint160(addr)));
     }
-    
+
     /**
      * Contract must be able to receive ETH for potential interchain payment refund
      */
