@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.9;
 
-import "../IERC677.sol";
-import "../IERC677Receiver.sol";
+import "../../token/IERC677.sol";
+import "../../token/IERC677Receiver.sol";
 import "../Sponsorship.sol";
 import "../IOperator.sol";
 import "../IVoterRegistry.sol";

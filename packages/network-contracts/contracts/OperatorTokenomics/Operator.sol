@@ -8,8 +8,8 @@ import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
-import "./IERC677.sol";
-import "./IERC677Receiver.sol";
+import "../token/IERC677.sol";
+import "../token/IERC677Receiver.sol";
 import "./IOperator.sol";
 import "./IVoterRegistry.sol";
 import "./OperatorPolicies/IDelegationPolicy.sol";
@@ -135,7 +135,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     Sponsorship[] public sponsorships;
     mapping(Sponsorship => uint) public indexOfSponsorships; // sponsorships array index PLUS ONE! use 0 as "is it already in the array?" check
 
-    /** stake in a Sponsorship, in DATA-wei */
+    /** staked in a Sponsorship, in DATA-wei. NOT same as Sponsorship.stakedWei, which should equal stakedInto - slashedIn */
     mapping(Sponsorship => uint) public stakedInto;
     /** slashed in a Sponsorship, in DATA-wei */
     mapping(Sponsorship => uint) public slashedIn;

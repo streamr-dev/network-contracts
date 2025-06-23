@@ -11,7 +11,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import "../token/IERC677.sol";
+import "../../token/IERC677.sol";
 import "./IPurchaseListener.sol";
 import "./IMarketplaceV4.sol";
 import "./IMessageRecipient.sol";
@@ -183,7 +183,7 @@ contract MarketplaceV4 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IM
     function addMailbox(address mailboxAddress) external onlyOwner {
         mailbox = mailboxAddress;
     }
-    
+
     function addRemoteMarketplace(uint32 remoteChainId, address remoteMarketplaceAddress) external onlyOwner {
         remoteMarketplaces[remoteChainId] = remoteMarketplaceAddress;
     }

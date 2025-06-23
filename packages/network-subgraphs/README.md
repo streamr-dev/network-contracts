@@ -142,11 +142,3 @@ Projects metadata full-text search:
   }
 }
 ```
-
-## Unit testing with [matchstick-as](https://thegraph.com/docs/en/developing/unit-testing-framework/#getting-started)
-
-- build image:
-`docker build -t matchstick -f Dockerfile.matchstick .`
-- start container:
-`docker run -it --rm --mount type=bind,source=<absolute-path-to-subgraph-folder>,target=/matchstick matchstick`
-- run tests (using docker): `graph test -d`

@@ -7,8 +7,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import "./IERC677.sol";
-import "./IERC677Receiver.sol";
+import "../token/IERC677.sol";
+import "../token/IERC677Receiver.sol";
 import "./IOperator.sol";
 import "./SponsorshipPolicies/IJoinPolicy.sol";
 import "./SponsorshipPolicies/ILeavePolicy.sol";
