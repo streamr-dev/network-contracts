@@ -14,7 +14,6 @@ import { deployedBytecode as deployed2 } from "../../artifacts/contracts/StreamR
 import { deployedBytecode as deployed3 } from "../../artifacts/contracts/StreamRegistry/StreamRegistryV3.sol/StreamRegistryV3.json"
 import { deployedBytecode as deployed4 } from "../../artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"
 import { deployedBytecode as deployed5 } from "../../artifacts/contracts/StreamRegistry/StreamRegistryV5.sol/StreamRegistryV5.json"
-import { deployedBytecode as deployed5_1 } from "../../artifacts/contracts/StreamRegistry/StreamRegistryV5_1.sol/StreamRegistryV5_1.json"
 
 const { log } = console
 const { getAddress } = utils
@@ -34,7 +33,6 @@ export async function dumpBytecodes(): Promise<void> {
     writeFileSync("deployed-3.txt", deployed3)
     writeFileSync("deployed-4.txt", deployed4)
     writeFileSync("deployed-5.txt", deployed5)
-    writeFileSync("deployed-5_1.txt", deployed5_1)
     for (const chainName of chainNames) {
         const chainKey = chainName as keyof typeof config
         const {
@@ -74,9 +72,6 @@ function findContractName(bytecode: string) {
     }
     if (bytecode === deployed5) {
         return "StreamRegistryV5"
-    }
-    if (bytecode === deployed5_1) {
-        return "StreamRegistryV5_1"
     }
     return "UNKNOWN"
 }
