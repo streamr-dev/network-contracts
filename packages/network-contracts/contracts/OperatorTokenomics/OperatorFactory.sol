@@ -9,9 +9,9 @@ import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+import "../token/IERC677.sol";
 import "./IVoterRegistry.sol";
 import "./Operator.sol";
-import "./IERC677.sol";
 import "./StreamrConfig.sol";
 
 /**
