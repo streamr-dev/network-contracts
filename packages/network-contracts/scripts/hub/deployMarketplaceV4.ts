@@ -1,4 +1,5 @@
 /* eslint-disable quotes */
+import { writeFileSync } from "fs"
 import { ethers as hardhatEthers, upgrades } from "hardhat"
 import { config } from "@streamr/config"
 import { utils } from "ethers"
@@ -10,15 +11,21 @@ const { log } = console
 
 const {
     CHAIN = 'dev1',
+    PROJECT_REGISTRY_ADDRESS,
+    OUTPUT_FILE,
 } = process.env
 
 const {
     id: CHAIN_ID,
     contracts: {
-        ProjectRegistryV1: PROJECT_REGISTRY_ADDRESS,
+        ProjectRegistryV1: PROJECT_REGISTRY_ADDRESS_FROM_CONFIG,
     }
 } = (config as any)[CHAIN]
-if (!PROJECT_REGISTRY_ADDRESS) { throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}"`) }
+
+const projectRegistryAddress = PROJECT_REGISTRY_ADDRESS || PROJECT_REGISTRY_ADDRESS_FROM_CONFIG
+if (!projectRegistryAddress) {
+    throw new Error(`No ProjectRegistryV1 found in chain "${CHAIN}", please supply it in env variable PROJECT_REGISTRY_ADDRESS`)
+}
 
 const interchainMailbox = chainToMailboxAddress(CHAIN)
 
@@ -28,10 +35,10 @@ const interchainMailbox = chainToMailboxAddress(CHAIN)
  */
 async function main() {
     log(`Deploying MarketplaceV4 to ${CHAIN}:`)
-    log(`   - project registry address: ${PROJECT_REGISTRY_ADDRESS}`)
+    log(`   - project registry address: ${projectRegistryAddress}`)
 
     const projectRegistryFactory = await getContractFactory("ProjectRegistryV1")
-    const projectRegistryFactoryTx = await projectRegistryFactory.attach(PROJECT_REGISTRY_ADDRESS)
+    const projectRegistryFactoryTx = await projectRegistryFactory.attach(projectRegistryAddress)
     const projectRegistry = await projectRegistryFactoryTx.deployed()
     log("ProjectRegistryV1 attached at: ", projectRegistry.address)
 
@@ -41,11 +48,19 @@ async function main() {
     await marketplace.deployed()
     log(`MarketplaceV4 deployed on ${CHAIN} at: ${marketplace.address}`)
 
-    await marketplace.addMailbox(interchainMailbox)
-    log(`MarketplaceV4 added interchain mailbox: ${interchainMailbox}`)
-
+    try {
+        await (await marketplace.addMailbox(interchainMailbox)).wait()
+        log(`MarketplaceV4 added interchain mailbox: ${interchainMailbox}`)
+    } catch (error) {
+        log(`Error when setting interchain mailbox: ${error}`)
+    }
     await projectRegistry.grantRole(id("TRUSTED_ROLE"), marketplace.address)
     log(`ProjectRegistry granted trusted role to MarketplaceV4.`)
+
+    if (OUTPUT_FILE) {
+        writeFileSync(OUTPUT_FILE, marketplace.address)
+        log(`MarketplaceV4 address written to ${OUTPUT_FILE}`)
+    }
 }
 
 main().catch((error) => {

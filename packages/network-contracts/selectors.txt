@@ -598,68 +598,6 @@
 
 
 
-# DATAv2 functions
-0xa217fddf DEFAULT_ADMIN_ROLE()
-0x3644e515 DOMAIN_SEPARATOR()
-0xd5391393 MINTER_ROLE()
-0xdd62ed3e allowance()
-0x095ea7b3 approve()
-0x70a08231 balanceOf()
-0x42966c68 burn()
-0x79cc6790 burnFrom()
-0x313ce567 decimals()
-0xa457c2d7 decreaseAllowance()
-0x248a9ca3 getRoleAdmin()
-0x2f2ff15d grantRole()
-0x91d14854 hasRole()
-0x39509351 increaseAllowance()
-0xaa271e1a isMinter()
-0x40c10f19 mint()
-0x06fdde03 name()
-0x7ecebe00 nonces()
-0xd505accf permit()
-0x36568abe renounceRole()
-0xd547741f revokeRole()
-0x4eee966f setTokenInformation()
-0x01ffc9a7 supportsInterface()
-0x95d89b41 symbol()
-0x18160ddd totalSupply()
-0xa9059cbb transfer()
-0x4000aea0 transferAndCall()
-0x23b872dd transferFrom()
-
-# DATAv2 events
-0x8c5be1e5 Approval
-0xbd79b86f RoleAdminChanged
-0x2f878811 RoleGranted
-0xf6391f5c RoleRevoked
-0xe19260af Transfer
-0xddf252ad Transfer
-0xd131ab1e UpdatedTokenInformation
-
-
-
-# IERC677 functions
-0xdd62ed3e allowance()
-0x095ea7b3 approve()
-0x70a08231 balanceOf()
-0x18160ddd totalSupply()
-0xa9059cbb transfer()
-0x4000aea0 transferAndCall()
-0x23b872dd transferFrom()
-
-# IERC677 events
-0x8c5be1e5 Approval
-0xe19260af Transfer
-0xddf252ad Transfer
-
-
-
-# IERC677Receiver functions
-0xa4c0ed36 onTokenTransfer()
-
-
-
 # NetworkParameters functions
 0x4e71e0c8 claimOwnership()
 0xaada845f minControlLayerVersion()
@@ -818,27 +756,6 @@
 0x8be0079c OwnershipTransferred
 0x7623db9c RequiresWhitelistChanged
 0xbc7cd75a Upgraded
-
-
-
-# IERC677 functions
-0xdd62ed3e allowance()
-0x095ea7b3 approve()
-0x70a08231 balanceOf()
-0x18160ddd totalSupply()
-0xa9059cbb transfer()
-0x4000aea0 transferAndCall()
-0x23b872dd transferFrom()
-
-# IERC677 events
-0x8c5be1e5 Approval
-0xddf252ad Transfer
-0xce8124fd TransferAndCall
-
-
-
-# IERC677Receiver functions
-0xa4c0ed36 onTokenTransfer()
 
 
 
@@ -3336,3 +3253,65 @@
 # MockMarketplaceBeneficiary events
 0x9ad21c4b OnPurchaseCalled
 0xecc977eb OnTokenTransferCalled
+
+
+
+# DATAv2 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x3644e515 DOMAIN_SEPARATOR()
+0xd5391393 MINTER_ROLE()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x42966c68 burn()
+0x79cc6790 burnFrom()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x39509351 increaseAllowance()
+0xaa271e1a isMinter()
+0x40c10f19 mint()
+0x06fdde03 name()
+0x7ecebe00 nonces()
+0xd505accf permit()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0x4eee966f setTokenInformation()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x4000aea0 transferAndCall()
+0x23b872dd transferFrom()
+
+# DATAv2 events
+0x8c5be1e5 Approval
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe19260af Transfer
+0xddf252ad Transfer
+0xd131ab1e UpdatedTokenInformation
+
+
+
+# IERC677 functions
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x4000aea0 transferAndCall()
+0x23b872dd transferFrom()
+
+# IERC677 events
+0x8c5be1e5 Approval
+0xe19260af Transfer
+0xddf252ad Transfer
+
+
+
+# IERC677Receiver functions
+0xa4c0ed36 onTokenTransfer()
