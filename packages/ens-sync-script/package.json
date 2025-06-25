@@ -29,6 +29,6 @@
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "@typescript-eslint/parser": "^5.57.1",
     "eslint-config-streamr-nodejs": "^2.0.1",
-    "typescript": "^5.0.3"
+    "typescript": "^5.8.3"
   }
 }

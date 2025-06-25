@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/metatx/ERC2771ContextUpgradeable.sol";
+import "../token/IERC677.sol";
 import "./Sponsorship.sol";
-import "./IERC677.sol";
 import "./StreamrConfig.sol";
 
 import "../StreamRegistry/IStreamRegistryV4.sol";

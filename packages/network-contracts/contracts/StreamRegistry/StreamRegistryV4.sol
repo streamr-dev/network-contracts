@@ -8,7 +8,7 @@ pragma solidity 0.8.9;
 
 import "./ERC2771ContextUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/UUPSUpgradeable.sol";
-import "../chainlinkClient/ENSCache.sol";
+import "../ENS/ENSCache.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable-4.4.2/proxy/utils/Initializable.sol";
 

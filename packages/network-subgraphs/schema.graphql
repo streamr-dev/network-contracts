@@ -12,7 +12,7 @@ type _Schema_
     include: [{ entity: "Project", fields: [{ name: "metadata" }] }]
   )
 
-type StreamPermission @entity {
+type StreamPermission @entity (immutable: false) {
   id: ID!
   "[DEPRECATED] Ethereum address, owner of this permission; only if permission granting didn't use *forUserId functions"
   userAddress: Bytes! @deprecated(reason: "Use userId instead")
@@ -32,7 +32,7 @@ type StreamPermission @entity {
   canGrant: Boolean
 }
 
-type Stream @entity {
+type Stream @entity (immutable: false) {
   "stream ID = 'creator address'/'path' where path can be any string"
   id: ID!
   "This field has the same value as the ID field. It enables us to perform substring queries on the id field using the idAsString_contains where clause"
@@ -50,7 +50,7 @@ type Stream @entity {
   sponsorships: [Sponsorship!] @derivedFrom(field: "stream")
 }
 
-type Node @entity {
+type Node @entity (immutable: false) {
   "node ID = address"
   id: ID!
   "Connection metadata, e.g. URL of the node, e.g. http://mynode.com:3000"
@@ -66,7 +66,7 @@ type Node @entity {
 
 # many-to-many relationship: https://thegraph.com/docs/developer/create-subgraph-hosted#many-to-many-relationships
 # "more performant option" according the the docs:
-# type StreamStorage @entity {
+# type StreamStorage @entity (immutable: false) {
 #   id: ID!
 #   created: BigInt!
 #   node: Node!
@@ -77,7 +77,7 @@ type Node @entity {
 ##  THE HUB: projects, marketplace, project-staking
 ############################################################
 
-type ProjectPermission @entity {
+type ProjectPermission @entity (immutable: false) {
   "permission id = projectId + '-' + userAddress"
   id: ID!
   "Ethereum address, owner of this permission"
@@ -94,7 +94,7 @@ type ProjectPermission @entity {
   canGrant: Boolean
 }
 
-type ProjectPaymentDetails @entity {
+type ProjectPaymentDetails @entity (immutable: false) {
   "payment details id = projectId + '-' + domainId"
   id: ID!
   "Target project this payment details applies to"
@@ -109,7 +109,7 @@ type ProjectPaymentDetails @entity {
   pricePerSecond: BigInt
 }
 
-type ProjectSubscription @entity {
+type ProjectSubscription @entity (immutable: false) {
   "subscription id = projectId + '-' + subscriberAddress"
   id: ID!
   "Target project this permission applies to"
@@ -120,7 +120,7 @@ type ProjectSubscription @entity {
   endTimestamp: BigInt
 }
 
-type Project @entity {
+type Project @entity (immutable: false) {
   "project id = bytes32"
   id: ID!
   "List of domain ids for the chains from which this project can be purchased"
@@ -155,7 +155,7 @@ type Project @entity {
 
 # MarketplaceV4
 
-type ProjectPurchase @entity {
+type ProjectPurchase @entity (immutable: false) {
   "project purchase id = projectId + '-' + subscriberAddress + '-' + counter"
   id: ID!
 
@@ -180,7 +180,7 @@ type ProjectPurchase @entity {
 
 # ProjectStakingV1
 
-type ProjectStakeByUser @entity {
+type ProjectStakeByUser @entity (immutable: false) {
   "stake id = projectId + '-' + userAddress"
   id: ID!
 
@@ -194,7 +194,7 @@ type ProjectStakeByUser @entity {
   userStake: BigInt!
 }
 
-type ProjectStakingDayBucket @entity {
+type ProjectStakingDayBucket @entity (immutable: false) {
   "bucket id = projectId + '-' + date"
   id: ID!
 
@@ -225,7 +225,7 @@ type ProjectStakingDayBucket @entity {
 ##  Delegators signal their trust by delegating tokens to Operators
 ############################################################
 
-type Network @entity {
+type Network @entity (immutable: false) {
   id: ID! # StreamrConfig contract address
 
   "Total DATA staked - slashed in all sponsorships"
@@ -278,7 +278,7 @@ type Network @entity {
   minimumStakeWei: BigInt!
 }
 
-type Operator @entity {
+type Operator @entity (immutable: false) {
   id: ID! # contract address
   stakes: [Stake!]! @derivedFrom(field: "operator")
   delegations: [Delegation!]! @derivedFrom(field: "operator")
@@ -346,7 +346,7 @@ type Operator @entity {
   queueEntries: [QueueEntry!]! @derivedFrom(field: "operator")
 }
 
-type OperatorDailyBucket @entity {
+type OperatorDailyBucket @entity (immutable: false) {
 
   ## absolute values, set at bucket creation time, so they represent the state after the first event in bucket
 
@@ -394,7 +394,7 @@ type OperatorDailyBucket @entity {
 }
 
 # Delegation events in an Operator contract signals trust in the operator
-type Delegation @entity {
+type Delegation @entity (immutable: false) {
   "0xoperatorAddress-0xdelegatorAddress-PastDelegationCount"
   id: ID!
   operator: Operator!
@@ -420,13 +420,13 @@ type Delegation @entity {
 # Clean ID is required because otherwise we may hit a situation where we delete a Delegation (BalanceUpdate -> 0)
 #   then create it again later (e.g. Delegated event), and results in
 #   `internal error: impossible combination of entity operations: Remove and then Overwrite`
-type PastDelegationCount @entity {
+type PastDelegationCount @entity (immutable: false) {
   "0xoperatorAddress-0xdelegatorAddress"
   id: ID!
   count: Int!
 }
 
-type Delegator @entity {
+type Delegator @entity (immutable: false) {
   id: ID! # delegator address
   delegations: [Delegation!]! @derivedFrom(field: "delegator")
   queueEntries: [QueueEntry!]! @derivedFrom(field: "delegator")
@@ -435,7 +435,7 @@ type Delegator @entity {
   cumulativeEarningsWei: BigInt!
 }
 
-type DelegatorDailyBucket @entity {
+type DelegatorDailyBucket @entity (immutable: false) {
   id: ID! # delegator address + date
   delegator: Delegator!
   date: BigInt!
@@ -445,7 +445,7 @@ type DelegatorDailyBucket @entity {
 }
 
 # Sponsorship contracts hold tokens sent by sponsors and distribute them to the Operators who hold Stake in the contract
-type Sponsorship @entity {
+type Sponsorship @entity (immutable: false) {
 
   ## Sponsorship properties: not changeable
 
@@ -514,7 +514,7 @@ type Sponsorship @entity {
   sponsoringEvents: [SponsoringEvent!]! @derivedFrom(field: "sponsorship")
 }
 
-type SponsorshipDailyBucket @entity {
+type SponsorshipDailyBucket @entity (immutable: false) {
   id: ID! # 0xSponsorshipAddress-TIMESTAMP
   sponsorship: Sponsorship!
   date: BigInt!
@@ -526,7 +526,7 @@ type SponsorshipDailyBucket @entity {
 }
 
 # Operators hold Stake in Sponsorships. Stake is the "many-to-many table" between Sponsorship and Operator
-type Stake @entity {
+type Stake @entity (immutable: false) {
   id: ID! # 0xSponsorshipAddress-0xOperatorAddress
   sponsorship: Sponsorship!
   operator: Operator!
@@ -539,7 +539,7 @@ type Stake @entity {
 }
 
 # Operators may raise Flags on each other to kick out those who don't do work
-type Flag @entity {
+type Flag @entity (immutable: false) {
   id: ID! # 0xsponsorshipAddress-0xtargetOperatorAddress-flagIndex (derived using lastFlagIndex)
   lastFlagIndex: Int! # there can be many flags for same Operator in same Sponsorship, but only one at a time. First flag stores the last flag's index.
   sponsorship: Sponsorship!
@@ -560,7 +560,7 @@ type Flag @entity {
   reviewers: [Operator!]!
 }
 
-type Vote @entity {
+type Vote @entity (immutable: false) {
   id: ID! # 0xSponsorshipAddress-0xTargetOperatorAddress-flagIndex-0xReviewerAddress
   flag: Flag!
   voter: Operator!
@@ -570,7 +570,7 @@ type Vote @entity {
 }
 
 # Undelegation queue: when a delegator wants their DATA back, they are put in the queue to receive their tokens when they arrive
-type QueueEntry @entity {
+type QueueEntry @entity (immutable: false) {
   id: ID! # 0xSponsorshipAddress-QueueIndex
   operator: Operator!
   amount: BigInt!
@@ -580,7 +580,7 @@ type QueueEntry @entity {
 
 # Plain events, saved "as-is". TODO: do we need and want them? Will they be expensive in the new decentralized subgraph?
 
-type SponsoringEvent @entity {
+type SponsoringEvent @entity (immutable: false) {
   id: ID!
   sponsor: String!
   amount: BigInt!
@@ -588,7 +588,7 @@ type SponsoringEvent @entity {
   date: BigInt!
 }
 
-type SlashingEvent @entity {
+type SlashingEvent @entity (immutable: false) {
   id: ID!
   operator: Operator!
   amount: BigInt!
@@ -596,7 +596,7 @@ type SlashingEvent @entity {
   sponsorship: Sponsorship!
 }
 
-type StakingEvent @entity {
+type StakingEvent @entity (immutable: false) {
   id: ID!
   operator: Operator!
   amount: BigInt!

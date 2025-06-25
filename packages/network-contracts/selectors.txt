@@ -1,3 +1,100 @@
+# ENSCache functions
+0xec65d0f8 cancelRequest()
+0x913d9932 fulfillENSOwner()
+0x165d35e1 getChainlinkToken()
+0xc2939d97 jobId()
+0x7dc0d1d0 oracle()
+0x8da5cb5b owner()
+0x2b1fd995 owners()
+0x715018a6 renounceOwnership()
+0xd5f5729d requestENSOwner()
+0x1877e534 requestENSOwnerAndCreateStream()
+0x634172bf resetCacheForENSName()
+0x9a46768e resetCacheForMyENSName()
+0xe90f432c setChainlinkJobId()
+0x230e6d23 setChainlinkTokenAddress()
+0x4c69c00f setOracleAddress()
+0x0c3cac3b setStreamRegistry()
+0xadd14a74 tempENSnames()
+0xa74e712f tempIdPaths()
+0x413a38ed tempMetadatas()
+0x87103c5f tempRequestorAddress()
+0xf2fde38b transferOwnership()
+0x8dc654a2 withdrawLink()
+
+# ENSCache events
+0xe1fe3afa ChainlinkCancelled
+0x7cc135e0 ChainlinkFulfilled
+0xb5e6e01e ChainlinkRequested
+0x8be0079c OwnershipTransferred
+
+
+
+# IStreamRegistry functions
+0xdbfc1d87 ENScreateStreamCallback()
+
+
+
+# ENSCacheV1 functions
+0xec65d0f8 cancelRequest()
+0x913d9932 fulfillENSOwner()
+0x165d35e1 getChainlinkToken()
+0xc2939d97 jobId()
+0x7dc0d1d0 oracle()
+0x8da5cb5b owner()
+0x2b1fd995 owners()
+0x715018a6 renounceOwnership()
+0xd5f5729d requestENSOwner()
+0x1877e534 requestENSOwnerAndCreateStream()
+0xe90f432c setChainlinkJobId()
+0x230e6d23 setChainlinkTokenAddress()
+0x4c69c00f setOracleAddress()
+0x0c3cac3b setStreamRegistry()
+0xadd14a74 tempENSnames()
+0xa74e712f tempIdPaths()
+0x413a38ed tempMetadatas()
+0x87103c5f tempRequestorAddress()
+0xf2fde38b transferOwnership()
+0x8dc654a2 withdrawLink()
+
+# ENSCacheV1 events
+0xe1fe3afa ChainlinkCancelled
+0x7cc135e0 ChainlinkFulfilled
+0xb5e6e01e ChainlinkRequested
+0x8be0079c OwnershipTransferred
+
+
+
+# IStreamRegistry functions
+0xdbfc1d87 ENScreateStreamCallback()
+
+
+
+# ENSCacheV2Streamr functions
+0x5f4a21d8 fulfillENSOwner()
+0xc0c53b8b initialize()
+0x8da5cb5b owner()
+0x2b1fd995 owners()
+0x52d1902d proxiableUUID()
+0x715018a6 renounceOwnership()
+0x1877e534 requestENSOwnerAndCreateStream()
+0x25119d79 setENSCacheV1()
+0x0c3cac3b setStreamRegistry()
+0xf11a120b setStreamrScript()
+0xf2fde38b transferOwnership()
+0x3659cfe6 upgradeTo()
+0x4f1ef286 upgradeToAndCall()
+
+# ENSCacheV2Streamr events
+0x7e644d79 AdminChanged
+0x1cf3b03a BeaconUpgraded
+0x7f26b83f Initialized
+0x8be0079c OwnershipTransferred
+0x6dca0be1 RequestENSOwnerAndCreateStream
+0xbc7cd75a Upgraded
+
+
+
 # AcceptEverythingPaymaster functions
 0x5c5e3db1 CALLDATA_SIZE_LIMIT()
 0xb90b41cf FORWARDER_HUB_OVERHEAD()
@@ -501,68 +598,6 @@
 
 
 
-# DATAv2 functions
-0xa217fddf DEFAULT_ADMIN_ROLE()
-0x3644e515 DOMAIN_SEPARATOR()
-0xd5391393 MINTER_ROLE()
-0xdd62ed3e allowance()
-0x095ea7b3 approve()
-0x70a08231 balanceOf()
-0x42966c68 burn()
-0x79cc6790 burnFrom()
-0x313ce567 decimals()
-0xa457c2d7 decreaseAllowance()
-0x248a9ca3 getRoleAdmin()
-0x2f2ff15d grantRole()
-0x91d14854 hasRole()
-0x39509351 increaseAllowance()
-0xaa271e1a isMinter()
-0x40c10f19 mint()
-0x06fdde03 name()
-0x7ecebe00 nonces()
-0xd505accf permit()
-0x36568abe renounceRole()
-0xd547741f revokeRole()
-0x4eee966f setTokenInformation()
-0x01ffc9a7 supportsInterface()
-0x95d89b41 symbol()
-0x18160ddd totalSupply()
-0xa9059cbb transfer()
-0x4000aea0 transferAndCall()
-0x23b872dd transferFrom()
-
-# DATAv2 events
-0x8c5be1e5 Approval
-0xbd79b86f RoleAdminChanged
-0x2f878811 RoleGranted
-0xf6391f5c RoleRevoked
-0xe19260af Transfer
-0xddf252ad Transfer
-0xd131ab1e UpdatedTokenInformation
-
-
-
-# IERC677 functions
-0xdd62ed3e allowance()
-0x095ea7b3 approve()
-0x70a08231 balanceOf()
-0x18160ddd totalSupply()
-0xa9059cbb transfer()
-0x4000aea0 transferAndCall()
-0x23b872dd transferFrom()
-
-# IERC677 events
-0x8c5be1e5 Approval
-0xe19260af Transfer
-0xddf252ad Transfer
-
-
-
-# IERC677Receiver functions
-0xa4c0ed36 onTokenTransfer()
-
-
-
 # NetworkParameters functions
 0x4e71e0c8 claimOwnership()
 0xaada845f minControlLayerVersion()
@@ -721,27 +756,6 @@
 0x8be0079c OwnershipTransferred
 0x7623db9c RequiresWhitelistChanged
 0xbc7cd75a Upgraded
-
-
-
-# IERC677 functions
-0xdd62ed3e allowance()
-0x095ea7b3 approve()
-0x70a08231 balanceOf()
-0x18160ddd totalSupply()
-0xa9059cbb transfer()
-0x4000aea0 transferAndCall()
-0x23b872dd transferFrom()
-
-# IERC677 events
-0x8c5be1e5 Approval
-0xddf252ad Transfer
-0xce8124fd TransferAndCall
-
-
-
-# IERC677Receiver functions
-0xa4c0ed36 onTokenTransfer()
 
 
 
@@ -3212,103 +3226,6 @@
 
 
 
-# ENSCache functions
-0xec65d0f8 cancelRequest()
-0x913d9932 fulfillENSOwner()
-0x165d35e1 getChainlinkToken()
-0xc2939d97 jobId()
-0x7dc0d1d0 oracle()
-0x8da5cb5b owner()
-0x2b1fd995 owners()
-0x715018a6 renounceOwnership()
-0xd5f5729d requestENSOwner()
-0x1877e534 requestENSOwnerAndCreateStream()
-0x634172bf resetCacheForENSName()
-0x9a46768e resetCacheForMyENSName()
-0xe90f432c setChainlinkJobId()
-0x230e6d23 setChainlinkTokenAddress()
-0x4c69c00f setOracleAddress()
-0x0c3cac3b setStreamRegistry()
-0xadd14a74 tempENSnames()
-0xa74e712f tempIdPaths()
-0x413a38ed tempMetadatas()
-0x87103c5f tempRequestorAddress()
-0xf2fde38b transferOwnership()
-0x8dc654a2 withdrawLink()
-
-# ENSCache events
-0xe1fe3afa ChainlinkCancelled
-0x7cc135e0 ChainlinkFulfilled
-0xb5e6e01e ChainlinkRequested
-0x8be0079c OwnershipTransferred
-
-
-
-# IStreamRegistry functions
-0xdbfc1d87 ENScreateStreamCallback()
-
-
-
-# ENSCacheV1 functions
-0xec65d0f8 cancelRequest()
-0x913d9932 fulfillENSOwner()
-0x165d35e1 getChainlinkToken()
-0xc2939d97 jobId()
-0x7dc0d1d0 oracle()
-0x8da5cb5b owner()
-0x2b1fd995 owners()
-0x715018a6 renounceOwnership()
-0xd5f5729d requestENSOwner()
-0x1877e534 requestENSOwnerAndCreateStream()
-0xe90f432c setChainlinkJobId()
-0x230e6d23 setChainlinkTokenAddress()
-0x4c69c00f setOracleAddress()
-0x0c3cac3b setStreamRegistry()
-0xadd14a74 tempENSnames()
-0xa74e712f tempIdPaths()
-0x413a38ed tempMetadatas()
-0x87103c5f tempRequestorAddress()
-0xf2fde38b transferOwnership()
-0x8dc654a2 withdrawLink()
-
-# ENSCacheV1 events
-0xe1fe3afa ChainlinkCancelled
-0x7cc135e0 ChainlinkFulfilled
-0xb5e6e01e ChainlinkRequested
-0x8be0079c OwnershipTransferred
-
-
-
-# IStreamRegistry functions
-0xdbfc1d87 ENScreateStreamCallback()
-
-
-
-# ENSCacheV2Streamr functions
-0x5f4a21d8 fulfillENSOwner()
-0xc0c53b8b initialize()
-0x8da5cb5b owner()
-0x2b1fd995 owners()
-0x52d1902d proxiableUUID()
-0x715018a6 renounceOwnership()
-0x1877e534 requestENSOwnerAndCreateStream()
-0x25119d79 setENSCacheV1()
-0x0c3cac3b setStreamRegistry()
-0xf11a120b setStreamrScript()
-0xf2fde38b transferOwnership()
-0x3659cfe6 upgradeTo()
-0x4f1ef286 upgradeToAndCall()
-
-# ENSCacheV2Streamr events
-0x7e644d79 AdminChanged
-0x1cf3b03a BeaconUpgraded
-0x7f26b83f Initialized
-0x8be0079c OwnershipTransferred
-0x6dca0be1 RequestENSOwnerAndCreateStream
-0xbc7cd75a Upgraded
-
-
-
 # ERC20Mintable functions
 0xdd62ed3e allowance()
 0x095ea7b3 approve()
@@ -3336,3 +3253,65 @@
 # MockMarketplaceBeneficiary events
 0x9ad21c4b OnPurchaseCalled
 0xecc977eb OnTokenTransferCalled
+
+
+
+# DATAv2 functions
+0xa217fddf DEFAULT_ADMIN_ROLE()
+0x3644e515 DOMAIN_SEPARATOR()
+0xd5391393 MINTER_ROLE()
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x42966c68 burn()
+0x79cc6790 burnFrom()
+0x313ce567 decimals()
+0xa457c2d7 decreaseAllowance()
+0x248a9ca3 getRoleAdmin()
+0x2f2ff15d grantRole()
+0x91d14854 hasRole()
+0x39509351 increaseAllowance()
+0xaa271e1a isMinter()
+0x40c10f19 mint()
+0x06fdde03 name()
+0x7ecebe00 nonces()
+0xd505accf permit()
+0x36568abe renounceRole()
+0xd547741f revokeRole()
+0x4eee966f setTokenInformation()
+0x01ffc9a7 supportsInterface()
+0x95d89b41 symbol()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x4000aea0 transferAndCall()
+0x23b872dd transferFrom()
+
+# DATAv2 events
+0x8c5be1e5 Approval
+0xbd79b86f RoleAdminChanged
+0x2f878811 RoleGranted
+0xf6391f5c RoleRevoked
+0xe19260af Transfer
+0xddf252ad Transfer
+0xd131ab1e UpdatedTokenInformation
+
+
+
+# IERC677 functions
+0xdd62ed3e allowance()
+0x095ea7b3 approve()
+0x70a08231 balanceOf()
+0x18160ddd totalSupply()
+0xa9059cbb transfer()
+0x4000aea0 transferAndCall()
+0x23b872dd transferFrom()
+
+# IERC677 events
+0x8c5be1e5 Approval
+0xe19260af Transfer
+0xddf252ad Transfer
+
+
+
+# IERC677Receiver functions
+0xa4c0ed36 onTokenTransfer()

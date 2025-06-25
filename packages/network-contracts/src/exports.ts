@@ -25,8 +25,8 @@ export { abi as streamStorageRegistryABI, bytecode as streamStorageRegistryBytec
 export type { StreamStorageRegistryV2 as StreamStorageRegistry } from "../typechain/contracts/StreamStorageRegistry/StreamStorageRegistryV2"
 
 export { abi as ENSCacheV2ABI, bytecode as ENSCacheV2Bytecode }
-    from "../artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
-export type { ENSCacheV2Streamr as ENSCacheV2 } from "../typechain/contracts/chainlinkClient/ENSCacheV2Streamr"
+    from "../artifacts/contracts/ENS/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
+export type { ENSCacheV2Streamr as ENSCacheV2 } from "../typechain/contracts/ENS/ENSCacheV2Streamr"
 
 export { abi as nodeRegistryABI, bytecode as nodeRegistryBytecode }
     from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
@@ -69,8 +69,8 @@ export { abi as operatorContractOnlyJoinPolicyABI, bytecode as operatorContractO
 export type { OperatorContractOnlyJoinPolicy }
     from "../typechain/contracts/OperatorTokenomics/SponsorshipPolicies/OperatorContractOnlyJoinPolicy.sol/OperatorContractOnlyJoinPolicy"
 
-export { abi as ERC677ABI } from "../artifacts/contracts/OperatorTokenomics/IERC677.sol/IERC677.json"
-export type { IERC677 as ERC677 } from "../typechain/contracts/OperatorTokenomics/IERC677"
+export { abi as ERC677ABI } from "../artifacts/contracts/token/IERC677.sol/IERC677.json"
+export type { IERC677 as ERC677 } from "../typechain/contracts/token/IERC677"
 
 export { abi as ensRegistryABI, bytecode as ensRegistryBytecode }
     from "../artifacts/@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol/ENSRegistry.json"
@@ -104,11 +104,11 @@ export type { ProjectStakingV1 } from "../typechain/contracts/Hub/ProjectStaking
 
 export { abi as marketplaceV4ABI, bytecode as marketplaceV4Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4.json"
-export type { MarketplaceV4 } from "../typechain/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4"        
+export type { MarketplaceV4 } from "../typechain/contracts/Hub/Marketplace/MarketplaceV4.sol/MarketplaceV4"
 
 export { abi as uniswap2AdapterV4ABI, bytecode as uniswap2AdapterV4Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4.json"
-export type { Uniswap2AdapterV4 } from "../typechain/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4"        
+export type { Uniswap2AdapterV4 } from "../typechain/contracts/Hub/Marketplace/Uniswap2AdapterV4.sol/Uniswap2AdapterV4"
 
 export { abi as remoteMarketplaceV1ABI, bytecode as remoteMarketplaceV1Bytecode }
     from "../artifacts/contracts/Hub/Marketplace/RemoteMarketplaceV1.sol/RemoteMarketplaceV1.json"
@@ -122,7 +122,7 @@ import { deployedBytecode as sponsorshipFactoryBytecode } from "../artifacts/con
 import { deployedBytecode as streamrConfigBytecode } from "../artifacts/contracts/OperatorTokenomics/StreamrConfig.sol/StreamrConfig.json"
 import { deployedBytecode as streamRegistryBytecode } from "../artifacts/contracts/StreamRegistry/StreamRegistryV4.sol/StreamRegistryV4.json"
 import { deployedBytecode as streamStorageRegistryBytecode } from "../artifacts/contracts/StreamStorageRegistry/StreamStorageRegistry.sol/StreamStorageRegistry.json"
-import { deployedBytecode as ENSCacheV2Bytecode } from "../artifacts/contracts/chainlinkClient/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
+import { deployedBytecode as ENSCacheV2Bytecode } from "../artifacts/contracts/ENS/ENSCacheV2Streamr.sol/ENSCacheV2Streamr.json"
 import { deployedBytecode as nodeRegistryBytecode } from "../artifacts/contracts/NodeRegistry/NodeRegistry.sol/NodeRegistry.json"
 import { deployedBytecode as tokenBytecode } from "../artifacts/contracts/OperatorTokenomics/testcontracts/TestToken.sol/TestToken.json"
 import { deployedBytecode as maxOperatorsJoinPolicyBytecode } from "../artifacts/contracts/OperatorTokenomics/SponsorshipPolicies/MaxOperatorsJoinPolicy.sol/MaxOperatorsJoinPolicy.json"

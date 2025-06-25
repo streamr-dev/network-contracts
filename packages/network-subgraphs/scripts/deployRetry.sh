@@ -14,9 +14,8 @@ fi
 
 retries=0
 while true; do
-    echo "Attempting to deploy streamr-amoy-testnet..."
+    echo "Attempting to deploy $SUBGRAPH ..."
     npx graph deploy $SUBGRAPH -l $LABEL
-
     if [ $? -eq 0 ]; then
         echo "Deployment successful!"
         exit 0
