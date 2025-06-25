@@ -1,7 +1,6 @@
 {
     "dev2": {
         "networkId": "dev2",
-        "hubContracts": true,
         "contracts": {
             "StreamRegistry": {
                 "address": "0x18E0937099660B82464475Ea2B7e6Af4f2BFE5F0",
@@ -43,7 +42,6 @@
     },
     "polygon": {
         "networkId": "matic",
-        "hubContracts": true,
         "contracts": {
             "StreamRegistry": {
                 "address": "0x0D483E10612F327FC11965Fc82E90dC19b141641",
@@ -85,7 +83,6 @@
     },
     "polygonAmoy": {
         "networkId": "polygon-amoy",
-        "hubContracts": true,
         "contracts": {
             "StreamRegistry": {
                 "address": "0xE9C98bdE63248e58E9137Db8270D9675B9E34b93",
@@ -127,7 +124,6 @@
     },
     "peaq": {
         "networkId": "peaq",
-        "hubContracts": true,
         "contracts": {
             "StreamRegistry": {
                 "address": "0xD0C720e99Bd39311614f292d8B0B4e351Bde157c",
@@ -169,7 +165,6 @@
     },
     "iotex": {
         "networkId": "iotex",
-        "hubContracts": true,
         "contracts": {
             "StreamRegistry": {
                 "address": "0x080F34fec2bc33928999Ea9e39ADc798bEF3E0d6",

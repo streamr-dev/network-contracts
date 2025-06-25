@@ -79,7 +79,6 @@ dataSources:
         - event: Removed(string,indexed address)
           handler: handleStorageNodeRemovedFromStream
       file: ./src/streamStorageRegistry.ts
-{{#if hubContracts}}
   - kind: ethereum/contract
     name: ProjectRegistryV1
     network: {{networkId}}
@@ -162,7 +161,6 @@ dataSources:
         - event: Unstake(indexed bytes32,indexed address,uint256,uint256)
           handler: handleUnstake
       file: ./src/projectStaking.ts
-{{/if}}
   - kind: ethereum/contract
     name: StreamrConfig
     network: {{networkId}}
