@@ -66,6 +66,8 @@ Troubleshooting tips:
   * Added PastDelegationCount entity, add running count into Delegation.id
 * v0.0.17
   * Added Stream#idAsString field (ETH-879)
+* v0.0.18
+  * Deployed Hub subgraphs to `iotext` (ETH-887)
 
 # Developer notes
 
