@@ -131,6 +131,8 @@ describe("MarketplaceV4", () => {
         return market
     }
 
+    let runningId = 0
+
     async function createProject({
         chains = chainIds,
         payment = paymentDetailsDefault,
@@ -140,7 +142,7 @@ describe("MarketplaceV4", () => {
         metadata = "",
         creator = admin,
     } = {}): Promise<string> {
-        const name = 'project-' + Math.round(Math.random() * 1000000)
+        const name = 'MarketplaceV4-test-project-' + (runningId++)
         const projectId = hexlify(zeroPad(toUtf8Bytes(name), 32))
         await projectRegistry.connect(creator)
             .createProject(projectId, chains, payment, streams, minimumSubscriptionSeconds, isPublicPurchable, metadata)
@@ -677,7 +679,7 @@ describe("MarketplaceV4", () => {
                 .to.be.true
 
             // check that metatx works with new forwarder
-            const {req, sign, projectId} = await prepareBuyMetatx(newForwarder, signer, signerPrivateKey)
+            const {req, sign, projectId} = await prepareB   uyMetatx(newForwarder, signer, signerPrivateKey)
             expect(await newForwarder.verify(req, sign))
                 .to.be.true
             expect(await projectRegistry.hasValidSubscription(projectId, signer.address))
