@@ -13,7 +13,7 @@
     "@graphprotocol/graph-cli": "0.89.0",
     "@streamr/config": "^5.8.0",
     "handlebars": "4.7.8",
-    "ts-mocha": "10.0.0"
+    "ts-mocha": "11.1.0"
   },
   "dependencies": {
     "@graphprotocol/graph-ts": "0.35.1"
