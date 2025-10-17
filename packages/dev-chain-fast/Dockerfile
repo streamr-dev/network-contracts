@@ -1,4 +1,4 @@
-FROM node:18-slim
+FROM node:25-slim
 RUN apt-get update && apt-get install curl -y
 WORKDIR /usr/src/hardhat
 COPY ./dist ./package.json ./*.tgz ./hardhat.config.js ./start.sh ./
