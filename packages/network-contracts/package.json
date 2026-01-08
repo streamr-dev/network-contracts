@@ -78,7 +78,7 @@
     "hardhat-gas-reporter": "1.0.9",
     "hardhat-ignore-warnings": "0.2.8",
     "node-fetch": "2.6.7",
-    "solhint": "3.4.1",
+    "solhint": "6.0.2",
     "ts-node": "10.9.2",
     "web3-providers-http": "1.8.0"
   }
