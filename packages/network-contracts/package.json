@@ -60,7 +60,7 @@
     "@ethersproject/wallet": "5.7.0",
     "@metamask/eth-sig-util": "7.0.1",
     "@nomicfoundation/hardhat-chai-matchers": "1.0.5",
-    "@nomicfoundation/hardhat-toolbox": "2.0.0",
+    "@nomicfoundation/hardhat-toolbox": "6.1.0",
     "@nomicfoundation/hardhat-verify": "2.0.11",
     "@opengsn/provider": "2.2.6",
     "@openzeppelin/hardhat-upgrades": "1.22.1",
