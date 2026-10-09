@@ -6,7 +6,7 @@ import { advanceToTimestamp, getBlockTimestamp, VOTE_KICK, VOTE_START, log } fro
 import { deployOperatorContract } from "./deployOperatorContract"
 
 import { deploySponsorship } from "./deploySponsorshipContract"
-import { IKickPolicy, IExchangeRatePolicy, Operator, Sponsorship, TestToken } from "../../../typechain"
+import { IAllocationPolicy, IKickPolicy, IExchangeRatePolicy, Operator, Sponsorship, TestToken } from "../../../typechain"
 import { setupSponsorships } from "./setupSponsorships"
 
 import type { Wallet } from "ethers"
@@ -35,6 +35,7 @@ describe("Operator contract", (): void => {
     let defaultOperator: Operator
     let defaultSponsorship: Sponsorship
     let testKickPolicy: IKickPolicy
+    let testAllocationPolicy: IAllocationPolicy
     let testExchangeRatePolicy: IExchangeRatePolicy
     let testExchangeRatePolicy2: IExchangeRatePolicy
     let testExchangeRatePolicy3: IExchangeRatePolicy
@@ -82,7 +83,8 @@ describe("Operator contract", (): void => {
         token = sharedContracts.token
 
         testKickPolicy = await (await (await getContractFactory("TestKickPolicy", admin)).deploy()).deployed() as unknown as IKickPolicy
-        await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testKickPolicy.address])).wait()
+        testAllocationPolicy = await (await getContractFactory("TestAllocationPolicy", admin)).deploy() as unknown as IAllocationPolicy
+        await (await sharedContracts.sponsorshipFactory.addTrustedPolicies([ testKickPolicy.address, testAllocationPolicy.address ])).wait()
 
         testExchangeRatePolicy = await (await getContractFactory("TestExchangeRatePolicy", admin)).deploy() as IExchangeRatePolicy
         testExchangeRatePolicy2 = await (await getContractFactory("TestExchangeRatePolicy2", admin)).deploy() as IExchangeRatePolicy
@@ -1196,6 +1198,89 @@ describe("Operator contract", (): void => {
             // (other) delegators' balances are unchanged, and exchange rate is still at 1.57
             expect(formatEther(await operator.balanceOf(delegator.address))).to.equal("10000.0")
             expect(formatEther(await operator.balanceInData(delegator.address))).to.equal("15700.0")
+        })
+
+        // Regression test for the 2026-10-09 Operator drain: a fake "sponsorship" whose withdraw() returns a made-up number (and sends no DATA)
+        // was passed to withdrawEarningsFromSponsorships by an outsider. The fake earnings X = freeBalance / (protocolFee + fishermanReward)
+        // triggered the fisherman path, and 5% + 25% = 30% of X == the whole free DATA balance was paid out of the Operator's own DATA.
+        // Before the fix (StakeModule version 4) this test's transaction succeeded and the Operator was left with 0 DATA.
+        it("does NOT pay fisherman reward or protocol fee for a fake sponsorship given to withdrawEarningsFromSponsorships", async () => {
+            const attacker = (await getSigners())[9] as unknown as Wallet
+            await setTokens(operatorWallet, "1000")
+            await setTokens(delegator, "2000")
+            await setTokens(attacker, "0")
+            await setTokens(protocolFeeBeneficiary, "0")
+            const { operator } = await deployOperator(operatorWallet)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("2000"), "0x")).wait()
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("3000")) // free (unstaked) DATA
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("1000")) // self-delegation
+            expect(await operator.balanceOf(delegator.address)).to.equal(parseEther("2000"))
+
+            // attacker deploys a contract that is NOT a Sponsorship: not from SponsorshipFactory, Operator is not staked in it, it never sends DATA
+            const fakeSponsorship = await (await getContractFactory("TestFakeSponsorship", attacker)).deploy()
+            await fakeSponsorship.deployed()
+            // choose X so that protocolFee (5%) + fishermanReward (25%) = 30% of X = 3000 DATA = everything the Operator holds
+            await (await fakeSponsorship.setFakeEarnings(parseEther("10000"))).wait()
+
+            await expect(operator.connect(attacker).withdrawEarningsFromSponsorships([fakeSponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+            // also not when mixed in with a real sponsorship the operator is staked in
+            await setTokens(operatorWallet, "5000")
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("5000"), "0x")).wait()
+            await (await operator.stake(defaultSponsorship.address, parseEther("5000"))).wait()
+            await expect(operator.connect(attacker).withdrawEarningsFromSponsorships([defaultSponsorship.address, fakeSponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+            // and not through the triggerAnotherOperatorWithdraw fisherman path either
+            await expect(defaultOperator.connect(operatorWallet).triggerAnotherOperatorWithdraw(operator.address, [fakeSponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("3000")) // 3000 + 5000 - 5000 staked, nothing drained
+            expect(await token.balanceOf(attacker.address)).to.equal(parseEther("0"))
+            expect(await token.balanceOf(protocolFeeBeneficiary.address)).to.equal(parseEther("0"))
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("6000")) // self-delegation intact
+            expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("2000"))
+        })
+
+        it("does NOT withdraw from a real Sponsorship that the Operator is not staked in", async function(): Promise<void> {
+            await setTokens(operatorWallet, "10000")
+            const { operator } = await deployOperator(operatorWallet)
+            const stakedSponsorship = await deploySponsorship(sharedContracts)
+            const notStakedSponsorship = await deploySponsorship(sharedContracts)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("10000"), "0x")).wait()
+            await (await operator.stake(stakedSponsorship.address, parseEther("5000"))).wait()
+
+            await expect(operator.withdrawEarningsFromSponsorships([notStakedSponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+            await expect(operator.withdrawEarningsFromSponsorships([stakedSponsorship.address, notStakedSponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "NotMyStakedSponsorship")
+        })
+
+        // Second layer of defense: even a genuine Sponsorship that the Operator IS staked in must not be able to make the Operator
+        // book earnings that never arrived (Sponsorship._withdraw swallows transferAndCall failures but still returns the payout number)
+        it("counts withdrawn earnings from the DATA balance change, NOT from what Sponsorship.withdraw() returns", async function(): Promise<void> {
+            const attacker = (await getSigners())[9] as unknown as Wallet
+            await setTokens(operatorWallet, "15000")
+            await setTokens(attacker, "0")
+            await setTokens(protocolFeeBeneficiary, "0")
+            const { operator } = await deployOperator(operatorWallet)
+            // TestAllocationPolicy case 11: withdraw() reports a payout that exceeds the Sponsorship's DATA balance => no DATA is actually sent
+            const lyingSponsorship = await deploySponsorship(sharedContracts, {}, [], [], testAllocationPolicy, "11")
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("15000"), "0x")).wait()
+            await (await operator.stake(lyingSponsorship.address, parseEther("5000"))).wait()
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("10000"))
+            const reportedPayout = await lyingSponsorship.connect(admin.provider).callStatic.withdraw({ from: operator.address })
+            expect(reportedPayout).to.equal(parseEther("5001")) // the lie: 5000 stake + 1 > what the Sponsorship holds
+
+            await expect(operator.connect(attacker).withdrawEarningsFromSponsorships([lyingSponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "NoEarnings")
+            await expect(operator.withdrawEarningsFromSponsorships([lyingSponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "NoEarnings")
+
+            expect(await token.balanceOf(operator.address)).to.equal(parseEther("10000"))
+            expect(await token.balanceOf(attacker.address)).to.equal(parseEther("0"))
+            expect(await token.balanceOf(protocolFeeBeneficiary.address)).to.equal(parseEther("0"))
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("15000"))
         })
 
         it("can update operator cut fraction for himself, but NOT for others (and not >100%)", async function(): Promise<void> {
