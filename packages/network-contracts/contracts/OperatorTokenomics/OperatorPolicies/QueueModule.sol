@@ -5,6 +5,7 @@ pragma solidity ^0.8.13;
 import "./IQueueModule.sol";
 import "../StreamrConfig.sol";
 import "../Operator.sol";
+import "../OperatorFactory.sol";
 
 contract QueueModule is IQueueModule, Operator {
 
@@ -95,8 +96,18 @@ contract QueueModule is IQueueModule, Operator {
      * Fisherman function: if there are too many earnings in another Operator, call them out and receive a reward
      * The reward will be re-delegated for the owner (same way as withdrawn earnings)
      * This function can only be called if there really are too many earnings in the other Operator.
+     * @dev The other Operator must be a real Operator from the OperatorFactory, and not this contract itself. Otherwise the
+     * @dev   DATA that arrives during the call might not be a fisherman reward at all, and would still be minted as the owner's self-delegation:
+     * @dev   - this contract itself: its own earnings (already split as Profit) would be minted a second time, to the owner only
+     * @dev   - arbitrary contract: it can re-enter this contract (e.g. delegate), and that DATA would be minted a second time, to the owner
      **/
     function _triggerAnotherOperatorWithdraw(address otherOperatorAddress, Sponsorship[] memory sponsorshipAddresses) public {
+        if (otherOperatorAddress == address(this)) {
+            revert CannotTriggerOwnWithdraw();
+        }
+        if (OperatorFactory(streamrConfig.operatorFactory()).deploymentTimestamp(otherOperatorAddress) == 0) {
+            revert AccessDeniedStreamrOperatorOnly();
+        }
         uint balanceBeforeWei = token.balanceOf(address(this));
         Operator(otherOperatorAddress).withdrawEarningsFromSponsorships(sponsorshipAddresses);
         uint balanceAfterWei = token.balanceOf(address(this));
