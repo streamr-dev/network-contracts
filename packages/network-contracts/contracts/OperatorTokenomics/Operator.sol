@@ -102,6 +102,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error ZeroUndelegation();
     error DidNotReceiveReward();
     error InvalidOperatorsCut(uint newOperatorsCutFraction);
+    error ArrayLengthMismatch();
+    error SponsorshipFull(Sponsorship sponsorship);
 
     bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
     bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
@@ -424,6 +426,29 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     /** In case the queue is very long (e.g. due to spamming), give the operator an option to free funds from Sponsorships to pay out the queue in parts */
     function reduceStakeWithoutQueue(Sponsorship sponsorship, uint targetStakeWei) public onlyOperator {
         moduleCall(address(stakeModule), abi.encodeWithSelector(stakeModule._reduceStakeTo.selector, sponsorship, targetStakeWei));
+    }
+
+    /**
+     * Move stake between Sponsorships atomically: first reduce stake in some Sponsorships, then stake into others, all in one transaction.
+     * Same as calling `reduceStakeTo` for each of the reductions and then `stake` for each of the stakes, except that
+     *   it fails fast (before any stake is touched) if one of the Sponsorships to stake into is already full (max operator count reached).
+     *   Joining is racy: another Operator may take the last slot while this transaction is pending, so failing early saves the gas spent on reductions.
+     * The undelegation queue is paid out using the freed DATA before staking; like with `stake`, the queue must be empty before staking happens.
+     * @param reduceStakeFromSponsorships Sponsorships to reduce stake in
+     * @param reducedTargetStakesWei stake to leave in the corresponding Sponsorships (zero means unstake completely)
+     * @param stakeOnSponsorships Sponsorships to stake into
+     * @param stakeAmountsWei DATA amounts to stake into the corresponding Sponsorships
+     */
+    function rebalanceStake(
+        Sponsorship[] calldata reduceStakeFromSponsorships,
+        uint[] calldata reducedTargetStakesWei,
+        Sponsorship[] calldata stakeOnSponsorships,
+        uint[] calldata stakeAmountsWei
+    ) external onlyOperator {
+        // implementation lives in NodeModule only because StakeModule is at the contract size limit; it calls StakeModule for the actual staking
+        moduleCall(address(nodeModule), abi.encodeWithSelector(nodeModule._rebalanceStake.selector,
+            reduceStakeFromSponsorships, reducedTargetStakesWei, stakeOnSponsorships, stakeAmountsWei
+        ));
     }
 
     /**
@@ -785,6 +810,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *  3: slash self-delegation when getting kicked (ETH-754)
      *  4: withdrawEarningsFromSponsorships only accepts staked Sponsorships and measures earnings from the DATA balance change (2026-10-09 Operator drain)
      *     triggerAnotherOperatorWithdraw only accepts other Operators from the OperatorFactory (not self, not arbitrary contracts)
+     *     rebalanceStake added: reduce stake in several Sponsorships and stake into others atomically
      */
     function version() public pure returns (uint) {
         return 4;

@@ -114,6 +114,25 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
         return solventUntilTimestamp() > block.timestamp + minHorizonSeconds; // solhint-disable-line not-rely-on-time
     }
 
+    /**
+     * Maximum number of operators that can be staked at the same time, as enforced by MaxOperatorsJoinPolicy. Zero means no limit.
+     * @dev Read straight from MaxOperatorsJoinPolicy's namespaced storage slot (see MaxOperatorsJoinPolicy.localData),
+     * @dev   so that we don't need to know which (if any) of the joinPolicies it is. The slot is zero if the policy was never added.
+     */
+    function maxOperatorCount() public view returns (uint maxOperators) {
+        bytes32 storagePosition = keccak256(abi.encodePacked("sponsorship.storage.MaxOperatorsJoinPolicy", address(this)));
+        assembly { maxOperators := sload(storagePosition) } // solhint-disable-line no-inline-assembly
+    }
+
+    /**
+     * Full means that no more operators can join (stake() from a new operator would revert in MaxOperatorsJoinPolicy)
+     * Operators that are already staked can still increase their stake.
+     */
+    function isFull() public view returns (bool) {
+        uint maxOperators = maxOperatorCount();
+        return maxOperators > 0 && operatorCount >= maxOperators;
+    }
+
     constructor() ERC2771ContextUpgradeable(address(0x0)) {}
 
     /**

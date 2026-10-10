@@ -11,6 +11,7 @@ contract MaxOperatorsJoinPolicy is IJoinPolicy, Sponsorship {
         uint256 maxOperators;
     }
 
+    /** @dev Sponsorship.maxOperatorCount() reads this same slot directly, keep them in sync */
     function localData() internal view returns(LocalStorage storage data) {
         bytes32 storagePosition = keccak256(abi.encodePacked("sponsorship.storage.MaxOperatorsJoinPolicy", address(this)));
         assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
