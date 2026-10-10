@@ -15,6 +15,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
         bool failEmptyOnIncrease;
         bool sendDataWithFailInGetInsolvencyTimestamp;
         bool failInGetInsolvencyTimestamp;
+        bool reportFakePayoutOnWithdraw;
     }
 
     function localData() internal view returns(LocalStorage storage data) {
@@ -22,6 +23,7 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
         assembly {data.slot := storagePosition} // solhint-disable-line no-inline-assembly
     }
 
+    // solhint-disable-next-line code-complexity
     function setParam(uint testCase) external {
         if (testCase == 1) {
             require(false, "test_setParam");
@@ -43,6 +45,8 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
             localData().sendDataWithFailInGetInsolvencyTimestamp = true;
         } else if (testCase == 10) {
             localData().failInGetInsolvencyTimestamp = true;
+        } else if (testCase == 11) {
+            localData().reportFakePayoutOnWithdraw = true;
         }
     }
 
@@ -86,7 +90,15 @@ contract TestAllocationPolicy is IAllocationPolicy, Sponsorship {
         }
     }
 
-    function onWithdraw(address) external pure returns (uint payoutWei) {
+    /**
+     * Test case 11: report a payout that is larger than the Sponsorship's DATA balance.
+     * Sponsorship._withdraw then does `try token.transferAndCall(...) {} catch {}`, so the transfer fails silently
+     * and withdraw() returns a number even though NO DATA was actually sent to the Operator.
+     */
+    function onWithdraw(address) external view returns (uint payoutWei) {
+        if (localData().reportFakePayoutOnWithdraw) {
+            return token.balanceOf(address(this)) + 1 ether;
+        }
         return 0;
     }
 

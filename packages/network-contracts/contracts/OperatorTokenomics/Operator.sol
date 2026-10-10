@@ -781,8 +781,9 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *  1: latestDelegationTimestamp[delegator] added in 2024-01-24 (ETH-717)
      *  2: recompilation and redeployment (ETH-748)
      *  3: slash self-delegation when getting kicked (ETH-754)
+     *  4: withdrawEarningsFromSponsorships only accepts staked Sponsorships and measures earnings from the DATA balance change (2026-10-09 Operator drain)
      */
     function version() public pure returns (uint) {
-        return 3;
+        return 4;
     }
 }

@@ -104,11 +104,25 @@ contract StakeModule is IStakeModule, Operator {
         emit OperatorValueUpdate(totalStakedIntoSponsorshipsWei - totalSlashedInSponsorshipsWei, token.balanceOf(address(this)));
     }
 
-    /** @dev this is in stakeModule because it calls _splitEarnings */
+    /**
+     * Withdraw earnings from the given Sponsorships and split them (protocol fee, operator's cut, delegators' profit).
+     * Only Sponsorships this Operator is currently staked in are accepted, and the earnings are measured as the actual change
+     *   in this contract's DATA balance, NOT as the number returned by `withdraw()`.
+     * @dev This function is callable by anyone (via withdrawEarningsFromSponsorships), so the input must NOT be trusted:
+     * @dev   an attacker-controlled contract could return arbitrary "earnings" from withdraw() without sending any DATA,
+     * @dev   and the fisherman reward + protocol fee of those fake earnings would then be paid out of this contract's own DATA balance.
+     * @dev this is in stakeModule because it calls _splitEarnings
+     */
     function _withdrawEarnings(Sponsorship[] memory sponsorshipAddresses) public returns (uint sumEarnings) {
+        uint balanceBeforeWei = token.balanceOf(address(this));
         for (uint i; i < sponsorshipAddresses.length; i++) {
-            sumEarnings += sponsorshipAddresses[i].withdraw(); // this contract receives DATA tokens
+            Sponsorship sponsorship = sponsorshipAddresses[i];
+            if (indexOfSponsorships[sponsorship] == 0) {
+                revert NotMyStakedSponsorship();
+            }
+            sponsorship.withdraw(); // this contract receives DATA tokens
         }
+        sumEarnings = token.balanceOf(address(this)) - balanceBeforeWei;
         if (sumEarnings == 0) {
             revert NoEarnings();
         }
