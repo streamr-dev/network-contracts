@@ -32,8 +32,8 @@ describe("OperatorContractOnlyJoinPolicy", (): void => {
         const { streamrConfig, token } = contracts
         const sponsorship = await deploySponsorship(contracts)
 
-        await (await token.approve(sponsorship.address, parseEther("5000"))).wait()
-        await expect(sponsorship.stake(operator.address, parseEther("5000")))
+        await (await token.connect(operator).approve(sponsorship.address, parseEther("5000"))).wait()
+        await expect(sponsorship.connect(operator).stake(operator.address, parseEther("5000")))
             .to.be.revertedWith("error_onlyOperators")
 
         const badOp = await (await (await getContractFactory("Operator", operator)).deploy()).deployed() as Operator
