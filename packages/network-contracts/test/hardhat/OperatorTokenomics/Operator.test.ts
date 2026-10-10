@@ -985,6 +985,141 @@ describe("Operator contract", (): void => {
         })
     })
 
+    describe("Stake rebalancing", (): void => {
+        it("reduces stake in some sponsorships and stakes into others in one transaction", async function(): Promise<void> {
+            await setTokens(operatorWallet, "40000")
+            const { operator } = await deployOperator(operatorWallet)
+            const sponsorship1 = await deploySponsorship(sharedContracts)
+            const sponsorship2 = await deploySponsorship(sharedContracts)
+            const sponsorship3 = await deploySponsorship(sharedContracts)
+            const sponsorship4 = await deploySponsorship(sharedContracts)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("40000"), "0x")).wait()
+            await (await operator.stake(sponsorship1.address, parseEther("20000"))).wait()
+            await (await operator.stake(sponsorship2.address, parseEther("10000"))).wait()
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("10000.0")
+
+            // free 12000 + 10000 = 22000 DATA, then stake 15000 + 7000 = 22000 DATA
+            await expect(operator.rebalanceStake(
+                [sponsorship1.address, sponsorship2.address], [parseEther("8000"), 0],
+                [sponsorship3.address, sponsorship4.address], [parseEther("15000"), parseEther("7000")],
+            ))
+                .to.emit(operator, "StakeUpdate").withArgs(sponsorship1.address, parseEther("8000"))
+                .to.emit(operator, "Unstaked").withArgs(sponsorship2.address)
+                .to.emit(operator, "Staked").withArgs(sponsorship3.address)
+                .to.emit(operator, "Staked").withArgs(sponsorship4.address)
+
+            expect(await operator.stakedInto(sponsorship1.address)).to.equal(parseEther("8000"))
+            expect(await operator.stakedInto(sponsorship2.address)).to.equal(0)
+            expect(await operator.stakedInto(sponsorship3.address)).to.equal(parseEther("15000"))
+            expect(await operator.stakedInto(sponsorship4.address)).to.equal(parseEther("7000"))
+            expect(await sponsorship1.stakedWei(operator.address)).to.equal(parseEther("8000"))
+            expect(await sponsorship2.stakedWei(operator.address)).to.equal(0)
+            expect(await sponsorship3.stakedWei(operator.address)).to.equal(parseEther("15000"))
+            expect(await sponsorship4.stakedWei(operator.address)).to.equal(parseEther("7000"))
+            expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("30000"))
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("10000.0")
+            expect(await operator.indexOfSponsorships(sponsorship2.address)).to.equal(0)
+            expect(await operator.indexOfSponsorships(sponsorship4.address)).to.not.equal(0)
+        })
+
+        it("works with only reductions, or only stakes", async function(): Promise<void> {
+            await setTokens(operatorWallet, "20000")
+            const { operator } = await deployOperator(operatorWallet)
+            const sponsorship1 = await deploySponsorship(sharedContracts)
+            const sponsorship2 = await deploySponsorship(sharedContracts)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("20000"), "0x")).wait()
+
+            await expect(operator.rebalanceStake([], [], [sponsorship1.address, sponsorship2.address], [parseEther("10000"), parseEther("10000")]))
+                .to.emit(operator, "Staked").withArgs(sponsorship1.address)
+                .to.emit(operator, "Staked").withArgs(sponsorship2.address)
+            expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("20000"))
+
+            await expect(operator.rebalanceStake([sponsorship1.address, sponsorship2.address], [parseEther("5000"), 0], [], []))
+                .to.emit(operator, "StakeUpdate").withArgs(sponsorship1.address, parseEther("5000"))
+                .to.emit(operator, "Unstaked").withArgs(sponsorship2.address)
+            expect(await operator.totalStakedIntoSponsorshipsWei()).to.equal(parseEther("5000"))
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("15000.0")
+        })
+
+        it("validates that the array lengths match", async function(): Promise<void> {
+            await expect(defaultOperator.rebalanceStake([defaultSponsorship.address], [], [], []))
+                .to.be.revertedWithCustomError(defaultOperator, "ArrayLengthMismatch")
+            await expect(defaultOperator.rebalanceStake([], [parseEther("1")], [], []))
+                .to.be.revertedWithCustomError(defaultOperator, "ArrayLengthMismatch")
+            await expect(defaultOperator.rebalanceStake([], [], [defaultSponsorship.address], []))
+                .to.be.revertedWithCustomError(defaultOperator, "ArrayLengthMismatch")
+            await expect(defaultOperator.rebalanceStake([], [], [], [parseEther("1")]))
+                .to.be.revertedWithCustomError(defaultOperator, "ArrayLengthMismatch")
+        })
+
+        it("only operators can rebalance stake", async function(): Promise<void> {
+            await expect(defaultOperator.connect(delegator).rebalanceStake([], [], [], []))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+            await expect(defaultOperator.connect(operator2Wallet).rebalanceStake([], [], [], []))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedOperatorOnly")
+        })
+
+        it("will NOT allow staking to non-Sponsorships", async function(): Promise<void> {
+            await expect(defaultOperator.rebalanceStake([], [], [token.address], [parseEther("1000")]))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedStreamrSponsorshipOnly")
+            await expect(defaultOperator.rebalanceStake([], [], [sharedContracts.sponsorshipTemplate.address], [parseEther("1000")]))
+                .to.be.revertedWithCustomError(defaultOperator, "AccessDeniedStreamrSponsorshipOnly")
+        })
+
+        it("fails fast if one of the sponsorships to stake into is full", async function(): Promise<void> {
+            await setTokens(operatorWallet, "20000")
+            await setTokens(operator2Wallet, "20000")
+            const { operator, contracts } = await deployOperator(operatorWallet)
+            const operator2 = await deployOperatorContract(contracts, operator2Wallet)
+            const sponsorship = await deploySponsorship(sharedContracts)
+            const fullSponsorship = await deploySponsorship(sharedContracts, { maxOperatorCount: 1 })
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("20000"), "0x")).wait()
+            await (await token.connect(operator2Wallet).transferAndCall(operator2.address, parseEther("20000"), "0x")).wait()
+            await (await operator.stake(sponsorship.address, parseEther("20000"))).wait()
+            await (await operator2.stake(fullSponsorship.address, parseEther("10000"))).wait()
+            expect(await fullSponsorship.isFull()).to.be.true
+
+            // reverts with SponsorshipFull from the pre-check, NOT with "error_tooManyOperators" from the join policy after the reductions
+            await expect(operator.rebalanceStake([sponsorship.address], [parseEther("10000")], [fullSponsorship.address], [parseEther("10000")]))
+                .to.be.revertedWithCustomError(operator, "SponsorshipFull").withArgs(fullSponsorship.address)
+            expect(await operator.stakedInto(sponsorship.address)).to.equal(parseEther("20000"))
+
+            // operator2 is already staked in fullSponsorship, so it's not "full" for them: they can still stake more into it
+            await expect(operator2.rebalanceStake([], [], [fullSponsorship.address], [parseEther("5000")]))
+                .to.emit(operator2, "StakeUpdate").withArgs(fullSponsorship.address, parseEther("15000"))
+                .to.not.emit(operator2, "Staked")
+        })
+
+        it("pays out the undelegation queue from the freed stake before staking", async function(): Promise<void> {
+            await setTokens(operatorWallet, "10000")
+            await setTokens(delegator, "10000")
+            const { operator } = await deployOperator(operatorWallet)
+            const sponsorship1 = await deploySponsorship(sharedContracts)
+            const sponsorship2 = await deploySponsorship(sharedContracts)
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("10000"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("10000"), "0x")).wait()
+            await (await operator.stake(sponsorship1.address, parseEther("20000"))).wait()
+            await expect(operator.connect(delegator).undelegate(parseEther("5000")))
+                .to.emit(operator, "QueuedDataPayout").withArgs(delegator.address, parseEther("5000"), 0)
+            expect(await operator.queueIsEmpty()).to.be.false
+
+            // frees only 4000: queue is paid out partially and isn't empty, so staking is not allowed
+            await expect(operator.rebalanceStake([sponsorship1.address], [parseEther("16000")], [sponsorship2.address], [parseEther("4000")]))
+                .to.be.revertedWithCustomError(operator, "FirstEmptyQueueThenStake")
+            expect(await operator.stakedInto(sponsorship1.address)).to.equal(parseEther("20000"))
+
+            // frees 10000: 5000 goes to the queue, 5000 gets staked
+            await expect(operator.rebalanceStake([sponsorship1.address], [parseEther("10000")], [sponsorship2.address], [parseEther("5000")]))
+                .to.emit(operator, "Undelegated").withArgs(delegator.address, parseEther("5000"))
+                .to.emit(operator, "Staked").withArgs(sponsorship2.address)
+            expect(await operator.queueIsEmpty()).to.be.true
+            expect(formatEther(await token.balanceOf(delegator.address))).to.equal("5000.0")
+            expect(formatEther(await token.balanceOf(operator.address))).to.equal("0.0")
+            expect(await operator.stakedInto(sponsorship1.address)).to.equal(parseEther("10000"))
+            expect(await operator.stakedInto(sponsorship2.address)).to.equal(parseEther("5000"))
+        })
+    })
+
     describe("Withdrawing and profit sharing", () => {
 
         // Corresponds to a test in network repo / broker subsystem / operator plugin:

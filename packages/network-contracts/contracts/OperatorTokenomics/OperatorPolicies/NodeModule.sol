@@ -76,4 +76,59 @@ contract NodeModule is INodeModule, Operator {
 
         streamRegistry.revokePermission(streamId, node, IStreamRegistryV4.PermissionType.Publish);
     }
+
+    /**
+     * Reduce stake in some Sponsorships, then stake into others; see Operator.rebalanceStake
+     * @dev This was put into NodeModule only because StakeModule is at the contract size limit (every module includes Operator's bytecode).
+     * @dev The staking logic itself stays in StakeModule, called via moduleCall (nested delegatecall, still in Operator's storage context).
+     */
+    function _rebalanceStake(
+        Sponsorship[] calldata reduceStakeFromSponsorships,
+        uint[] calldata reducedTargetStakesWei,
+        Sponsorship[] calldata stakeOnSponsorships,
+        uint[] calldata stakeAmountsWei
+    ) external {
+        if (reduceStakeFromSponsorships.length != reducedTargetStakesWei.length || stakeOnSponsorships.length != stakeAmountsWei.length) {
+            revert ArrayLengthMismatch();
+        }
+
+        // fail fast, before spending gas on the reductions: staking into a full Sponsorship would only revert at the very end
+        _checkCanJoin(stakeOnSponsorships);
+
+        address stakeModuleAddress = address(stakeModule);
+        for (uint i; i < reduceStakeFromSponsorships.length; i++) {
+            moduleCall(stakeModuleAddress, abi.encodeWithSelector(
+                IStakeModule._reduceStakeTo.selector, reduceStakeFromSponsorships[i], reducedTargetStakesWei[i]
+            ));
+        }
+
+        // pay out the undelegation queue from the freed DATA, same as reduceStakeTo does (_stake reverts if the queue isn't empty afterwards)
+        if (!queueIsEmpty()) {
+            payOutQueue(0);
+        }
+
+        for (uint i; i < stakeOnSponsorships.length; i++) {
+            moduleCall(stakeModuleAddress, abi.encodeWithSelector(
+                IStakeModule._stake.selector, stakeOnSponsorships[i], stakeAmountsWei[i]
+            ));
+        }
+    }
+
+    /**
+     * Revert if any of the given Sponsorships is already full (max operator count reached).
+     * Sponsorships we're already staked in are skipped: increasing an existing stake doesn't count against the max operator count.
+     * Whether the target is a Streamr Sponsorship at all is checked later, by StakeModule._stake.
+     */
+    function _checkCanJoin(Sponsorship[] calldata targets) internal view {
+        for (uint i; i < targets.length; i++) {
+            Sponsorship sponsorship = targets[i];
+            if (indexOfSponsorships[sponsorship] > 0) { continue; }
+            // Sponsorships deployed from an older template don't have isFull(): skip the check and just try staking
+            try sponsorship.isFull() returns (bool full) {
+                if (full) {
+                    revert SponsorshipFull(sponsorship);
+                }
+            } catch {} // solhint-disable-line no-empty-blocks
+        }
+    }
 }

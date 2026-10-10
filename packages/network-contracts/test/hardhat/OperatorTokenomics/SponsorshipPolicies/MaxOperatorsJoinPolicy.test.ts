@@ -35,4 +35,26 @@ describe("MaxOperatorsJoinPolicy", (): void => {
         await expect(token.connect(operator2).transferAndCall(sponsorship.address, parseEther("5000"), operator2.address))
             .to.be.revertedWith("error_tooManyOperators")
     })
+
+    it("reports maxOperatorCount and isFull", async function(): Promise<void> {
+        const { token } = contracts
+        const sponsorship = await deploySponsorshipWithoutFactory(contracts, { maxOperatorCount: 2 })
+        expect(await sponsorship.maxOperatorCount()).to.equal(2)
+        expect(await sponsorship.isFull()).to.be.false
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("5000"), operator.address)).wait()
+        expect(await sponsorship.isFull()).to.be.false
+        await (await token.connect(operator2).transferAndCall(sponsorship.address, parseEther("5000"), operator2.address)).wait()
+        expect(await sponsorship.isFull()).to.be.true
+        await (await sponsorship.connect(operator2).unstake()).wait()
+        expect(await sponsorship.isFull()).to.be.false
+    })
+
+    it("reports no limit (maxOperatorCount zero, never full) if the policy isn't used", async function(): Promise<void> {
+        const { token } = contracts
+        const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+        expect(await sponsorship.maxOperatorCount()).to.equal(0)
+        await (await token.mint(operator.address, parseEther("5000"))).wait()
+        await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("5000"), operator.address)).wait()
+        expect(await sponsorship.isFull()).to.be.false
+    })
 })
