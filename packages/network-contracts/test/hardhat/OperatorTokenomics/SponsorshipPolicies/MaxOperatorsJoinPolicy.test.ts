@@ -21,14 +21,18 @@ describe("MaxOperatorsJoinPolicy", (): void => {
     before(async (): Promise<void> => {
         [admin, operator, operator2] = await getSigners() as unknown as Wallet[]
         contracts = await deployTestContracts(admin)
+
+        const { token } = contracts
+        await (await token.mint(operator.address, parseEther("10000"))).wait()
+        await (await token.mint(operator2.address, parseEther("10000"))).wait()
     })
 
     it("will NOT let too many operators join", async function(): Promise<void> {
         const { token } = contracts
         const sponsorship = await deploySponsorshipWithoutFactory(contracts, { maxOperatorCount: 1 })
-        await expect(token.transferAndCall(sponsorship.address, parseEther("5000"), operator.address))
+        await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("5000"), operator.address))
             .to.emit(sponsorship, "OperatorJoined")
-        await expect(token.transferAndCall(sponsorship.address, parseEther("5000"), operator2.address))
+        await expect(token.connect(operator2).transferAndCall(sponsorship.address, parseEther("5000"), operator2.address))
             .to.be.revertedWith("error_tooManyOperators")
     })
 })

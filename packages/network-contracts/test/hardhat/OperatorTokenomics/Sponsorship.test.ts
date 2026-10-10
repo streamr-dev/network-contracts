@@ -1,7 +1,7 @@
 import { ethers as hardhatEthers } from "hardhat"
 import { expect } from "chai"
 
-import { VOTE_KICK, VOTE_NO_KICK, advanceToTimestamp, getBlockTimestamp } from "./utils"
+import { VOTE_KICK, VOTE_NO_KICK, advanceToTimestamp, getBlockTimestamp, log } from "./utils"
 import { deployTestContracts, TestContracts } from "./deployTestContracts"
 import { deploySponsorshipWithoutFactory } from "./deploySponsorshipContract"
 
@@ -81,41 +81,50 @@ describe("Sponsorship contract", (): void => {
                 ]
             }
 
+            /** The next transaction will be mined into a block with exactly the given timestamp */
+            async function nextTxAt(timestamp: number, message: string) {
+                log("\nt = %s ", timestamp, message)
+                await hardhatEthers.provider.send("evm_setNextBlockTimestamp", [timestamp])
+            }
+
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            // operators stake exactly what they're given, so that their DATA balances start from zero after staking
+            await (await token.transfer(op1.address, parseEther("4000"))).wait()
+            await (await token.transfer(op2.address, parseEther("1000"))).wait()
             const start = await getBlockTimestamp()
 
-            advanceToTimestamp(start, "Stake to sponsorship")
-            await (await token.transferAndCall(sponsorship.address, parseEther("1000"), op1.address)).wait()
-            expect(await getBalances()).to.deep.equal(["1000.0", "0.0", "0.0", "0.0", "0.0"])
+            await nextTxAt(start, "Stake to sponsorship")
+            await (await token.connect(op1).transferAndCall(sponsorship.address, parseEther("1000"), op1.address)).wait()
+            expect(await getBalances()).to.deep.equal(["1000.0", "3000.0", "1000.0", "0.0", "0.0"])
 
-            advanceToTimestamp(start + 100, "Stake to sponsorship")
-            await (await token.transferAndCall(sponsorship.address, parseEther("1000"), op2.address)).wait()
-            expect(await getBalances()).to.deep.equal(["2000.0", "0.0", "0.0", "0.0", "0.0"])
+            await nextTxAt(start + 100, "Stake to sponsorship")
+            await (await token.connect(op2).transferAndCall(sponsorship.address, parseEther("1000"), op2.address)).wait()
+            expect(await getBalances()).to.deep.equal(["2000.0", "3000.0", "0.0", "0.0", "0.0"])
 
-            advanceToTimestamp(start + 200, "Sponsorship")
+            await nextTxAt(start + 200, "Sponsorship")
             await (await token.transferAndCall(sponsorship.address, parseEther("300"), "0x")).wait()
             await (await token.transferAndCall(sponsorship.address, parseEther("300"), "0x")).wait()
 
-            advanceToTimestamp(start + 204, "Sponsorship (check)")
-            expect(await getBalances()).to.deep.equal(["2600.0", "0.0", "0.0", "2.0", "2.0"])
+            await advanceToTimestamp(start + 204, "Sponsorship (check)")
+            expect(await getBalances()).to.deep.equal(["2600.0", "3000.0", "0.0", "2.0", "2.0"])
 
-            advanceToTimestamp(start + 300, "Stake more")
-            await (await token.transferAndCall(sponsorship.address, parseEther("3000"), op1.address)).wait()
-            expect(await getBalances()).to.deep.equal(["5600.0", "0.0", "0.0", "50.8", "50.2"]) // t = start + 301
+            await nextTxAt(start + 300, "Stake more")
+            await (await token.connect(op1).transferAndCall(sponsorship.address, parseEther("3000"), op1.address)).wait()
+            expect(await getBalances()).to.deep.equal(["5600.0", "0.0", "0.0", "50.0", "50.0"])
 
-            advanceToTimestamp(start + 1000, "Sponsorship top-up")
+            await nextTxAt(start + 1000, "Sponsorship top-up")
             await (await token.transferAndCall(sponsorship.address, parseEther("1000"), "0x")).wait()
-            expect(await getBalances()).to.deep.equal(["6600.0", "0.0", "0.0", "450.8", "150.2"]) // t = start + 1001
+            expect(await getBalances()).to.deep.equal(["6600.0", "0.0", "0.0", "450.0", "150.0"])
 
-            advanceToTimestamp(start + 1499, "Withdraw") // for whatever reason withdraw goes to block +1
-            await (await sponsorship.connect(op1).withdraw()).wait() // ...so here t = start + 1500
-            expect(await getBalances()).to.deep.equal(["5750.0", "850.0", "0.0", "0.0", "250.0"]) //...and here also t = start + 1500 (?!)
+            await nextTxAt(start + 1500, "Withdraw")
+            await (await sponsorship.connect(op1).withdraw()).wait()
+            expect(await getBalances()).to.deep.equal(["5750.0", "850.0", "0.0", "0.0", "250.0"])
 
-            advanceToTimestamp(start + 1599, "Unstake") // same happens to unstake, +1
+            await nextTxAt(start + 1600, "Unstake")
             await (await sponsorship.connect(op2).unstake()).wait()
             expect(await getBalances()).to.deep.equal(["4480.0", "850.0", "1270.0", "80.0", "0.0"])
 
-            advanceToTimestamp(start + 2100, "Unstake") // here, sponsorship already has run out
+            await nextTxAt(start + 2100, "Unstake") // here, sponsorship already has run out
             await (await sponsorship.connect(op1).unstake()).wait()
             expect(await getBalances()).to.deep.equal(["0.0", "5330.0", "1270.0", "0.0", "0.0"])
         })
@@ -168,7 +177,7 @@ describe("Sponsorship contract", (): void => {
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("200"), 0, false)
 
             await advanceToTimestamp(start, "Stake to sponsorship")
-            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), operator.address))
+            await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address))
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("200"), 1, true)
 
             await advanceToTimestamp(start + 50, "Top-up sponsorship")
@@ -186,7 +195,7 @@ describe("Sponsorship contract", (): void => {
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(0, parseEther("200"), 0, false)
 
             await advanceToTimestamp(start, "Stake to sponsorship")
-            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), operator.address))
+            await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address))
                 .to.emit(sponsorship, "SponsorshipUpdate").withArgs(parseEther("100"), parseEther("200"), 1, true)
 
             await advanceToTimestamp(start + 300, "Top-up sponsorship")
@@ -201,20 +210,20 @@ describe("Sponsorship contract", (): void => {
 
     describe("Staking", (): void => {
         it("will NOT let stake zero", async function(): Promise<void> {
-            await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0"), operator.address))
+            await expect(token.connect(operator).transferAndCall(defaultSponsorship.address, parseEther("0"), operator.address))
                 .to.be.revertedWithCustomError(defaultSponsorship, "MinimumStake")
         })
 
         it("will NOT let stake below minimum", async function(): Promise<void> {
-            await expect(token.transferAndCall(defaultSponsorship.address, parseEther("0.5"), operator.address))
+            await expect(token.connect(operator).transferAndCall(defaultSponsorship.address, parseEther("0.5"), operator.address))
                 .to.be.revertedWithCustomError(defaultSponsorship, "MinimumStake")
         })
 
         // tested separately because tests probably will mostly exercise the 1-step transferAndCall staking
         it("accepts 2-step staking: approve + stake", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-            await (await token.approve(sponsorship.address, parseEther("100"))).wait()
-            await (await sponsorship.stake(operator.address, parseEther("100"))).wait()
+            await (await token.connect(operator).approve(sponsorship.address, parseEther("100"))).wait()
+            await (await sponsorship.connect(operator).stake(operator.address, parseEther("100"))).wait()
             expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("100"))
         })
 
@@ -222,8 +231,32 @@ describe("Sponsorship contract", (): void => {
         it("accepts 32 byte long staker address in transferAndCall data", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
             const addressPadded = defaultAbiCoder.encode(["address"], [operator.address])
-            await (await token.transferAndCall(sponsorship.address, parseEther("100"), addressPadded)).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), addressPadded)).wait()
             expect(addressPadded.slice(0, 26)).to.equal("0x000000000000000000000000") // first 32 - 20 = 12 bytes are the padding
+            expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("100"))
+        })
+
+        // Staking for someone else would let anyone force an Operator to join a Sponsorship it doesn't service (and then get flagged there),
+        //   or add stake to an Operator behind its back, inflating its slashing risk beyond what the Operator's bookkeeping (stakedInto) knows.
+        it("will NOT let stake on behalf of someone else", async function(): Promise<void> {
+            const sponsorship = await deploySponsorshipWithoutFactory(contracts)
+            // 2-step ERC20
+            await (await token.approve(sponsorship.address, parseEther("100"))).wait()
+            await expect(sponsorship.stake(operator.address, parseEther("100")))
+                .to.be.revertedWithCustomError(sponsorship, "CannotStakeForOthers").withArgs(operator.address, admin.address)
+            // 1-step ERC677, 20 byte address
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), operator.address))
+                .to.be.revertedWithCustomError(sponsorship, "CannotStakeForOthers").withArgs(operator.address, admin.address)
+            // 1-step ERC677, 32 byte address
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), defaultAbiCoder.encode(["address"], [operator.address])))
+                .to.be.revertedWithCustomError(sponsorship, "CannotStakeForOthers").withArgs(operator.address, admin.address)
+            expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("0"))
+            expect(await sponsorship.operatorCount()).to.be.equal(0)
+
+            // also NOT adding to an existing stake
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await expect(token.transferAndCall(sponsorship.address, parseEther("100"), operator.address))
+                .to.be.revertedWithCustomError(sponsorship, "CannotStakeForOthers").withArgs(operator.address, admin.address)
             expect(await sponsorship.connect(operator).getMyStake()).to.be.equal(parseEther("100"))
         })
 
@@ -312,7 +345,7 @@ describe("Sponsorship contract", (): void => {
 
             // join tx actually happens at timeAtStart + 1
             await advanceToTimestamp(start, "Stake to sponsorship")
-            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
 
             await advanceToTimestamp(start + 101, "Withdraw from sponsorship")
             const allocationBeforeWithdraw = await sponsorship.getEarnings(operator.address)
@@ -330,7 +363,7 @@ describe("Sponsorship contract", (): void => {
 
             // join tx actually happens at timeAtStart + 1
             await advanceToTimestamp(start, "Stake to sponsorship")
-            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
 
             await advanceToTimestamp(start + 101, "Withdraw from sponsorship")
             await (await sponsorship.connect(operator).unstake()).wait()
@@ -340,7 +373,7 @@ describe("Sponsorship contract", (): void => {
 
         it("will let you withdraw 0 token if you have no earnings", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
             await expect(sponsorship.connect(operator).withdraw()).to.not.emit(sponsorship, "StakeUpdate")
         })
 
@@ -351,7 +384,7 @@ describe("Sponsorship contract", (): void => {
 
             // join tx actually happens at timeAtStart + 1
             await advanceToTimestamp(start, "Stake to sponsorship")
-            await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+            await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
 
             // queries will see start + 100 (off by one, NEXT tx will be start + 101)
             await advanceToTimestamp(start + 101, "Withdraw from sponsorship")
@@ -383,7 +416,7 @@ describe("Sponsorship contract", (): void => {
     describe("Kicking/slashing", (): void => {
         it("can not slash more than you have staked", async function(): Promise<void> {
             const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], undefined, undefined, testKickPolicy)
-            await expect(token.transferAndCall(sponsorship.address, parseEther("5"), operator.address))
+            await expect(token.connect(operator).transferAndCall(sponsorship.address, parseEther("5"), operator.address))
                 .to.emit(sponsorship, "OperatorJoined").withArgs(operator.address)
 
             // TestKickPolicy slashes 10 DATA
@@ -636,14 +669,14 @@ describe("Sponsorship contract", (): void => {
             it("error onleave on allocationPolicy", async function(): Promise<void> {
                 // 5 => onLeave will revert
                 const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "5")
-                await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+                await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
                 await expect(sponsorship.connect(operator).unstake()).to.be.revertedWith("test_onLeave")
             })
 
             it("error onleave on allocationPolicy, empty error", async function(): Promise<void> {
                 // 6 => onLeave will revert without reason
                 const sponsorship = await deploySponsorshipWithoutFactory(contracts, {}, [], [], testAllocationPolicy, "6")
-                await (await token.transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
+                await (await token.connect(operator).transferAndCall(sponsorship.address, parseEther("100"), operator.address)).wait()
                 await expect(sponsorship.connect(operator).unstake()).to.be.revertedWithCustomError(contracts.sponsorshipTemplate, "ModuleCallError")
             })
 
@@ -670,9 +703,12 @@ describe("Sponsorship contract", (): void => {
             const signer = hardhatEthers.Wallet.createRandom().connect(admin.provider)
 
             const sponsorship = await deploySponsorshipWithoutFactory(contracts)
-            await (await token.approve(sponsorship.address, parseEther("100"))).wait()
-            await (await sponsorship.stake(signer.address, parseEther("100"))).wait()
+            // only the operator itself can stake, so give them just enough gas for that one transaction
+            await (await admin.sendTransaction({ to: signer.address, value: parseEther("0.1") })).wait()
+            await (await token.transfer(signer.address, parseEther("100"))).wait()
+            await (await token.connect(signer).transferAndCall(sponsorship.address, parseEther("100"), signer.address)).wait()
             expect(await sponsorship.connect(signer).getMyStake()).to.be.equal(parseEther("100"))
+            expect(await token.balanceOf(signer.address)).to.be.equal(parseEther("0"))
 
             expect(await sponsorship.isTrustedForwarder(contracts.minimalForwarder.address)).to.be.true
 

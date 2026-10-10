@@ -91,6 +91,8 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
     error SelfDelegationTooLow(uint operatorBalanceWei, uint minimumSelfDelegationWei);
     error NotMyStakedSponsorship();
     error AccessDeniedStreamrSponsorshipOnly();
+    error AccessDeniedStreamrOperatorOnly();
+    error CannotTriggerOwnWithdraw();
     error ModuleCallError(address module, bytes data);
     error ModuleGetError(bytes data);
     error AccessDenied();
@@ -782,6 +784,7 @@ contract Operator is Initializable, ERC2771ContextUpgradeable, IERC677Receiver, 
      *  2: recompilation and redeployment (ETH-748)
      *  3: slash self-delegation when getting kicked (ETH-754)
      *  4: withdrawEarningsFromSponsorships only accepts staked Sponsorships and measures earnings from the DATA balance change (2026-10-09 Operator drain)
+     *     triggerAnotherOperatorWithdraw only accepts other Operators from the OperatorFactory (not self, not arbitrary contracts)
      */
     function version() public pure returns (uint) {
         return 4;

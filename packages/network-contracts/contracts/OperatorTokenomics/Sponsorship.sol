@@ -64,6 +64,7 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     error MinOperatorCountZero();
     error MinimumStake(uint minimumStakeWei);
     error CannotIncreaseStakeUsingReduceStakeTo();
+    error CannotStakeForOthers(address operator, address staker);
     error OperatorNotStaked();
     error LeavePenalty(uint penaltyWei); // prevents unstake()
     error ActiveFlag(uint lockedStakeWei); // prevents unstake()
@@ -147,7 +148,8 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
 
     /**
      * ERC677 token callback
-     * If the data bytes contains an address, the incoming tokens are staked for that operator
+     * If the data bytes contains an address, the incoming tokens are staked for that operator. The address must be the token sender itself:
+     *   staking for someone else is not allowed, see `stake()`.
      */
     function onTokenTransfer(address sender, uint amount, bytes calldata data) external {
         if (msg.sender != address(token)) { revert AccessDeniedDATATokenOnly(); } // trusted forwarder should NOT be able to set this
@@ -156,13 +158,15 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
             // (this is what abi.encodePacked would produce)
             address stakeBeneficiary;
             assembly { stakeBeneficiary := shr(96, calldataload(data.offset)) } // solhint-disable-line no-inline-assembly
-            _stake(stakeBeneficiary, amount);
+            if (stakeBeneficiary != sender) { revert CannotStakeForOthers(stakeBeneficiary, sender); }
+            _stake(sender, amount);
         } else if (data.length == 32) {
             // assume the address was encoded by converting address -> uint -> bytes32 -> bytes
             // (already in the least significant bytes, no shifting needed; this is what abi.encode would produce)
             address stakeBeneficiary;
             assembly { stakeBeneficiary := calldataload(data.offset) } // solhint-disable-line no-inline-assembly
-            _stake(stakeBeneficiary, amount);
+            if (stakeBeneficiary != sender) { revert CannotStakeForOthers(stakeBeneficiary, sender); }
+            _stake(sender, amount);
         } else {
             _addSponsorship(sender, amount);
         }
@@ -203,10 +207,14 @@ contract Sponsorship is Initializable, ERC2771ContextUpgradeable, IERC677Receive
     /**
      * Stake by first calling DATA.approve(sponsorship.address, amountWei) then this function (2-step ERC20)
      *   or alternatively call DATA.transferAndCall(sponsorship.address, amountWei, operatorAddress) (1-step ERC677)
-     * @param operator the operator to stake for (can stake on behalf of someone else)
+     * Staking on behalf of someone else is NOT allowed: it would let anyone force an Operator to join a Sponsorship it doesn't service,
+     *   or inflate an Operator's stake (and thus its slashing risk) beyond what the Operator's own bookkeeping knows about.
+     * @param operator the operator to stake for, must be the caller
      */
     function stake(address operator, uint amountWei) external {
-        token.transferFrom(_msgSender(), address(this), amountWei);
+        address staker = _msgSender();
+        if (operator != staker) { revert CannotStakeForOthers(operator, staker); }
+        token.transferFrom(staker, address(this), amountWei);
         _stake(operator, amountWei);
     }
 

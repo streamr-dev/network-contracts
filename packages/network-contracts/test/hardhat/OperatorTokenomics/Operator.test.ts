@@ -1283,6 +1283,53 @@ describe("Operator contract", (): void => {
             expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("15000"))
         })
 
+        // triggerAnotherOperatorWithdraw mints whatever DATA arrived during the call as owner's self-delegation, assuming it was a fisherman reward.
+        // Before the fix, "the other Operator" could be anything:
+        //  - the Operator itself: its own earnings were split as Profit (delegators' share included) and THEN minted again to the owner only,
+        //    i.e. anyone could call this to hand the delegators' whole share of the earnings to the owner
+        //  - an arbitrary contract: it could re-enter (e.g. delegate), and that DATA was minted twice: once to the delegator, once to the owner
+        it("triggerAnotherOperatorWithdraw does NOT accept the Operator itself or a non-Operator as the other Operator", async () => {
+            const attacker = (await getSigners())[9] as unknown as Wallet
+            await setTokens(operatorWallet, "1000")
+            await setTokens(delegator, "9000")
+            await setTokens(attacker, "10000")
+            await setTokens(sponsor, "400")
+            const { operator } = await deployOperator(operatorWallet)
+            const sponsorship = await deploySponsorship(sharedContracts)
+            await (await token.connect(sponsor).transferAndCall(sponsorship.address, parseEther("400"), "0x")).wait()
+            await (await token.connect(operatorWallet).transferAndCall(operator.address, parseEther("1000"), "0x")).wait()
+            await (await token.connect(delegator).transferAndCall(operator.address, parseEther("9000"), "0x")).wait()
+            const timeAtStart = await getBlockTimestamp()
+            await advanceToTimestamp(timeAtStart, "Stake to sponsorship")
+            await (await operator.stake(sponsorship.address, parseEther("10000"))).wait()
+
+            // all 400 DATA of sponsorship is earned => 4% of operator value, below maxAllowedEarningsFraction so no fisherman reward is involved
+            await advanceToTimestamp(timeAtStart + 1000, "Earnings accumulate")
+            expect((await operator.getSponsorshipsAndEarnings()).earnings[0]).to.equal(parseEther("400"))
+
+            // 1) Operator itself as "the other Operator"
+            await expect(operator.connect(attacker).triggerAnotherOperatorWithdraw(operator.address, [sponsorship.address]))
+                .to.be.revertedWithCustomError(operator, "CannotTriggerOwnWithdraw")
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("1000")) // nothing minted
+
+            // 2) arbitrary contract as "the other Operator", re-enters by delegating on behalf of attacker
+            const fakeOperator = await (await getContractFactory("TestFakeOperator", attacker)).deploy(token.address)
+            await fakeOperator.deployed()
+            await (await token.connect(attacker).transfer(fakeOperator.address, parseEther("10000"))).wait()
+            await expect(fakeOperator.attack(operator.address, attacker.address, parseEther("10000")))
+                .to.be.revertedWithCustomError(operator, "AccessDeniedStreamrOperatorOnly")
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("1000")) // nothing minted
+            expect(await operator.balanceOf(attacker.address)).to.equal(parseEther("0"))
+            expect(await token.balanceOf(fakeOperator.address)).to.equal(parseEther("10000"))
+
+            // honest withdraw still splits the earnings between owner and delegators according to their shares:
+            //   400 earnings - 5% protocol fee = 380 profit, operator's cut 0% => owner 10% of 10380 = 1038, delegator 9342
+            await (await operator.connect(attacker).withdrawEarningsFromSponsorships([sponsorship.address])).wait()
+            expect(await operator.balanceOf(operatorWallet.address)).to.equal(parseEther("1000"))
+            expect(await operator.balanceInData(operatorWallet.address)).to.equal(parseEther("1038"))
+            expect(await operator.balanceInData(delegator.address)).to.equal(parseEther("9342"))
+        })
+
         it("can update operator cut fraction for himself, but NOT for others (and not >100%)", async function(): Promise<void> {
             const { operator, contracts } = await deployOperator(operatorWallet)
             const operator2 = await deployOperatorContract(contracts, operator2Wallet)
