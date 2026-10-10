@@ -20,7 +20,7 @@ describe("Load configuration from JSON file", () => {
     })
     it("reads prod Polygon RPC URL", () => {
         const rpcHttpUrl = config.polygon.rpcEndpoints[0].url
-        const expected = "https://polygon-rpc.com"
+        const expected = "https://polygon.drpc.org"
         assert.equal(rpcHttpUrl, expected, `Expecting prod polygon RPC URL to equal ${expected}, got '${rpcHttpUrl}'`)
     })
 })
