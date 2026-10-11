@@ -825,6 +825,7 @@
 0x5e61bb87 queueIsEmpty()
 0x9413462c queueLastIndex()
 0xa48dca18 queueModule()
+0x38849a3a rebalanceStake()
 0xd1b68611 reduceStakeTo()
 0x4b095c03 reduceStakeWithoutQueue()
 0x36568abe renounceRole()
@@ -870,7 +871,10 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0x9e39d8be AccessDeniedNodesOnly
 0x69d9c224 AccessDeniedOperatorOnly
+0xf89a442b AccessDeniedStreamrOperatorOnly
 0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0xa24a13a6 ArrayLengthMismatch
+0x1f2b846e CannotTriggerOwnWithdraw
 0x24c69407 DelegationBelowMinimum
 0xb1c5c787 DidNotReceiveReward
 0xec6c87a6 FirstEmptyQueueThenStake
@@ -880,6 +884,7 @@
 0x4ee7a8de NoEarnings
 0x25b10de0 NotMyStakedSponsorship
 0xc89199b3 SelfDelegationTooLow
+0x7f2f3f9e SponsorshipFull
 0x81cf7f80 StakedInSponsorships
 0xc0a6104c ZeroUndelegation
 
@@ -1020,6 +1025,7 @@
 0x5e61bb87 queueIsEmpty()
 0x9413462c queueLastIndex()
 0xa48dca18 queueModule()
+0x38849a3a rebalanceStake()
 0xd1b68611 reduceStakeTo()
 0x4b095c03 reduceStakeWithoutQueue()
 0x36568abe renounceRole()
@@ -1066,7 +1072,10 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0x9e39d8be AccessDeniedNodesOnly
 0x69d9c224 AccessDeniedOperatorOnly
+0xf89a442b AccessDeniedStreamrOperatorOnly
 0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0xa24a13a6 ArrayLengthMismatch
+0x1f2b846e CannotTriggerOwnWithdraw
 0x24c69407 DelegationBelowMinimum
 0xb1c5c787 DidNotReceiveReward
 0xec6c87a6 FirstEmptyQueueThenStake
@@ -1076,6 +1085,7 @@
 0x4ee7a8de NoEarnings
 0x25b10de0 NotMyStakedSponsorship
 0xc89199b3 SelfDelegationTooLow
+0x7f2f3f9e SponsorshipFull
 0x81cf7f80 StakedInSponsorships
 0xc0a6104c ZeroUndelegation
 
@@ -1153,6 +1163,7 @@
 0x5e61bb87 queueIsEmpty()
 0x9413462c queueLastIndex()
 0xa48dca18 queueModule()
+0x38849a3a rebalanceStake()
 0xd1b68611 reduceStakeTo()
 0x4b095c03 reduceStakeWithoutQueue()
 0x36568abe renounceRole()
@@ -1199,7 +1210,10 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0x9e39d8be AccessDeniedNodesOnly
 0x69d9c224 AccessDeniedOperatorOnly
+0xf89a442b AccessDeniedStreamrOperatorOnly
 0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0xa24a13a6 ArrayLengthMismatch
+0x1f2b846e CannotTriggerOwnWithdraw
 0x24c69407 DelegationBelowMinimum
 0xb1c5c787 DidNotReceiveReward
 0xec6c87a6 FirstEmptyQueueThenStake
@@ -1209,6 +1223,7 @@
 0x4ee7a8de NoEarnings
 0x25b10de0 NotMyStakedSponsorship
 0xc89199b3 SelfDelegationTooLow
+0x7f2f3f9e SponsorshipFull
 0x81cf7f80 StakedInSponsorships
 0xc0a6104c ZeroUndelegation
 
@@ -1284,6 +1299,7 @@
 0x5e61bb87 queueIsEmpty()
 0x9413462c queueLastIndex()
 0xa48dca18 queueModule()
+0x38849a3a rebalanceStake()
 0xd1b68611 reduceStakeTo()
 0x4b095c03 reduceStakeWithoutQueue()
 0x36568abe renounceRole()
@@ -1330,7 +1346,10 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0x9e39d8be AccessDeniedNodesOnly
 0x69d9c224 AccessDeniedOperatorOnly
+0xf89a442b AccessDeniedStreamrOperatorOnly
 0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0xa24a13a6 ArrayLengthMismatch
+0x1f2b846e CannotTriggerOwnWithdraw
 0x24c69407 DelegationBelowMinimum
 0xb1c5c787 DidNotReceiveReward
 0xec6c87a6 FirstEmptyQueueThenStake
@@ -1340,6 +1359,7 @@
 0x4ee7a8de NoEarnings
 0x25b10de0 NotMyStakedSponsorship
 0xc89199b3 SelfDelegationTooLow
+0x7f2f3f9e SponsorshipFull
 0x81cf7f80 StakedInSponsorships
 0xc0a6104c ZeroUndelegation
 
@@ -1384,6 +1404,7 @@
 
 
 # INodeModule functions
+0xc217ab4d _rebalanceStake()
 0x2c23c940 _setNodeAddresses()
 0xbc59647e _updateNodeAddresses()
 0x377f1ecb createCoordinationStream()
@@ -1418,6 +1439,7 @@
 0x092c5b3b CONTROLLER_ROLE()
 0xa217fddf DEFAULT_ADMIN_ROLE()
 0xe58378bb OWNER_ROLE()
+0xc217ab4d _rebalanceStake()
 0x2c23c940 _setNodeAddresses()
 0xbc59647e _updateNodeAddresses()
 0xdd62ed3e allowance()
@@ -1462,6 +1484,7 @@
 0x5e61bb87 queueIsEmpty()
 0x9413462c queueLastIndex()
 0xa48dca18 queueModule()
+0x38849a3a rebalanceStake()
 0xd1b68611 reduceStakeTo()
 0x4b095c03 reduceStakeWithoutQueue()
 0x36568abe renounceRole()
@@ -1507,7 +1530,10 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0x9e39d8be AccessDeniedNodesOnly
 0x69d9c224 AccessDeniedOperatorOnly
+0xf89a442b AccessDeniedStreamrOperatorOnly
 0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0xa24a13a6 ArrayLengthMismatch
+0x1f2b846e CannotTriggerOwnWithdraw
 0x24c69407 DelegationBelowMinimum
 0xb1c5c787 DidNotReceiveReward
 0xec6c87a6 FirstEmptyQueueThenStake
@@ -1517,6 +1543,7 @@
 0x4ee7a8de NoEarnings
 0x25b10de0 NotMyStakedSponsorship
 0xc89199b3 SelfDelegationTooLow
+0x7f2f3f9e SponsorshipFull
 0x81cf7f80 StakedInSponsorships
 0xc0a6104c ZeroUndelegation
 
@@ -1595,6 +1622,7 @@
 0x5e61bb87 queueIsEmpty()
 0x9413462c queueLastIndex()
 0xa48dca18 queueModule()
+0x38849a3a rebalanceStake()
 0xd1b68611 reduceStakeTo()
 0x4b095c03 reduceStakeWithoutQueue()
 0x36568abe renounceRole()
@@ -1640,7 +1668,10 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0x9e39d8be AccessDeniedNodesOnly
 0x69d9c224 AccessDeniedOperatorOnly
+0xf89a442b AccessDeniedStreamrOperatorOnly
 0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0xa24a13a6 ArrayLengthMismatch
+0x1f2b846e CannotTriggerOwnWithdraw
 0x24c69407 DelegationBelowMinimum
 0xb1c5c787 DidNotReceiveReward
 0xec6c87a6 FirstEmptyQueueThenStake
@@ -1650,6 +1681,7 @@
 0x4ee7a8de NoEarnings
 0x25b10de0 NotMyStakedSponsorship
 0xc89199b3 SelfDelegationTooLow
+0x7f2f3f9e SponsorshipFull
 0x81cf7f80 StakedInSponsorships
 0xc0a6104c ZeroUndelegation
 
@@ -1731,6 +1763,7 @@
 0x5e61bb87 queueIsEmpty()
 0x9413462c queueLastIndex()
 0xa48dca18 queueModule()
+0x38849a3a rebalanceStake()
 0xd1b68611 reduceStakeTo()
 0x4b095c03 reduceStakeWithoutQueue()
 0x36568abe renounceRole()
@@ -1776,7 +1809,10 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0x9e39d8be AccessDeniedNodesOnly
 0x69d9c224 AccessDeniedOperatorOnly
+0xf89a442b AccessDeniedStreamrOperatorOnly
 0xb3d3f77e AccessDeniedStreamrSponsorshipOnly
+0xa24a13a6 ArrayLengthMismatch
+0x1f2b846e CannotTriggerOwnWithdraw
 0x24c69407 DelegationBelowMinimum
 0xb1c5c787 DidNotReceiveReward
 0xec6c87a6 FirstEmptyQueueThenStake
@@ -1786,6 +1822,7 @@
 0x4ee7a8de NoEarnings
 0x25b10de0 NotMyStakedSponsorship
 0xc89199b3 SelfDelegationTooLow
+0x7f2f3f9e SponsorshipFull
 0x81cf7f80 StakedInSponsorships
 0xc0a6104c ZeroUndelegation
 
@@ -1832,6 +1869,7 @@
 0x2f2ff15d grantRole()
 0x91d14854 hasRole()
 0x4562980f initialize()
+0xbabd3d9a isFull()
 0x7c654303 isFunded()
 0x2014e5d1 isRunning()
 0x572b6c05 isTrustedForwarder()
@@ -1840,6 +1878,7 @@
 0x584cb7cf kickPolicy()
 0x54a991b4 leavePolicy()
 0x19d164f1 lockedStakeWei()
+0xc75e3aed maxOperatorCount()
 0x392f37e9 metadata()
 0x11648a4c minHorizonSeconds()
 0x40947369 minOperatorCount()
@@ -1871,6 +1910,7 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0xbbef3e1a ActiveFlag
 0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0xb73ddd6f CannotStakeForOthers
 0x4274cbe6 FlaggingNotSupported
 0x078759ac LeavePenalty
 0xc27c6c34 MinOperatorCountZero
@@ -1966,6 +2006,7 @@
 0x2f2ff15d grantRole()
 0x91d14854 hasRole()
 0x4562980f initialize()
+0xbabd3d9a isFull()
 0x7c654303 isFunded()
 0x2014e5d1 isRunning()
 0x572b6c05 isTrustedForwarder()
@@ -1974,6 +2015,7 @@
 0x584cb7cf kickPolicy()
 0x54a991b4 leavePolicy()
 0x19d164f1 lockedStakeWei()
+0xc75e3aed maxOperatorCount()
 0x392f37e9 metadata()
 0x11648a4c minHorizonSeconds()
 0x40947369 minOperatorCount()
@@ -2008,6 +2050,7 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0xbbef3e1a ActiveFlag
 0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0xb73ddd6f CannotStakeForOthers
 0x4274cbe6 FlaggingNotSupported
 0x078759ac LeavePenalty
 0xc27c6c34 MinOperatorCountZero
@@ -2054,6 +2097,7 @@
 0x2f2ff15d grantRole()
 0x91d14854 hasRole()
 0x4562980f initialize()
+0xbabd3d9a isFull()
 0x7c654303 isFunded()
 0x2014e5d1 isRunning()
 0x572b6c05 isTrustedForwarder()
@@ -2062,6 +2106,7 @@
 0x584cb7cf kickPolicy()
 0x54a991b4 leavePolicy()
 0x19d164f1 lockedStakeWei()
+0xc75e3aed maxOperatorCount()
 0x392f37e9 metadata()
 0x11648a4c minHorizonSeconds()
 0x40947369 minOperatorCount()
@@ -2095,6 +2140,7 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0xbbef3e1a ActiveFlag
 0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0xb73ddd6f CannotStakeForOthers
 0x4274cbe6 FlaggingNotSupported
 0x078759ac LeavePenalty
 0xc27c6c34 MinOperatorCountZero
@@ -2173,6 +2219,7 @@
 0x2f2ff15d grantRole()
 0x91d14854 hasRole()
 0x4562980f initialize()
+0xbabd3d9a isFull()
 0x7c654303 isFunded()
 0x2014e5d1 isRunning()
 0x572b6c05 isTrustedForwarder()
@@ -2181,6 +2228,7 @@
 0x584cb7cf kickPolicy()
 0x54a991b4 leavePolicy()
 0x19d164f1 lockedStakeWei()
+0xc75e3aed maxOperatorCount()
 0x392f37e9 metadata()
 0x11648a4c minHorizonSeconds()
 0x40947369 minOperatorCount()
@@ -2214,6 +2262,7 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0xbbef3e1a ActiveFlag
 0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0xb73ddd6f CannotStakeForOthers
 0x4274cbe6 FlaggingNotSupported
 0x078759ac LeavePenalty
 0xc27c6c34 MinOperatorCountZero
@@ -2264,6 +2313,7 @@
 0x2f2ff15d grantRole()
 0x91d14854 hasRole()
 0x4562980f initialize()
+0xbabd3d9a isFull()
 0x7c654303 isFunded()
 0x2014e5d1 isRunning()
 0x572b6c05 isTrustedForwarder()
@@ -2272,6 +2322,7 @@
 0x584cb7cf kickPolicy()
 0x54a991b4 leavePolicy()
 0x19d164f1 lockedStakeWei()
+0xc75e3aed maxOperatorCount()
 0x392f37e9 metadata()
 0x11648a4c minHorizonSeconds()
 0x40947369 minOperatorCount()
@@ -2305,6 +2356,7 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0xbbef3e1a ActiveFlag
 0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0xb73ddd6f CannotStakeForOthers
 0x4274cbe6 FlaggingNotSupported
 0x078759ac LeavePenalty
 0xc27c6c34 MinOperatorCountZero
@@ -2352,6 +2404,7 @@
 0x2f2ff15d grantRole()
 0x91d14854 hasRole()
 0x4562980f initialize()
+0xbabd3d9a isFull()
 0x7c654303 isFunded()
 0x2014e5d1 isRunning()
 0x572b6c05 isTrustedForwarder()
@@ -2360,6 +2413,7 @@
 0x584cb7cf kickPolicy()
 0x54a991b4 leavePolicy()
 0x19d164f1 lockedStakeWei()
+0xc75e3aed maxOperatorCount()
 0x392f37e9 metadata()
 0x11648a4c minHorizonSeconds()
 0x40947369 minOperatorCount()
@@ -2397,6 +2451,7 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0xbbef3e1a ActiveFlag
 0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0xb73ddd6f CannotStakeForOthers
 0x4274cbe6 FlaggingNotSupported
 0x078759ac LeavePenalty
 0xc27c6c34 MinOperatorCountZero
@@ -2444,6 +2499,7 @@
 0x2f2ff15d grantRole()
 0x91d14854 hasRole()
 0x4562980f initialize()
+0xbabd3d9a isFull()
 0x7c654303 isFunded()
 0x2014e5d1 isRunning()
 0x572b6c05 isTrustedForwarder()
@@ -2452,6 +2508,7 @@
 0x584cb7cf kickPolicy()
 0x54a991b4 leavePolicy()
 0x19d164f1 lockedStakeWei()
+0xc75e3aed maxOperatorCount()
 0x392f37e9 metadata()
 0x11648a4c minHorizonSeconds()
 0x40947369 minOperatorCount()
@@ -2486,6 +2543,7 @@
 0x231b3ae2 AccessDeniedDATATokenOnly
 0xbbef3e1a ActiveFlag
 0xaa4c0757 CannotIncreaseStakeUsingReduceStakeTo
+0xb73ddd6f CannotStakeForOthers
 0x4274cbe6 FlaggingNotSupported
 0x078759ac LeavePenalty
 0xc27c6c34 MinOperatorCountZero
@@ -3092,81 +3150,6 @@
 0x4f1ef286 upgradeToAndCall()
 
 # StreamRegistryV5 events
-0x7e644d79 AdminChanged
-0x1cf3b03a BeaconUpgraded
-0xd22d5803 PermissionUpdated
-0xd7c1097f PermissionUpdatedForUserId
-0xbd79b86f RoleAdminChanged
-0x2f878811 RoleGranted
-0xf6391f5c RoleRevoked
-0x0db02788 StreamCreated
-0x74b7395f StreamDeleted
-0xa60b7935 StreamUpdated
-0xbc7cd75a Upgraded
-
-
-
-# StreamRegistryV5_1 functions
-0xa217fddf DEFAULT_ADMIN_ROLE()
-0xdbfc1d87 ENScreateStreamCallback()
-0x098d3228 MAX_INT()
-0x5901692e TRUSTED_ROLE()
-0x5e57966d addressToString()
-0x158c9b93 createMultipleStreamsWithPermissions()
-0x0ef8cdc7 createStream()
-0x78800c76 createStreamWithENS()
-0xbdca2948 createStreamWithPermissions()
-0x6453cbd7 deleteStream()
-0x3c6cffa9 ensCache()
-0x261a323e exists()
-0x0843564a getAddressKey()
-0xa020aa97 getDirectPermissionsForUser()
-0x9f967a70 getDirectPermissionsForUserId()
-0xe8f3828e getPermissionsForUser()
-0x7aa31f8c getPermissionsForUserId()
-0x248a9ca3 getRoleAdmin()
-0x6394fbd2 getStreamMetadata()
-0x353f8500 getTrustedRole()
-0x931a314d getUserKeyForUserId()
-0x997e8aaa grantPermission()
-0x76052684 grantPermissionForUserId()
-0x466f878e grantPublicPermission()
-0x2f2ff15d grantRole()
-0xf7f5078c hasDirectPermission()
-0x88b21038 hasPermission()
-0xfb5642a0 hasPublicPermission()
-0x91d14854 hasRole()
-0x485cc955 initialize()
-0x572b6c05 isTrustedForwarder()
-0x36568abe renounceRole()
-0x50b5422b revokeAllPermissionsForUser()
-0xd7243b69 revokeAllPermissionsForUserId()
-0x3e397aea revokePermission()
-0xdffb8f82 revokePermissionForUserId()
-0x272cc993 revokePublicPermission()
-0xd547741f revokeRole()
-0x79afefcd setEnsCache()
-0x7b3681b5 setExpirationTime()
-0xf0b51b0e setExpirationTimeForUserId()
-0x2f55f732 setMultipleStreamPermissionsForUserIds()
-0x470fd671 setPermissions()
-0xd2d78c3e setPermissionsForUser()
-0x50050964 setPermissionsForUserIds()
-0x72c9f695 setPermissionsMultipleStreams()
-0xa8989d3f setPublicPermission()
-0xda742228 setTrustedForwarder()
-0x86902fe9 streamIdToMetadata()
-0xf36d4849 streamIdToPermissions()
-0xf5cc35a4 streamIdToPublicPermissionUserKey()
-0x84e524e8 streamIdToVersion()
-0x01ffc9a7 supportsInterface()
-0xb6a91597 trustedSetPermissionsForUser()
-0x42617fe7 updateStreamMetadata()
-0x3659cfe6 upgradeTo()
-0x4f1ef286 upgradeToAndCall()
-0x54fd4d50 version()
-
-# StreamRegistryV5_1 events
 0x7e644d79 AdminChanged
 0x1cf3b03a BeaconUpgraded
 0xd22d5803 PermissionUpdated
