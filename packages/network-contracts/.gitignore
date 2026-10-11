@@ -8,3 +8,4 @@
 /localConfig.json
 streamr-network-contracts-*.tgz
 codehashes.json
+*-address.txt
