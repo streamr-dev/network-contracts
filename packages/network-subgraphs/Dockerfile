@@ -1,4 +1,4 @@
-FROM node:20-bookworm
+FROM node:26-bookworm
 
 # RUN apk add libsecret-dev
 RUN apt update
